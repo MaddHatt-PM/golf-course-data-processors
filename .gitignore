@@ -1,0 +1,7 @@
+# Unity Directories
+TreeDemo/Library/
+TreeDemo/Temp
+TreeDemo/Logs
+TreeDemo/obj/Debug
+
+*.pyc
