@@ -1,7 +1,7 @@
-# Unity Directories
-TreeDemo/Library/
-TreeDemo/Temp
-TreeDemo/Logs
-TreeDemo/obj/Debug
+# Unity Directories with autogen files
+VisualizerTool/Library/
+VisualizerTool/Temp
+VisualizerTool/Logs
+VisualizerTool/obj/Debug
 
 *.pyc
