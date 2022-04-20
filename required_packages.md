@@ -7,3 +7,5 @@ PyAutoGUI
 matplotlib
 opencv-python
 geographiclib
+
+git lfs
