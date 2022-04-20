@@ -97,18 +97,17 @@ class PolygonDrawer(object):
             else:
                 print("item not found")
 
-    # 960x540
     # feature types fairway = 0, green = 1, sandtraps = 2, done = 3
     def run(self, feature_type, recurse_img):
         self.holder_list = []
         self.holder_list_adj = []
 
-        # print("Length: %d\n" % len(self.holder_list))
         self.featureCanv = recurse_img
         if not feature_type in ("f", "s", "g", "d"):
             return "incorrect feature type"
 
         working_index = len(self.points[feature_type]) - 1
+
         # Let's create our working window and set a mouse callback to handle events
         cv2.namedWindow(self.window_name, flags=cv2.cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.window_name, 1280, 720)
@@ -128,11 +127,11 @@ class PolygonDrawer(object):
                     np.array([self.holder_list]),
                     False,
                     FINAL_LINE_COLOR,
-                    1,
+                    thickness=3,
                 )
-                # And  also show what the current segment would look like
+                # And also show what the current segment would look like
                 cv2.line(
-                    self.canvas, self.holder_list[-1], self.current, WORKING_LINE_COLOR
+                    self.canvas, self.holder_list[-1], self.current, WORKING_LINE_COLOR, thickness=3
                 )
             # Update the window
             cv2.imshow(self.window_name, self.canvas)
@@ -145,17 +144,9 @@ class PolygonDrawer(object):
         self.points_adj[feature_type].append(self.holder_list_adj)
 
         # User finised entering the polygon points, so let's make the final drawing
-        ##canvas = cv2.imread("PIL_IMAGE.tif")
-        # of a filled polygon
-        print(type(feature_type))
         print(feature_type)
         feature_index = self.getIndex(feature_type, ("f", "s", "g", "d"))
-        #        for i,j in enumerate(('f','s','g','d')):
-        #            if j == feature_type:
-        #                fill_index = i
         if len(self.points[feature_type][working_index]) > 0:
-            # np.array([self.points[feature_type][working_index]])
-            # cv2.fillPoly(self.canvas, np.array([self.points[feature_type][working_index]]), FINAL_LINE_COLOR)
             cv2.fillPoly(self.canvas, np.array([self.holder_list]), FINAL_LINE_COLOR)
             cv2.fillPoly(
                 self.featureCanv,
@@ -170,6 +161,7 @@ class PolygonDrawer(object):
         cv2.namedWindow(FEATURE_NAMES[feature_index], flags=cv2.cv2.WINDOW_NORMAL)
         cv2.resizeWindow(FEATURE_NAMES[feature_index], 1280, 720)
         cv2.imshow(FEATURE_NAMES[feature_index], self.featureCanv)
+
         # Waiting for the user to press any key
         cv2.waitKey()
         cv2.waitKey()

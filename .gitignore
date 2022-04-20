@@ -1,7 +1,13 @@
+<<<<<<< HEAD
 # Unity Directories
+=======
+>>>>>>> cbed40b2d866622f5744d576802ec9eb907fdd20
 TreeDemo/Library/
 TreeDemo/Temp
 TreeDemo/Logs
 TreeDemo/obj/Debug
+<<<<<<< HEAD
 
 *.pyc
+=======
+>>>>>>> cbed40b2d866622f5744d576802ec9eb907fdd20
