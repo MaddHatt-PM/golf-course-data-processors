@@ -1,5 +1,6 @@
 numpy
 pandas
+openpyxl
 PyAutoGUI
 opencv-python
 geographiclib
