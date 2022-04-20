@@ -8,8 +8,7 @@ import json
 # Uses geogrpahicLib to easily calculate distance between
 from geographiclib.geodesic import Geodesic
 
-# APIKEY = '&key=AIzaSyC9Q5B4FPVNNyZQtMXFULbX2_LjT5rJCT4'
-APIKEY = "&key=AIzaSyAi63zbrCv-tiXms4o6lnhY1c1W1MpzWZ0"
+APIKEY = "&key=AIzaSyAi63zbrCv-tiXms4o6lnhY1c1W1MpzWZ0" # MaddHatt.pm@gmail.com
 
 # This program takes as input: 4 points of (lat,long)
 # And outputs avg slope of elevation, as well as if Uphill, or Downhill

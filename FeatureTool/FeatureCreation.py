@@ -6,12 +6,12 @@ Changes:
 *Debugged
 *Added use of background images
 *Output changed for use with blender
-*
+
 """
 
-import pandas as pd
-import numpy as np
 import cv2
+import numpy as np
+import pandas as pd
 import pyautogui as pag
 
 
@@ -67,8 +67,7 @@ class PolygonDrawer(object):
         self.holder_list_adj = []
 
     def on_mouse(
-        self, event, x, y, buttons, user_param
-    ):  # , holder_list, holder_list_adj):
+        self, event, x, y, buttons, user_param):
         # Mouse callback that gets called for every mouse event (i.e. moving, clicking, etc.)
         adj_y = self.canvas.shape[0] - y
         if self.done:  # Nothing more to do
@@ -181,7 +180,6 @@ class PolygonDrawer(object):
 
 
 # ============================================================================
-
 if __name__ == "__main__":
     pd = PolygonDrawer("Polygon", "PIL_IMAGE.tif")
     feature_image = pd.featureCanv
