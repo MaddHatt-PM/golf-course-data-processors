@@ -12,19 +12,27 @@ public class PerlinCSVGenerator : MonoBehaviour
 {
     public TextAsset target;
     public TextAsset targetInfo;
-    public float noiseScale = 1f;
-    public float spaceScale = 100f;
-    public float elevationScale = 5f;
+
+    
+
     public float width = 10f;
     public float length = 15f;
+    public Vector2 offset;
     public float sampleDistance = 1f;
+
+    public bool autorefresh = false;
+
+    void OnValidate()
+    {
+        if (autorefresh) Generate();
+    }
 
     [Button("Generate")]
     public void Generate()
     {
         string targetContents = "[X]-Latitude,[Y]-Longitude,[Z]-Elevation\n";
         Vector3 pos = Vector3.zero;
-        float seed = Random.Range(0f, 9_999_999f);
+        // float seed = Random.Range(0f, 999f);
         int xIter = 0, yIter = 0;
 
         for (float x = 0f; x < width; x += width / sampleDistance)
@@ -33,9 +41,9 @@ public class PerlinCSVGenerator : MonoBehaviour
             yIter = 0;
             for (float y = 0f; y < length; y += length / sampleDistance)
             {
-                pos.x = spaceScale * x;
-                pos.y = spaceScale * y;
-                pos.z = elevationScale * spaceScale * Mathf.PerlinNoise((pos.x + seed) * noiseScale, (pos.y + seed) * noiseScale);
+                pos.x = x;
+                pos.y = y;
+                pos.z = Mathf.PerlinNoise((pos.x + offset.x), (pos.y + offset.y));
 
                 targetContents += string.Format("{0},{1},{2}\n", pos.x, pos.y, pos.z);
                 yIter++;
