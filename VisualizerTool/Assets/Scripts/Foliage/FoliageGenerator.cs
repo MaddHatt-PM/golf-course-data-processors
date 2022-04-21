@@ -40,12 +40,12 @@ public class FoliageGenerator : MonoBehaviour
     {
         foreach (FoliageBase fol in foliages)
         {
-            // Generate Mesh
-            meshFilter.sharedMesh = fol.GenerateMesh(meshFilter.mesh);
+            // Generate Mesh (leaks memory in EDIT mode, not important enough to fix yet)
+            meshFilter.sharedMesh = fol.GenerateMesh(new Mesh());
             Vector3[] meshPoints = meshFilter.sharedMesh.vertices;
 
             Gizmos.matrix = transform.localToWorldMatrix;
-            
+
             // // Generate Points
             // Gizmos.color = Color.red;
             // string pointsInfo = "";
@@ -65,7 +65,7 @@ public class FoliageGenerator : MonoBehaviour
             Gizmos.color = Color.green;
             for (int i = 1; i < profilePoints.Length; i++)
             {
-                Gizmos.DrawLine(profilePoints[i-1], profilePoints[i]);
+                Gizmos.DrawLine(profilePoints[i - 1], profilePoints[i]);
             }
             foreach (var point in profilePoints)
             {
