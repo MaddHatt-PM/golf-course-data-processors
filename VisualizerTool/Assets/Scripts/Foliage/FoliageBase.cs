@@ -96,7 +96,7 @@ public abstract class FoliageBase
         tris.Add((revolutionCount - 1) * stripCt);
         tris.Add(0);
 
-        // // // Add top pole and tris
+        // Add top pole and tris
         verts.Add(strip[strip.Length - 1]);
         int topVertID = verts.Count - 1;
         int stripOffset = stripCt - 1;

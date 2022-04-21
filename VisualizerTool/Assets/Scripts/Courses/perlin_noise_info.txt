@@ -1,2 +1,2 @@
 X-SampleCount, Y-SampleCount
-76,76
+59,59
