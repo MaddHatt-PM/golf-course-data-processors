@@ -37,7 +37,7 @@ cv2.imwrite("holeImg.tif", resultCv)
 
 # display the image
 cv2.namedWindow("hole", flags=cv2.cv2.WINDOW_NORMAL)
-cv2.resizeWindow("hole", 1280, 720)
+cv2.resizeWindow("hole", result.width, result.height)
 cv2.imshow("hole", resultCv)
 if cv2.waitKey():
     cv2.destroyAllWindows()
