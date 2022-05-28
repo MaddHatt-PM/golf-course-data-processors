@@ -20,12 +20,13 @@ Changes:
 
 """
 
-import requests
+import sys
 import time
+import requests
+import APIKeys as keys
+from PIL import Image
 from io import BytesIO
 from math import log, exp, tan, atan, ceil, pi
-from PIL import Image
-import sys
 
 
 class SatelliteInterface:
@@ -144,6 +145,6 @@ if __name__ == "__main__":
     SE_lat_long = (35.578649, -82.497227)
 
     zoom = 18  # be careful not to get too many images!
-    newSi = SatelliteInterface("AIzaSyAi63zbrCv-tiXms4o6lnhY1c1W1MpzWZ0")
+    newSi = SatelliteInterface(keys.google_maps)
     result = newSi.get_maps_image(NW_lat_long, SE_lat_long, zoom=18)
     result.show()

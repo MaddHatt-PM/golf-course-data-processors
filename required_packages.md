@@ -3,6 +3,7 @@ scipy
 pandas
 plotly
 openpyxl
+ttkthemes
 PyAutoGUI
 matplotlib
 opencv-python
