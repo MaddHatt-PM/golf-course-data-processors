@@ -17,11 +17,11 @@ from GoogleMapsAPI import SatelliteInterface as si
 # Folder setup
 areaBase = Path("SavedAreas/")
 areaName = areaBase.joinpath(Path("area_name/"))
-sateliteImg = Path("SateliteImg.tif")
+sateliteImg = Path("SateliteImg-Test.tif")
 areaName.mkdir(parents=True, exist_ok=True)
 
 # New instance of ApiInterface
-newSi = si(keys.google_maps)  # Maddhatt.pm@gmail.com account
+newSi = si(keys.google_maps)
 
 # Map Coordinates to retrieve
 NW_lat_long = (35.579718, -82.500727)
