@@ -1,31 +1,36 @@
+'''
+@Author 2022: Patt Martin
+Description:
+    All GUI Drawing and Event Handling
+
+Tasklist:
+    - Figure out a nicer way to split up the UI code before this class becomes too large
+    - [NewAreaPopup] Change around execute_download_btn() to only reload the program for new projects
+    - [NewAreaPopup] Figure out how to detect changes on Entry fields so that the download button can be validated
+    - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
+'''
+
+import os
 import tkinter as tk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
+from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
+from LoadedAsset import loaded_asset
 
-class utilities:
+from DownloadData import download
+from DownloadData import services
+
+
+class ui_colors:
     # Colors: https://materialui.co/colors/
     canvas_col:str = "#212121"
     ui_bgm_col:str = "#424242" 
 
-class loaded_asset:
-    def __init__(self, savename:str):
-        self.saveName:str = savename
-        self.loadFile:str = Path("SavedAreas/" + savename + "/" + savename + ".area")
-        self.sateliteImg:Path = Path("SavedAreas/" + savename + "/Satelite.tif")
-        self.coordinates:Path = Path("SavedAreas/" + savename + "/Coordinates.csv")
-        self.elevationImg:Path = Path("SavedAreas/" + savename + "/Elevation.tif")
-        self.elevationCSV:Path = Path("SavedAreas/" + savename + "/Elevation.csv")
-        
-    def does_satelite_data_exist(self) -> bool:
-        print(self.sateliteImg)
-        return self.sateliteImg.is_file()
-
-class TerrainEditor:
+class main_window:
     def __init__(self, target:loaded_asset):
         self.root = tk.Tk()
         self.target:loaded_asset = target
-        self.prefsPath = Path("AppAssets/prefs.txt")
+        self.prefsPath = Path("AppAssets/prefs.windowprefs")
 
         self.z_scale = 1.0 # unused for now, implement later
 
@@ -35,43 +40,91 @@ class TerrainEditor:
         self.image_pi:PhotoImage = None
 
     # -------------------------------------------------------------- #
-    # --- Event Handling ------------------------------------------- #
-    def do_nothing(self):
-        pass
+    # --- New Area UI ---------------------------------------------- #
+    def new_area_popup(self, isMainWindow:bool=False):
+        '''
+        UI for downloading new areas.
+        Popup is designated as the rootUI when no loaded_asset is present
+        '''
+        if isMainWindow == True:
+            popup = self.root
+        else:
+            popup=tk.Toplevel()
+            popup.grab_set()
+            popup.focus_force()
 
-    def new_area_popup(self):
-        popup=tk.Toplevel()
-        popup.grab_set()
-        popup.focus_force()
         popup.resizable(False, False)
-        # popup.geometry("600x200")
+        self.filename = tk.StringVar()
+        self.p0 = tk.StringVar()
+        self.p1 = tk.StringVar()
 
         Label(popup, text="Enter two coordinates").grid(row=0)
-        Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1)
+        Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1, padx=20)
 
-        placer = Frame(popup)
-        placer.grid(row=2)
+        prompts_f = Frame(popup)
+        prompts_f.grid(row=2)
 
-        Label(placer, text="Coordinate NW").grid(row=0, column=0)
-        pt_a_field = Entry(placer).grid(row=0, column=1)
+        Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
+        filename_entry = Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
 
-        Label(placer, text="Coordinate SE").grid(row=1, column=0)
-        pt_b_field = Entry(placer).grid(row=1, column=1)
+        Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
+        pt_a_entry = Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
 
+        Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
+        pt_b_entry = Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
 
-        cancel_btn = Button(placer, text="Cancel", command=self.print_test, width=20)
-        cancel_btn.grid(row=2, column=0, sticky="nswe")
+        buttons_f = Frame(popup)
+        buttons_f.grid(row=3)
+        cancel_btn = Button(buttons_f, text="Cancel", command=popup.destroy, width=20)
+        cancel_btn.grid(row=0, column=0, sticky="nswe", pady=10)
 
-        enter_btn = Button(placer, text="Enter", command=self.print_test, width=20)
-        enter_btn.grid(row=2, column=1, sticky="nswe")
+        enter_btn = Button(buttons_f,
+                           text="Enter",
+                        #    state=self.validate_enter_btn(filename=filename, pt_a=pt_a, pt_b=pt_b),
+                           command=self.execute_download_btn,
+                           width=20)
 
+        enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
 
+    def execute_download_btn(self):
+        '''Setup download environment, pull data via API, then reload program'''
+        # Move to disabling the button state when I figure tkinter callbacks
+        if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
+            print("disabled")
+            return
 
+        newArea = loaded_asset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+        print(str(newArea.coordinates()))
+        download(target=newArea, service=services.google_satelite)
+        
+        self.root.destroy()
+        os.system("py run.py " + newArea.saveName)
 
-    def print_test(self, event):
+        
+    def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
+        '''
+        Check if any variables are empty before allowing a download.
+        Returns tk.state:str for a button
+        '''
+        if filename.get().strip() == False:
+            return tk.DISABLED
+
+        try:
+            eval(pt_a.get())
+            eval(pt_b.get())
+        except:
+            return tk.DISABLED
+
+        return tk.ACTIVE
+
+    # -------------------------------------------------------------- #
+    # --- Event Handling ------------------------------------------- #
+    def print_test(self):
+        '''Dummy function for quick testing'''
         print("test")
 
     def on_close(self):
+        '''Write window geometry before exiting'''
         with open(str(self.prefsPath), 'w') as prefs:
             prefs.write(self.root.geometry())
             prefs.write("\n")
@@ -88,14 +141,14 @@ class TerrainEditor:
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         self.redraw_canvas()
     
-    def redraw_canvas(self, event=None):
+    def redraw_canvas(self):
         img_box = self.canvas.bbox(self.container)
         canvas_box = (self.canvas.canvasx(0), 
                       self.canvas.canvasy(0),
                       self.canvas.canvasx(self.canvas.winfo_width()),
                       self.canvas.canvasy(self.canvas.winfo_height()))
 
-        overscroll = 600
+        overscroll = 1000
         scroll_bbox = [min(img_box[0] - overscroll, canvas_box[0]), min(img_box[1] - overscroll, canvas_box[1]),  
                        max(img_box[2] + overscroll, canvas_box[2]), max(img_box[3] + overscroll, canvas_box[3])]
 
@@ -113,7 +166,8 @@ class TerrainEditor:
         x2 = min(canvas_box[2], img_box[2]) - img_box[0]
         y2 = min(canvas_box[3], img_box[3]) - img_box[1]
 
-        if int(x2 - x1) > 0 and int(y2 - y1) > 0:  # show image if it in the visible area
+        # show image if it in the visible area
+        if int(x2 - x1) > 0 and int(y2 - y1) > 0:
             x = min(int(x2 / self.z_scale), self.image_raw.width)
             y = min(int(y2 / self.z_scale), self.image_raw.height)
 
@@ -122,42 +176,45 @@ class TerrainEditor:
             imageid = self.canvas.create_image(max(canvas_box[0], img_box[0]),
                                                max(canvas_box[1], img_box[1]),
                                                anchor='nw', image=imagetk)
-            # self.canvas.lower(imageid)  # set image into background
+
+            # Lower image data for overlaying later
+            self.canvas.lower(imageid)
 
 
     # -------------------------------------------------------------- #
     # --- Sub-UI Drawing ------------------------------------------- #
-    def define_menubar(self, root:Tk):
+    def setup_menubar(self, root:Tk):
         menubar = Menu(root)
 
         filemenu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New", command=self.do_nothing)
-        filemenu.add_command(label="Open", command=self.do_nothing)
-        filemenu.add_command(label="Save", command=self.do_nothing)
-        filemenu.add_command(label="Revert", command=self.do_nothing)
+        filemenu.add_command(label="New", command=self.new_area_popup)
+        filemenu.add_command(label="Open", command=self.print_test, state=tk.DISABLED)
+        filemenu.add_command(label="Save", command=self.print_test, state=tk.DISABLED)
+        filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
-        filemenu.add_command(label="Quit", command=self.do_nothing)
+        filemenu.add_command(label="Quit", command=self.on_close)
         menubar.add_cascade(label="File", menu=filemenu)
 
         helpmenu = Menu(menubar, tearoff=0)
-        helpmenu.add_command(label="About Me", command=self.do_nothing)
+        helpmenu.add_command(label="About Me", command=self.print_test)
         menubar.add_cascade(label="Help", menu=helpmenu)
         return menubar
 
-    def draw_inspector(self):
-        inspector = Frame(self.root, bg=utilities.ui_bgm_col, padx=0,pady=0)
+    def setup_inspector(self):
+        inspector = Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
         
-        Frame(self.root, bg=utilities.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
 
         widthSize = 36
-        tk.Label(inspector, text="", width=widthSize, height=1, bg=utilities.ui_bgm_col).pack(anchor="s")
+        tk.Label(inspector, text="", width=widthSize, height=1, bg=ui_colors.ui_bgm_col).pack(anchor="s")
 
-        tk.Label(inspector, text="Hello World").pack()
-        tk.Button(inspector, text="Open popup", command=self.new_area_popup).pack()
+        tk.Label(inspector, text="Inspector for precision editing").pack()
+        tk.Button(inspector, text="Download new area", command=self.new_area_popup).pack()
 
-    def draw_viewport(self):
-        viewport = Frame(self.root, bg=utilities.canvas_col)
+    def setup_viewport(self):
+        
+        viewport = Frame(self.root, bg=ui_colors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
         
         satelite_raw = Image.open(self.target.sateliteImg)
@@ -168,7 +225,7 @@ class TerrainEditor:
         self.image_pi = satelite_pi
 
         self.canvas = Canvas(viewport)
-        self.canvas.configure(bg=utilities.canvas_col, highlightthickness=0)
+        self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
         self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
@@ -178,27 +235,32 @@ class TerrainEditor:
 
         self.container = self.canvas.create_rectangle(0, 0, self.image_raw.width, self.image_raw.height, width=0)
 
-    def draw_statusbar(self):
-        statusbar = Frame(self.root, bg=utilities.ui_bgm_col)
+    def setup_statusbar(self):
+        statusbar = Frame(self.root, bg=ui_colors.ui_bgm_col)
         statusbar.grid(row=2, column= 0, sticky="nswe")
-        status = tk.Label(statusbar, text="Hello World", bg=utilities.ui_bgm_col, fg="white")
+        status = tk.Label(statusbar, text="Hello World", bg=ui_colors.ui_bgm_col, fg="white")
         status.pack(anchor="w")
 
-    def draw_blanks(self):
-        Frame(self.root, bg=utilities.ui_bgm_col, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
-        Frame(self.root, bg=utilities.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+    def setup_blanks(self):
+        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
+        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
 
 
     # -------------------------------------------------------------- #
     # --- Root-UI Drawing ------------------------------------------ #
     def define_root(self):
+        if (self.target == None):
+            self.root.title("None selected")
+            self.new_area_popup(isMainWindow=True)
+            return self.root
+
         self.root.title(self.target.saveName + " - Terrain Viewer")
         self.root.minsize(width=500, height=400)
         self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
-        self.root.config(bg=utilities.canvas_col)
+        self.root.config(bg=ui_colors.canvas_col)
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=5)
-        self.root.config(menu=self.define_menubar(self.root))
+        self.root.config(menu=self.setup_menubar(self.root))
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # Read pref file for window geometry
@@ -210,17 +272,13 @@ class TerrainEditor:
                 self.root.state(prefs[1])
 
         # UI Drawing
-        self.draw_viewport()
-        self.draw_statusbar()
-        self.draw_inspector()
-        self.draw_blanks()
+        self.setup_viewport()
+        self.setup_statusbar()
+        self.setup_inspector()
+        self.setup_blanks()
 
         # Seperators for visual clarity
         Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
         Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
 
         return self.root
-
-if __name__ == "__main__":
-    app = TerrainEditor(target=loaded_asset(savename="Demo")).define_root()
-    app.mainloop()

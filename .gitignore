@@ -5,3 +5,5 @@ VisualizerTool/Logs
 VisualizerTool/obj/Debug
 
 *.pyc
+FeatureTool/__pycache__/GoogleMapsAPI.cpython-39.pyc
+FeatureTool/AppAssets/prefs.windowprefs

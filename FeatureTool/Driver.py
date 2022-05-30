@@ -38,7 +38,7 @@ def pil_to_cv(pil_image):
     return open_cv_image
 
 
-# cv imagef
+# cv image
 resultCv = pil_to_cv(result)
 cv2.imwrite(filename=str(areaName.joinpath(sateliteImg)), img=resultCv)
 

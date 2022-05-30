@@ -18,6 +18,11 @@ Adapted by Adrian Bruno
 Changes:
 * Object Orientation
 
+Adapted by Patt Martin
+Changes:
+* Added print() to show progress in console
+* Added get_image_count() for API counting
+
 """
 
 import sys
@@ -64,6 +69,24 @@ class SatelliteInterface:
         lon = mx
         lat = 2 * atan(exp(my)) - tau / 4
         return lat, lon
+
+    def get_image_count(self, NW_lat_long, SE_lat_long, zoom=18) -> int:
+        NW_lat_long = [i * DEGREE for i in NW_lat_long]
+        SE_lat_long = [i * DEGREE for i in SE_lat_long]
+
+        ullat, ullon = NW_lat_long
+        lrlat, lrlon = SE_lat_long
+
+        # convert all these coordinates to pixels
+        ulx, uly = self.latlon2pixels(ullat, ullon, zoom)
+        lrx, lry = self.latlon2pixels(lrlat, lrlon, zoom)
+
+        # calculate total pixel dimensions of final image
+        dx, dy = lrx - ulx, uly - lry
+
+        # calculate rows and columns
+        cols, rows = ceil(dx / MAXSIZE), ceil(dy / MAXSIZE)
+        return cols * rows
 
     def get_maps_image(
         self,
