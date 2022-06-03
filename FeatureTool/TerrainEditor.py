@@ -33,6 +33,9 @@ class main_window:
         self.prefsPath = Path("AppAssets/prefs.windowprefs")
 
         self.z_scale = 1.0 # unused for now, implement later
+        self.mouse_pos = (-100, -100)
+        self.status_text = tk.StringVar()
+        self.status_text.set("")
 
         self.canvas:Canvas = None
         self.container = None
@@ -123,6 +126,21 @@ class main_window:
         '''Dummy function for quick testing'''
         print("test")
 
+    def motion(self, event):
+        self.mouse_pos = (event.x, event.y)
+        self.update_status_bar_text(event)
+
+    def update_status_bar_text(self, event):
+        text = ("mouse position: x={}, y={}").format(self.mouse_pos[0], self.mouse_pos[1])
+        text += '\t'
+        text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
+        text += '\t'
+
+        coords = self.canvas.coords(self.mouse_oval_id)
+        text += ("mouse oval: x={}, y={}").format(coords[0], coords[1])
+        self.status_text.set(text)
+        
+
     def on_close(self):
         '''Write window geometry before exiting'''
         with open(str(self.prefsPath), 'w') as prefs:
@@ -139,7 +157,11 @@ class main_window:
 
     def pan(self, event):
         self.canvas.scan_dragto(event.x, event.y, gain=1)
+        self.mouse_pos = (event.x, event.y)
+
+        self.update_status_bar_text(event)
         self.redraw_canvas()
+        
     
     def redraw_canvas(self):
         img_box = self.canvas.bbox(self.container)
@@ -180,7 +202,10 @@ class main_window:
             # Lower image data for overlaying later
             self.canvas.lower(imageid)
 
-        self.canvas.create_polygon(-200, -200, -200, 0, 200, 0, 400, -200, fill='red')
+        # self.canvas.move(self.pointer_oval_id, self.mouse_pos[0], self.mouse_pos[1])
+        self.canvas.move(self.mouse_oval_id, 500, 500)
+        self.canvas.pla
+        self.canvas.lift(self.mouse_oval_id)
     
 
     # -------------------------------------------------------------- #
@@ -234,13 +259,23 @@ class main_window:
         self.canvas.bind("<MouseWheel>", self.print_test)
         self.canvas.bind("<Button-2>", self.start_pan)
         self.canvas.bind("<B2-Motion>", self.pan)
+        self.canvas.bind("<Motion>", self.motion)
 
         self.container = self.canvas.create_rectangle(0, 0, self.image_raw.width, self.image_raw.height, width=0)
+
+        self.canvas.create_polygon(-200, -200, -200, 0, 200, 0, 400, -200, fill='red')
+
+        oval_size = 80
+        self.mouse_oval_id = self.canvas.create_oval(self.mouse_pos[0] - oval_size/2,
+                                self.mouse_pos[1] - oval_size/2,
+                                self.mouse_pos[0] + oval_size/2,
+                                self.mouse_pos[1] + oval_size/2,
+                                fill="blue")
 
     def setup_statusbar(self):
         statusbar = Frame(self.root, bg=ui_colors.ui_bgm_col)
         statusbar.grid(row=2, column= 0, sticky="nswe")
-        status = tk.Label(statusbar, text="Hello World", bg=ui_colors.ui_bgm_col, fg="white")
+        status = tk.Label(statusbar, textvariable=self.status_text, bg=ui_colors.ui_bgm_col, fg="white")
         status.pack(anchor="w")
 
     def setup_blanks(self):
