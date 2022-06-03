@@ -1,3 +1,17 @@
+v2.0 Notes
+To run:
+python3 run.py <saved-area-name>
+
+Progress Report 01 Changelist:
+    June 2nd
+     - UI framework change: cv/pyautogui -> tkinter
+     - Prompt for downloading new areas
+     - Hard coded corner values no longer needed, API keys is still hardcoded
+     - Added install_required.py to grab missing dependencies
+     - Files are now saved to their own directories to avoid overwrites
+
+---------------------------------------------------------------------
+v1.0 Notes
 Warning: tool overwrites existing output files
 (Hole_features.xlsx,holeImg.tif,Features.png,Img_data.txt,polygonMain.png)
 
