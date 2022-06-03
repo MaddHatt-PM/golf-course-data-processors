@@ -119,7 +119,7 @@ class main_window:
 
     # -------------------------------------------------------------- #
     # --- Event Handling ------------------------------------------- #
-    def print_test(self):
+    def print_test(self, *args, **kwargs):
         '''Dummy function for quick testing'''
         print("test")
 
@@ -180,6 +180,8 @@ class main_window:
             # Lower image data for overlaying later
             self.canvas.lower(imageid)
 
+        self.canvas.create_polygon(-200, -200, -200, 0, 200, 0, 400, -200, fill='red')
+    
 
     # -------------------------------------------------------------- #
     # --- Sub-UI Drawing ------------------------------------------- #
@@ -209,7 +211,7 @@ class main_window:
         widthSize = 36
         tk.Label(inspector, text="", width=widthSize, height=1, bg=ui_colors.ui_bgm_col).pack(anchor="s")
 
-        tk.Label(inspector, text="Inspector for precision editing").pack()
+        tk.Label(inspector, text="Inspector for precision editing").pack(fill="x")
         tk.Button(inspector, text="Download new area", command=self.new_area_popup).pack()
 
     def setup_viewport(self):
