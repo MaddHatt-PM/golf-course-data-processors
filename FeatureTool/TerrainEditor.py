@@ -10,21 +10,23 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
+from functools import partial
 import os
 import tkinter as tk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
+from matplotlib.pyplot import draw
+from CanvasDrawers import canvas_util
+from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 
 from DownloadData import download
 from DownloadData import services
+from Utilities import ui_colors
 
 
-class ui_colors:
-    # Colors: https://materialui.co/colors/
-    canvas_col:str = "#212121"
-    ui_bgm_col:str = "#424242" 
+
 
 class main_window:
     def __init__(self, target:loaded_asset):
@@ -100,10 +102,12 @@ class main_window:
         print(str(newArea.coordinates()))
         download(target=newArea, service=services.google_satelite)
         
-        self.root.destroy()
-        os.system("py run.py " + newArea.saveName)
-
+        self.restart_with_new_target(newArea.saveName)
         
+    def restart_with_new_target(self, area_name:str):
+        self.root.destroy()
+        os.system("py run.py " + area_name)
+
     def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
         '''
         Check if any variables are empty before allowing a download.
@@ -128,6 +132,7 @@ class main_window:
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
+        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos) )
         self.update_status_bar_text(event)
 
     def update_status_bar_text(self, event):
@@ -136,8 +141,9 @@ class main_window:
         text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         text += '\t'
 
-        coords = self.canvas.coords(self.mouse_oval_id)
+        coords = self.canvas.coords(self.id_mouse_oval)
         text += ("mouse oval: x={}, y={}").format(coords[0], coords[1])
+        
         self.status_text.set(text)
         
 
@@ -203,9 +209,9 @@ class main_window:
             self.canvas.lower(imageid)
 
         # self.canvas.move(self.pointer_oval_id, self.mouse_pos[0], self.mouse_pos[1])
-        self.canvas.move(self.mouse_oval_id, 500, 500)
-        self.canvas.pla
-        self.canvas.lift(self.mouse_oval_id)
+        # self.canvas.move(self.id_mouse_oval, 5, 5)
+
+        self.canvas.lift(self.id_mouse_oval)
     
 
     # -------------------------------------------------------------- #
@@ -215,32 +221,49 @@ class main_window:
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="New", command=self.new_area_popup)
-        filemenu.add_command(label="Open", command=self.print_test, state=tk.DISABLED)
+
+        open_menu = Menu(filemenu, tearoff=0)
+        directories = os.listdir('SavedAreas/')
+        
+        # partial() is used here to 'bake' dir into a new function
+        # otherwise command would always use the last value of dir
+        for dir in directories:
+            closure = partial(self.restart_with_new_target, dir)
+            open_menu.add_command(label=dir, command=closure)
+        
+        filemenu.add_cascade(label="Open", menu=open_menu)
+
         filemenu.add_command(label="Save", command=self.print_test, state=tk.DISABLED)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
-        filemenu.add_command(label="Quit", command=self.on_close)
+        filemenu.add_command(label="Quit                   ", command=self.on_close)
         menubar.add_cascade(label="File", menu=filemenu)
 
         helpmenu = Menu(menubar, tearoff=0)
         helpmenu.add_command(label="About Me", command=self.print_test)
+
         menubar.add_cascade(label="Help", menu=helpmenu)
         return menubar
 
     def setup_inspector(self):
-        inspector = Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0)
+        inspector = Frame(self.root, padx=0,pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
+
+        self.inspector_util = inspector_drawers(inspector)
+        drawer = self.inspector_util
         
         Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
 
-        widthSize = 36
-        tk.Label(inspector, text="", width=widthSize, height=1, bg=ui_colors.ui_bgm_col).pack(anchor="s")
-
-        tk.Label(inspector, text="Inspector for precision editing").pack(fill="x")
-        tk.Button(inspector, text="Download new area", command=self.new_area_popup).pack()
+        drawer.header(text="Test header")
+        drawer.seperator()
+        drawer.empty_space()
+        drawer.seperator()
+        drawer.empty_space()
+        drawer.seperator()
+        drawer.button(text="Test button", command=drawer.clear_inspector)
+        drawer.seperator()
 
     def setup_viewport(self):
-        
         viewport = Frame(self.root, bg=ui_colors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
         
@@ -252,6 +275,7 @@ class main_window:
         self.image_pi = satelite_pi
 
         self.canvas = Canvas(viewport)
+        self.canvasUtil = canvas_util(self.canvas, target=self.target)
         self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
         self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -262,15 +286,7 @@ class main_window:
         self.canvas.bind("<Motion>", self.motion)
 
         self.container = self.canvas.create_rectangle(0, 0, self.image_raw.width, self.image_raw.height, width=0)
-
-        self.canvas.create_polygon(-200, -200, -200, 0, 200, 0, 400, -200, fill='red')
-
-        oval_size = 80
-        self.mouse_oval_id = self.canvas.create_oval(self.mouse_pos[0] - oval_size/2,
-                                self.mouse_pos[1] - oval_size/2,
-                                self.mouse_pos[0] + oval_size/2,
-                                self.mouse_pos[1] + oval_size/2,
-                                fill="blue")
+        self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos), fill="blue")
 
     def setup_statusbar(self):
         statusbar = Frame(self.root, bg=ui_colors.ui_bgm_col)
@@ -279,8 +295,8 @@ class main_window:
         status.pack(anchor="w")
 
     def setup_blanks(self):
-        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
-        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+        Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
+        Frame(self.root, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
 
 
     # -------------------------------------------------------------- #
