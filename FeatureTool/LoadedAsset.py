@@ -4,7 +4,7 @@ from typing import List, Tuple
 class loaded_asset:
 
     def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None):
-        self.saveName:str = savename
+        self.savename:str = savename
 
         basePath = "SavedAreas/" + savename + "/" 
         Path(basePath).mkdir(parents=True, exist_ok=True)
@@ -38,7 +38,7 @@ class loaded_asset:
     def does_satelite_data_exist(self) -> bool:
         return self.sateliteImg.is_file()
 
-    def saveName(self): return self.saveName
+    def savename(self): return self.savename
     def loadFile_path(self): return self.loadFile
     def sateliteImg_path(self): return self.sateliteImg
     def elevationImg_path(self): return self.elevationImg

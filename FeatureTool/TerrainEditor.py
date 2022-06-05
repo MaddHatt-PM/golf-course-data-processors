@@ -17,6 +17,7 @@ from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Strin
 from pathlib import Path
 from PIL import Image, ImageTk
 from matplotlib.pyplot import draw
+from AreaAsset import area_asset
 from CanvasDrawers import canvas_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
@@ -43,6 +44,7 @@ class main_window:
         self.container = None
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
+        self.test_area = area_asset("example", target)
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -93,7 +95,7 @@ class main_window:
 
     def execute_download_btn(self):
         '''Setup download environment, pull data via API, then reload program'''
-        # Move to disabling the button state when I figure tkinter callbacks
+        # Move to disabling the button state when I figure tkinter out callbacks
         if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
             print("disabled")
             return
@@ -102,7 +104,7 @@ class main_window:
         print(str(newArea.coordinates()))
         download(target=newArea, service=services.google_satelite)
         
-        self.restart_with_new_target(newArea.saveName)
+        self.restart_with_new_target(newArea.savename)
         
     def restart_with_new_target(self, area_name:str):
         self.root.destroy()
@@ -132,21 +134,21 @@ class main_window:
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
-        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos) )
+        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
         self.update_status_bar_text(event)
 
     def update_status_bar_text(self, event):
-        text = ("mouse position: x={}, y={}").format(self.mouse_pos[0], self.mouse_pos[1])
-        text += '\t'
-        text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
-        text += '\t'
+        text = ("Mouse Position: x={}, y={}").format(self.mouse_pos[0], self.mouse_pos[1])
+        text += '        '
 
-        coords = self.canvas.coords(self.id_mouse_oval)
-        text += ("mouse oval: x={}, y={}").format(coords[0], coords[1])
+        earth_coords = self.canvasUtil.pixel_pt_to_earth_space(self.mouse_pos)
+        text += ("Earth Position: lat={}, lon={}").format(earth_coords[0], earth_coords[1])
+
+        # text += '        '
+        # text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         
         self.status_text.set(text)
         
-
     def on_close(self):
         '''Write window geometry before exiting'''
         with open(str(self.prefsPath), 'w') as prefs:
@@ -166,10 +168,9 @@ class main_window:
         self.mouse_pos = (event.x, event.y)
 
         self.update_status_bar_text(event)
-        self.redraw_canvas()
-        
+        self.redraw_viewport()
     
-    def redraw_canvas(self):
+    def redraw_viewport(self):
         img_box = self.canvas.bbox(self.container)
         canvas_box = (self.canvas.canvasx(0), 
                       self.canvas.canvasy(0),
@@ -194,7 +195,7 @@ class main_window:
         x2 = min(canvas_box[2], img_box[2]) - img_box[0]
         y2 = min(canvas_box[3], img_box[3]) - img_box[1]
 
-        # show image if it in the visible area
+        # show image if it is in the visible area
         if int(x2 - x1) > 0 and int(y2 - y1) > 0:
             x = min(int(x2 / self.z_scale), self.image_raw.width)
             y = min(int(y2 / self.z_scale), self.image_raw.height)
@@ -208,10 +209,9 @@ class main_window:
             # Lower image data for overlaying later
             self.canvas.lower(imageid)
 
-        # self.canvas.move(self.pointer_oval_id, self.mouse_pos[0], self.mouse_pos[1])
-        # self.canvas.move(self.id_mouse_oval, 5, 5)
-
         self.canvas.lift(self.id_mouse_oval)
+        self.test_area.clear_canvasIDs()
+        self.test_area.draw_area(self.canvas, self.canvasUtil, img_size=(self.image_raw.width, self.image_raw.height))
     
 
     # -------------------------------------------------------------- #
@@ -224,7 +224,7 @@ class main_window:
 
         open_menu = Menu(filemenu, tearoff=0)
         directories = os.listdir('SavedAreas/')
-        
+
         # partial() is used here to 'bake' dir into a new function
         # otherwise command would always use the last value of dir
         for dir in directories:
@@ -275,7 +275,7 @@ class main_window:
         self.image_pi = satelite_pi
 
         self.canvas = Canvas(viewport)
-        self.canvasUtil = canvas_util(self.canvas, target=self.target)
+        self.canvasUtil = canvas_util(self.canvas, target=self.target, image_raw=self.image_raw)
         self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
         self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -286,7 +286,10 @@ class main_window:
         self.canvas.bind("<Motion>", self.motion)
 
         self.container = self.canvas.create_rectangle(0, 0, self.image_raw.width, self.image_raw.height, width=0)
-        self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos), fill="blue")
+        self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True), fill="blue")
+
+        self.test_area.draw_area(self.canvas, self.canvasUtil, img_size=(self.image_raw.width, self.image_raw.height))
+        
 
     def setup_statusbar(self):
         statusbar = Frame(self.root, bg=ui_colors.ui_bgm_col)
@@ -307,7 +310,7 @@ class main_window:
             self.new_area_popup(isMainWindow=True)
             return self.root
 
-        self.root.title(self.target.saveName + " - Terrain Viewer")
+        self.root.title(self.target.savename + " - Terrain Viewer")
         self.root.minsize(width=500, height=400)
         self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
         self.root.config(bg=ui_colors.canvas_col)
