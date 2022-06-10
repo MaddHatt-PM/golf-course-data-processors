@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class color_set:
     def __init__(self, path:str, fill:str) -> None:
         self.path = path
@@ -20,8 +21,6 @@ class ui_colors:
     green = color_set(path="#7CB342", fill="#66BB6A")
     orange = color_set(path="#FFA726", fill="#FF6F00")
     brown = color_set(path="#A1887F", fill="#4E342E")
-    
-
 
 class coord_mode(Enum):
     normalized = 0,

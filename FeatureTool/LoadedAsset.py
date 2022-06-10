@@ -7,7 +7,7 @@ class loaded_asset:
         self.savename:str = savename
 
         basePath = "SavedAreas/" + savename + "/" 
-        Path(basePath).mkdir(parents=True, exist_ok=True)
+        self.basePath:Path = Path(basePath).mkdir(parents=True, exist_ok=True)
 
         self.loadFile:Path = Path(basePath + savename + ".area")
         self.sateliteImg:Path = Path(basePath + "Satelite.tif")
