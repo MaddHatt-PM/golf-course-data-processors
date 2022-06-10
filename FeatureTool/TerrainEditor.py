@@ -42,7 +42,10 @@ class main_window:
         self.container = None
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
-        self.selected_area = area_asset("example", target)
+        try:
+            self.selected_area = area_asset("example", target)
+        except:
+            print("self.selected_area... Clean this up by getting the area_asset later")
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #

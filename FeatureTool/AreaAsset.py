@@ -175,6 +175,7 @@ class area_asset:
 
         pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
         pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
+
         lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.color.path, dash=(6,4))
         self.canvasIDs.append(lineID)
 
