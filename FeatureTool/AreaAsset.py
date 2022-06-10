@@ -22,6 +22,7 @@ class area_asset:
         self.do_draw_fill = False
         self.possible_line = None
         self.is_fully_init = False
+        self.fill_img:Image.Image = None
 
         basepath = "SavedAreas/" + target.savename + "/" 
 
@@ -121,6 +122,32 @@ class area_asset:
         self.stroke_data.pop(id)
         self.is_dirty = True
 
+        
+    # -------------------------------------------------------------- #
+    # --- Utility functions ---------------------------------------- #
+    def is_point_in_area(self, pt:tuple, coord_id:coord_mode) -> bool:
+        '''
+        This method of checking if a point is within an
+        irregular polygon is directly tied to the satellite
+        image's dimensions. This should be replaced with an
+        independent method later on.
+
+        Another bandaid solution would be to supersize the image.
+        '''
+        if self.fill_img is None:
+            self.draw_fill(export_to_img=True)
+
+        if coord_id is coord_mode.pixel:
+            pass
+        elif coord_id is coord_mode.earth:
+            pt = self.util.earth_pt_to_pixel_space(pt, to_int=True)
+        elif coord_id is coord_mode.normalized:
+            pt = self.util.norm_pt_to_pixel_space(pt, to_int=True)
+
+        # Check only the red channel
+        return self.fill_img.getpixel(pt)[0] > 128
+
+
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
     def draw(self):
@@ -218,7 +245,10 @@ class area_asset:
             drawer = ImageDraw.Draw(fill_img)
             drawer.polygon(bgm_xy_coords, fill="black")
             drawer.polygon(polygon_points, fill="white")
+
             fill_img.save("TEST.png")
+            self.fill_img = fill_img
+            
 
         polygonID = self.canvas.create_polygon(polygon_points, fill=self.color.fill)
         self.canvasIDs.append(polygonID)
@@ -245,7 +275,6 @@ class area_asset:
         ids.append(fill_btn)
         ids.append(self.drawer.seperator())
 
-        
         count_header = self.drawer.header(text="(x,y) Coordinates: {}".format(len(self.stroke_data)))
         ids.append(count_header)
 

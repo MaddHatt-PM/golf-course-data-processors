@@ -23,8 +23,8 @@ from CanvasDrawers import canvas_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 
-from DownloadData import download
-from DownloadData import services
+from DownloadData import download_imagery
+from DownloadData import img_services
 from Utilities import coord_mode, ui_colors
 
 class main_window:
@@ -100,7 +100,7 @@ class main_window:
 
         newArea = loaded_asset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
         print(str(newArea.coordinates()))
-        download(target=newArea, service=services.google_satelite)
+        download_imagery(target=newArea, service=img_services.google_satelite)
         
         self.restart_with_new_target(newArea.savename)
         
@@ -260,7 +260,7 @@ class main_window:
 
         self.inspector_util = inspector_drawers(inspector)
         Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
-        
+
         drawer = self.inspector_util
         self.selected_area.draw_inspector(drawer)
 
