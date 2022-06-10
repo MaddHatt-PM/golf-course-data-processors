@@ -44,6 +44,10 @@ class canvas_util:
         Convert a pixel point to 0-1 normalization
         then to earth coordinates (lat, long).
         '''
+        pt = self.pixel_pt_to_norm_space(pt)
+        return self.norm_pt_to_earth_space(pt)
+
+    def pixel_pt_to_norm_space(self, pt) -> tuple:
         min_x = self.canvasRef.canvasx(0)
         max_x = self.image_raw.width
         min_y = self.canvasRef.canvasy(0)
@@ -52,9 +56,7 @@ class canvas_util:
         norm_x = (pt[0] + min_x) / (max_x)
         norm_y = (pt[1] + min_y) / (max_y)
 
-        # print(("normal: {}, {}\t\toffset:{}, {}").format(norm_x, norm_y, min_x, min_y))
-        pt = (norm_x, norm_y)
-        return self.norm_pt_to_earth_space(pt)
+        return norm_x, norm_y
 
 
     def norm_pt_to_pixel_space(self, pt) -> tuple:

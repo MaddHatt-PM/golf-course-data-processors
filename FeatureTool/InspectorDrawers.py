@@ -24,12 +24,20 @@ class inspector_drawers:
             item.destroy()
 
     def header(self, text=None, textVariable=None):
-        label = tk.Label(self.frame, text=text, textVariable=None,
+        text = tk.Label(self.frame, text=text, textVariable=None,
                          font=("Arial, 12"), anchor='w')
-        label.pack(fill='x')
+        text.pack(fill='x')
 
-        self.items.append(label)
-        return label
+        self.items.append(text)
+        return text
+
+    def label(self, text=None, textVariable=None):
+        text = tk.Label(self.frame, text=text, textVariable=None,
+                        anchor='e')
+        text.pack(fill='x', padx=5)
+
+        self.items.append(text)
+        return text
 
     def button(self, text=None, textVariable=None, command=None):
         button = tk.Button(self.frame, text=text, textvariable=textVariable, command=command)
