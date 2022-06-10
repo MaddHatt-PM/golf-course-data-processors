@@ -10,6 +10,7 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
+from cgi import test
 from functools import partial
 import os
 import tkinter as tk
@@ -24,10 +25,7 @@ from LoadedAsset import loaded_asset
 
 from DownloadData import download
 from DownloadData import services
-from Utilities import ui_colors
-
-
-
+from Utilities import coord_mode, ui_colors
 
 class main_window:
     def __init__(self, target:loaded_asset):
@@ -44,7 +42,7 @@ class main_window:
         self.container = None
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
-        self.test_area = area_asset("example", target)
+        self.selected_area = area_asset("example", target)
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -132,19 +130,29 @@ class main_window:
         '''Dummy function for quick testing'''
         print("test")
 
+    def handle_click(self, event):
+        self.selected_area.append_point( (event.x, event.y), coord_mode.pixel )
+        self.redraw_viewport()
+        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
-        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
+        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
         self.update_status_bar_text(event)
 
+        # Move around the oval underneath the cursor
+        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
+
     def update_status_bar_text(self, event):
+        spacer = '        '
+
         text = ("Mouse Position: x={}, y={}").format(self.mouse_pos[0], self.mouse_pos[1])
-        text += '        '
+        text += spacer
 
         earth_coords = self.canvasUtil.pixel_pt_to_earth_space(self.mouse_pos)
         text += ("Earth Position: lat={}, lon={}").format(earth_coords[0], earth_coords[1])
 
-        # text += '        '
+        # text += spacer
         # text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         
         self.status_text.set(text)
@@ -210,8 +218,9 @@ class main_window:
             self.canvas.lower(imageid)
 
         self.canvas.lift(self.id_mouse_oval)
-        self.test_area.clear_canvasIDs()
-        self.test_area.draw_area(self.canvas, self.canvasUtil, img_size=(self.image_raw.width, self.image_raw.height))
+        
+        self.selected_area.draw()
+        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
     
 
     # -------------------------------------------------------------- #
@@ -250,18 +259,10 @@ class main_window:
         inspector.grid(row=0, column=2, sticky="nswe")
 
         self.inspector_util = inspector_drawers(inspector)
-        drawer = self.inspector_util
-        
         Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
-
-        drawer.header(text="Test header")
-        drawer.seperator()
-        drawer.empty_space()
-        drawer.seperator()
-        drawer.empty_space()
-        drawer.seperator()
-        drawer.button(text="Test button", command=drawer.clear_inspector)
-        drawer.seperator()
+        
+        drawer = self.inspector_util
+        self.selected_area.draw_inspector(drawer)
 
     def setup_viewport(self):
         viewport = Frame(self.root, bg=ui_colors.canvas_col)
@@ -280,15 +281,20 @@ class main_window:
         self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
+        self.canvas.bind("<Button-1>", self.handle_click)
         self.canvas.bind("<MouseWheel>", self.print_test)
         self.canvas.bind("<Button-2>", self.start_pan)
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
 
-        self.container = self.canvas.create_rectangle(0, 0, self.image_raw.width, self.image_raw.height, width=0)
+        img_size = self.image_raw.width, self.image_raw.height
+
+        self.container = self.canvas.create_rectangle(0, 0, *img_size, width=0)
         self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True), fill="blue")
 
-        self.test_area.draw_area(self.canvas, self.canvasUtil, img_size=(self.image_raw.width, self.image_raw.height))
+        self.selected_area.drawing_init(self.canvas, self.canvasUtil, img_size)
+        self.selected_area.draw_perimeter()
+        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
         
 
     def setup_statusbar(self):
