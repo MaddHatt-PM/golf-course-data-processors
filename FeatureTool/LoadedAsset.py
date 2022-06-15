@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Tuple
+from os import listdir, walk
 
 class loaded_asset:
 
@@ -7,7 +8,9 @@ class loaded_asset:
         self.savename:str = savename
 
         basePath = "SavedAreas/" + savename + "/" 
-        self.basePath:Path = Path(basePath).mkdir(parents=True, exist_ok=True)
+        self.basePath:Path = Path(basePath)
+        self.basePath.mkdir(parents=True, exist_ok=True)
+        print(self.basePath)
 
         self.loadFile:Path = Path(basePath + savename + ".area")
         self.sateliteImg:Path = Path(basePath + "Satelite.tif")

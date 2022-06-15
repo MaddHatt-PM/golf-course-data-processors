@@ -10,21 +10,19 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
-from cgi import test
 from functools import partial
 import os
 import tkinter as tk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
-from matplotlib.pyplot import draw
 from AreaAsset import area_asset
 from CanvasDrawers import canvas_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 
 from DownloadData import download_imagery
-from DownloadData import img_services
+from DownloadData import services
 from Utilities import coord_mode, ui_colors
 
 class main_window:
@@ -42,10 +40,19 @@ class main_window:
         self.container = None
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
-        try:
-            self.selected_area = area_asset("example", target)
-        except:
-            print("self.selected_area... Clean this up by getting the area_asset later")
+        self.selected_area = None
+
+        filenames = os.listdir(target.basePath)
+        self.areas = []
+        for name in filenames:
+            if "_area" in name:
+                area_name = name.split("_area")[0]
+                self.areas.append(area_asset(area_name, self.target))
+
+        # try:
+        #     self.selected_area = area_asset("example", target)
+        # except:
+        #     print("self.selected_area... Clean this up by getting the area_asset later")
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -103,7 +110,7 @@ class main_window:
 
         newArea = loaded_asset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
         print(str(newArea.coordinates()))
-        download_imagery(target=newArea, service=img_services.google_satelite)
+        download_imagery(target=newArea, service=services.google_satelite)
         
         self.restart_with_new_target(newArea.savename)
         
@@ -134,14 +141,20 @@ class main_window:
         print("test")
 
     def handle_click(self, event):
-        self.selected_area.append_point( (event.x, event.y), coord_mode.pixel )
+        if self.selected_area is not None:
+            self.selected_area.append_point((event.x, event.y), coord_mode.pixel)
+
         self.redraw_viewport()
-        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        
+        if self.selected_area is not None:
+            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
-        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
         self.update_status_bar_text(event)
+
+        if self.selected_area is not None:
+            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
 
         # Move around the oval underneath the cursor
         self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
@@ -222,8 +235,11 @@ class main_window:
 
         self.canvas.lift(self.id_mouse_oval)
         
-        self.selected_area.draw()
-        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        for area in self.areas:
+            area.draw()
+        
+        if self.selected_area:
+            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
     
 
     # -------------------------------------------------------------- #
@@ -264,8 +280,6 @@ class main_window:
         self.inspector_util = inspector_drawers(inspector)
         Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
 
-        drawer = self.inspector_util
-        self.selected_area.draw_inspector(drawer)
 
     def setup_viewport(self):
         viewport = Frame(self.root, bg=ui_colors.canvas_col)
@@ -290,14 +304,22 @@ class main_window:
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
 
-        img_size = self.image_raw.width, self.image_raw.height
+        self.img_size = self.image_raw.width, self.image_raw.height
 
-        self.container = self.canvas.create_rectangle(0, 0, *img_size, width=0)
+        self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
         self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True), fill="blue")
 
-        self.selected_area.drawing_init(self.canvas, self.canvasUtil, img_size)
+        for area in self.areas:
+            area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
+            area.draw()
+
+    def select_area(self, new_area:area_asset):
+        self.selected_area = new_area
+        self.selected_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.selected_area.draw_perimeter()
         self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        
+        self.selected_area.draw_inspector(self.inspector_util)
         
 
     def setup_statusbar(self):

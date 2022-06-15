@@ -26,18 +26,18 @@ class area_asset:
 
         basepath = "SavedAreas/" + target.savename + "/" 
 
-        self._prop_filepath = Path(basepath + name + "_prop.txt")
         self.fill_alpha = 0.25
         self.stroke_width = 3.0
         self.color = ui_colors.indigo
 
-        if self._prop_filepath.is_file():
-            with open(str(self._prop_filepath), 'r') as file:
+        self._settings_filepath = Path(basepath + name + "_prop.txt")
+        if self._settings_filepath.is_file():
+            with open(str(self._settings_filepath), 'r') as file:
                 # do later
                 pass
 
 
-        self._stroke_filepath = Path(basepath + name + "_path.csv")
+        self._stroke_filepath = Path(basepath + name + "_area.csv")
         self.coord_id:coord_mode = coord_mode.normalized
         self.stroke_data = []
 
@@ -61,10 +61,9 @@ class area_asset:
                         # and add to the raw data
                         self.stroke_data.append(eval(line))
 
-        self._filled_filepath = Path(basepath + name + "_fill.tif")
-        self.fill_img:Image = None
-        # https://www.geeksforgeeks.org/python-pil-imagedraw-draw-polygon-method/
 
+        self.fill_img:Image = None
+        self._filled_filepath = Path(basepath + name + "_fill.tif")
         if self._filled_filepath.is_file():
             self.fill_img = Image.open(self._filled_filepath)
         
@@ -147,6 +146,14 @@ class area_asset:
         # Check only the red channel
         return self.fill_img.getpixel(pt)[0] > 128
 
+    def get_points(self) -> list[tuple[float,float]]:
+        points:list[tuple[float,float]]
+        points.append((0.25, 0.25)) 
+        points.append((0.55, 0.25)) 
+        points.append((0.25, 0.55))
+
+        print("area_asset.get_points() => not implemented")
+        return points
 
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
@@ -159,6 +166,9 @@ class area_asset:
         self.draw_perimeter()
 
     def draw_perimeter(self):
+        if self.is_fully_init is False:
+            raise Exception("{} is not fully initiated, call drawing_init()")
+
         data = self.stroke_data
         img_size = self.img_size
         util = self.util
