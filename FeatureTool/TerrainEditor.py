@@ -13,7 +13,7 @@ Tasklist:
 from functools import partial
 import os
 import tkinter as tk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
+from tkinter import Button, Canvas, Entry, Frame, Label, Menu, OptionMenu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
 from AreaAsset import area_asset
@@ -133,6 +133,9 @@ class main_window:
             return tk.DISABLED
 
         return tk.ACTIVE
+
+    def create_new_area(self, name:str):
+        pass
 
     # -------------------------------------------------------------- #
     # --- Event Handling ------------------------------------------- #
@@ -276,9 +279,16 @@ class main_window:
     def setup_inspector(self):
         inspector = Frame(self.root, padx=0,pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
-
+        
         self.inspector_util = inspector_drawers(inspector)
         Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+
+        options = ["example-0", "example-1", "example-2" ]
+        dropdown_sel = tk.StringVar(self.root)
+        dropdown_sel.set(options[0])
+        dropdown = OptionMenu(inspector, dropdown_sel, *options)
+        dropdown.pack(fill='x')
+
 
 
     def setup_viewport(self):

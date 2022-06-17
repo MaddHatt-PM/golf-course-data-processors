@@ -1,11 +1,11 @@
-
-
+from datetime import datetime
 import json
 from pathlib import Path
 
 # ------------------------------------------------------------ #
 # --- File IO ------------------------------------------------ #
-storage_path = Path("AppAssets/api_tracker.json")
+storage_str = "AppAssets/api_tracker.json"
+storage_path = Path(storage_str)
 
 def __load_storage(path=None) -> dict[str, int]:
     if path is None:
@@ -13,14 +13,36 @@ def __load_storage(path=None) -> dict[str, int]:
 
     storage_raw = {}
 
+    # Check that the file exists and if its creation date matches this month
     if path.is_file():
-        with path.open(mode='r') as file:
-            storage_raw = json.loads(file.read())
-        return dict([a, int(x)] for a,x in storage_raw.items())
+        creation_timestamp = path.stat().st_ctime
+        creation_date = datetime.fromtimestamp(creation_timestamp)
+        
+        if creation_date.month == datetime.now().month:
+            with path.open(mode='r') as file:
+                storage_raw = json.loads(file.read())
+            return dict([a, int(x)] for a,x in storage_raw.items())
 
-    else:
-        empty_dict = {}
-        return empty_dict
+        # File is old and should be archived
+        else:
+            creation_timestamp = storage_path.stat().st_ctime
+            creation_date = datetime.fromtimestamp(creation_timestamp)
+            archive_str = storage_str
+            archive_str = archive_str.replace("AppAssets", "AppAssets/Archives")
+
+            month = str(creation_date.month).zfill(2)
+            year = str(creation_date.year)
+            year = year[len(year)-2:]
+            archive_str = archive_str.replace(".json", "_{}_{}.json".format(month, year))
+
+            archive_path = Path(archive_str)
+            archive_path.parent.mkdir(parents=True, exist_ok=True)
+            storage_path.rename(archive_path)
+            
+
+    # No file exists
+    empty_dict = {}
+    return empty_dict
 
 def __save_storage(storage:dict[str, int], path=None):
     if path is None:

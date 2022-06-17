@@ -1,14 +1,22 @@
 v2.0 Notes
 To run:
-python3 run.py <saved-area-name>
+python3 run.py <optional-saved-area-name>
 
 Progress Report 01 Changelist:
     June 2nd
-     - UI framework change: cv/pyautogui -> tkinter
-     - Prompt for downloading new areas
-     - Hard coded corner values no longer needed, API keys is still hardcoded
-     - Added install_required.py to grab missing dependencies
-     - Files are now saved to their own directories to avoid overwrites
+    [x] UI framework change: cv/pyautogui -> tkinter
+    [x] Prompt for downloading new areas
+    [x] Hard coded corner values no longer needed, API keys is still hardcoded
+    [x] Added install_required.py to grab missing dependencies
+    [x] Files are now saved to their own directories to avoid overwrites
+
+Ideas:
+    [ ] Get rid of the API file and change it to json information and the service class inside of AreaAsset
+    [ ] Display areas in the inspector via a drop down window
+    [x] Implement api request tracking
+    [x] Archive
+    [ ] Write area settings to json file
+    [ ] Handle API requests concurrently
 
 ---------------------------------------------------------------------
 v1.0 Notes
