@@ -1,12 +1,12 @@
 from enum import Enum
 import json
 from pathlib import Path
-from tkinter import Canvas, Frame
+from tkinter import Canvas, Frame, StringVar
 from turtle import pos
 from PIL import Image, ImageDraw
 from cv2 import line
 from matplotlib.pyplot import fill
-from CanvasDrawers import canvas_util
+from TransformUtil import transform_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 from Utilities import color_set, coord_mode, ui_colors
@@ -105,7 +105,7 @@ class area_asset:
         
         self.is_dirty = False
     
-    def drawing_init(self, canvas:Canvas, util:canvas_util, img_size:tuple):
+    def drawing_init(self, canvas:Canvas, util:transform_util, img_size:tuple):
         self.is_fully_init = True
 
         self.canvas = canvas
@@ -118,10 +118,12 @@ class area_asset:
     def modify_point(self, id:int, position:tuple):
         self.stroke_data[id] = position
         self.is_dirty = True
+        self.draw_inspector()
 
     def insert_point(self, position:tuple):
         self.stroke_data.insert(position)
         self.is_dirty = True
+        self.draw_inspector()
 
     def append_point(self, position:tuple, coordID:coord_mode):
         if (coordID == coord_mode.pixel):
@@ -134,18 +136,21 @@ class area_asset:
     def remove_point(self, id:int):
         self.stroke_data.pop(id)
         self.is_dirty = True
+        self.draw_inspector()
 
         
     # -------------------------------------------------------------- #
     # --- Utility functions ---------------------------------------- #
     def is_point_in_area(self, pt:tuple, coord_id:coord_mode) -> bool:
         '''
-        This method of checking if a point is within an
+        This method checks if a point is within an
         irregular polygon is directly tied to the satellite
         image's dimensions. This should be replaced with an
-        independent method later on.
+        independent method later
 
-        Another bandaid solution would be to supersize the image.
+        Bandaid solutions to refine edges would be to:
+            [a] supersize the image  
+            [b] average the value of surrounding pixels since getpixel() uses an int and not a float
         '''
         if self.fill_img is None:
             self.draw_fill(export_to_img=True)
@@ -288,24 +293,18 @@ class area_asset:
         if self.drawer is None:
             raise Exception("Trying to draw inspector without being fully initialized")
 
-        ids = self.inspectorIDs
-        for item in ids:
-            item.destroy()
+        self.drawer.clear_inspector()
+        self.drawer.header(text="Settings")
 
-        header = self.drawer.header(text=self.name)
-        ids.append(header)
-        ids.append(self.drawer.seperator())
-
-        header = self.drawer.header(text="Settings")
+        placeholder = StringVar()
+        placeholder.set("Entry Text")
+        self.drawer.labeled_entry(label_text="Example", entryVariable=placeholder)
         
+        
+        self.drawer.button(text="Toggle Fill", command=self.toggle_fill)
+        self.drawer.seperator()
 
-        fill_btn = self.drawer.button(text="Toggle Fill", command=self.toggle_fill)
-        ids.append(fill_btn)
-        ids.append(self.drawer.seperator())
-
-        count_header = self.drawer.header(text="(x,y) Coordinates: {}".format(len(self.stroke_data)))
-        ids.append(count_header)
+        self.drawer.header(text="(x,y) Coordinates: {}".format(len(self.stroke_data)))
 
         for pt in self.stroke_data:
-           item = self.drawer.label(text= "({0:.7f}, {0:.7f})".format(pt[0], pt[1]))
-           ids.append(item)
+           self.drawer.label(text= "({0:.7f}, {0:.7f})".format(pt[0], pt[1]))

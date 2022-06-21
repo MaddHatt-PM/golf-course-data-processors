@@ -13,11 +13,13 @@ Tasklist:
 from functools import partial
 import os
 import tkinter as tk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, OptionMenu, PhotoImage, StringVar, Tk
+from tkinter import OptionMenu, ttk
+from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
+from matplotlib.pyplot import draw
 from AreaAsset import area_asset
-from CanvasDrawers import canvas_util
+from TransformUtil import transform_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 
@@ -40,14 +42,17 @@ class main_window:
         self.container = None
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
-        self.selected_area = None
+        self.active_area = None
 
         filenames = os.listdir(target.basePath)
-        self.areas = []
+        self.areas:list[area_asset] = []
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
                 self.areas.append(area_asset(area_name, self.target))
+        self.area_names:list[str] = [x.name for x in self.areas]
+        if len(self.areas) != 0:
+            self.active_area = self.areas[0]
 
         # try:
         #     self.selected_area = area_asset("example", target)
@@ -144,20 +149,20 @@ class main_window:
         print("test")
 
     def handle_click(self, event):
-        if self.selected_area is not None:
-            self.selected_area.append_point((event.x, event.y), coord_mode.pixel)
+        if self.active_area is not None:
+            self.active_area.append_point((event.x, event.y), coord_mode.pixel)
 
         self.redraw_viewport()
         
-        if self.selected_area is not None:
-            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        if self.active_area is not None:
+            self.active_area.draw_last_point_to_cursor(self.mouse_pos)
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
         self.update_status_bar_text(event)
 
-        if self.selected_area is not None:
-            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        if self.active_area is not None:
+            self.active_area.draw_last_point_to_cursor(self.mouse_pos)
 
         # Move around the oval underneath the cursor
         self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
@@ -241,8 +246,8 @@ class main_window:
         for area in self.areas:
             area.draw()
         
-        if self.selected_area:
-            self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
+        if self.active_area:
+            self.active_area.draw_last_point_to_cursor(self.mouse_pos)
     
 
     # -------------------------------------------------------------- #
@@ -280,15 +285,28 @@ class main_window:
         inspector = Frame(self.root, padx=0,pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
         
+        # self.inspector_frame = Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0)
+        # self.inspector_frame.grid(row=2, column=2, sticky="nswe")
         self.inspector_util = inspector_drawers(inspector)
-        Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+        drawer = self.inspector_util
 
-        options = ["example-0", "example-1", "example-2" ]
+        area_selector_frame = Frame(inspector, padx=0, pady=0)
+        tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
+
         dropdown_sel = tk.StringVar(self.root)
-        dropdown_sel.set(options[0])
-        dropdown = OptionMenu(inspector, dropdown_sel, *options)
-        dropdown.pack(fill='x')
+        dropdown_sel.set(self.area_names[0])
+        dropdown = ttk.OptionMenu(area_selector_frame, dropdown_sel, self.area_names[0], *self.area_names, command=self.select_area)
+        dropdown.config(width=24)
+        dropdown.grid(row=0, column=1, sticky='ew')
 
+        add_area = ttk.Button(area_selector_frame, text='+', width=2)
+        add_area.grid(row=0, column=3)
+        
+        area_selector_frame.pack(fill="x", anchor="n", expand=False)
+        ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+
+        if self.active_area is not None:
+            self.active_area.draw_inspector(self.inspector_util)
 
 
     def setup_viewport(self):
@@ -303,7 +321,7 @@ class main_window:
         self.image_pi = satelite_pi
 
         self.canvas = Canvas(viewport)
-        self.canvasUtil = canvas_util(self.canvas, target=self.target, image_raw=self.image_raw)
+        self.canvasUtil = transform_util(self.canvas, target=self.target, image_raw=self.image_raw)
         self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
         self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -323,13 +341,18 @@ class main_window:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
             area.draw()
 
-    def select_area(self, new_area:area_asset):
-        self.selected_area = new_area
-        self.selected_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-        self.selected_area.draw_perimeter()
-        self.selected_area.draw_last_point_to_cursor(self.mouse_pos)
-        
-        self.selected_area.draw_inspector(self.inspector_util)
+    def select_area(self, choice):
+        self.inspector_util.clear_inspector()
+
+        for area in self.areas:
+            if area.name == choice:
+                self.active_area = area
+                break
+
+        self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
+        self.active_area.draw_perimeter()
+        self.active_area.draw_last_point_to_cursor(self.mouse_pos)
+        self.active_area.draw_inspector(self.inspector_util)
         
 
     def setup_statusbar(self):
