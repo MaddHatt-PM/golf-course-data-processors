@@ -1,6 +1,6 @@
 
 import tkinter as tk
-from tkinter import Tk, Widget
+from tkinter import Frame, StringVar, Tk, Widget
 from tkinter import ttk
 from turtle import width
 
@@ -14,7 +14,6 @@ class inspector_drawers:
     def __init__(self, frame:Tk):
         self.frame = frame
         self.items = []
-
         widthSize = 36
         width_definer = tk.Label(self.frame, text="", width=widthSize, height=1)
         width_definer.pack(anchor='s')
@@ -39,7 +38,22 @@ class inspector_drawers:
         self.items.append(text)
         return text
 
-    def button(self, text=None, textVariable=None, command=None):
+    def labeled_entry(self, label_text="", entryVariable="") -> ttk.Entry:
+        subframe = Frame(self.frame, padx=0, pady=0)
+        self.items.append(subframe)
+
+        label = tk.Label(subframe, text=label_text)
+        label.grid(row=0, column=0)
+        self.items.append(label)
+
+        entry = ttk.Entry(subframe, textvariable=entryVariable)
+        entry.grid(row=0, column=2, sticky='e')
+        self.items.append(entry)
+
+        subframe.pack(fill='x')
+        return entry
+
+    def button(self, text="", textVariable=None, command=None):
         button = tk.Button(self.frame, text=text, textvariable=textVariable, command=command)
         button.pack(fill='x', pady=4, padx=8)
         
