@@ -17,6 +17,7 @@ Ideas:
     [x] Archive
     [ ] Write area settings to json file
     [ ] Handle API requests concurrently
+    [ ] Keep a single preview line and only keep 
 
 ---------------------------------------------------------------------
 v1.0 Notes
