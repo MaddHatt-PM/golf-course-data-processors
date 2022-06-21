@@ -331,6 +331,7 @@ class main_window:
         self.canvas.bind("<Button-2>", self.start_pan)
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
+        self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
         self.img_size = self.image_raw.width, self.image_raw.height
 
@@ -343,6 +344,7 @@ class main_window:
 
     def select_area(self, choice):
         self.inspector_util.clear_inspector()
+        self.active_area.on_deselect()
 
         for area in self.areas:
             if area.name == choice:

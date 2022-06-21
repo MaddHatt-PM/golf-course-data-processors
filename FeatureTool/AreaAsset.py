@@ -219,17 +219,27 @@ class area_asset:
         data = self.stroke_data
         img_size = self.img_size
 
-        if self.possible_line != None:
-            self.canvas.delete(self.possible_line)
-            self.possible_line = None
+        self.destroy_possible_line()
 
         # Draw dotted line to cursor
         if len(data) > 0:
             pt_a = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
             pt_b = cursor_pos[0] + self.canvas.canvasx(0), cursor_pos[1] + self.canvas.canvasy(0)
-            lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill='blue', dash=(6,4))
+            lineID = self.canvas.create_line(*pt_a, *pt_b, width=2, fill='white', dash=(6,4))
             self.possible_line = lineID
 
+    def destroy_possible_line(self, *args, **kwargs):
+        if self.possible_line != None:
+            self.canvas.delete(self.possible_line)
+            self.possible_line = None
+
+
+
+    def on_select(self):
+        pass
+
+    def on_deselect(self):
+        self.destroy_possible_line()
 
     def clear_canvasIDs(self):
         if self.canvas == None:
