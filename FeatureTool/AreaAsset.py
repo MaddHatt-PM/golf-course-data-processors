@@ -2,12 +2,10 @@ from enum import Enum
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import Canvas, Frame, Label, StringVar
+from tkinter import BooleanVar, Canvas, Frame, Label, StringVar
 from tkinter import ttk
 from turtle import pos
-from PIL import Image, ImageDraw
-from cv2 import line
-from matplotlib.pyplot import fill
+from PIL import Image, ImageDraw, ImageTk
 from TransformUtil import transform_util
 from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
@@ -17,6 +15,8 @@ from Utilities import color_set, coord_mode, ui_colors
 class settings_keys:
     fill_alpha = "fill_alpha"
     stroke_width = "stroke_width"
+    do_draw_points = True
+    do_draw_fill = False
     color = "color"
     _color_path = "color_path"
     _color_fill = "color_fill"
@@ -155,7 +155,7 @@ class area_asset:
             [b] average the value of surrounding pixels since getpixel() uses an int and not a float
         '''
         if self.fill_img is None:
-            self.draw_fill(export_to_img=True)
+            self.draw_fill()
 
         if coord_id is coord_mode.pixel:
             pass
@@ -185,9 +185,10 @@ class area_asset:
         self.clear_canvasIDs()
 
         if self.do_draw_fill is True:
-            self.draw_fill(export_to_img=True)
-        
+            self.draw_fill()
+            
         self.draw_perimeter()
+        
 
     def draw_perimeter(self):
         if self.is_fully_init is False:
@@ -238,8 +239,6 @@ class area_asset:
             self.canvas.delete(self.possible_line)
             self.possible_line = None
 
-
-
     def on_select(self):
         pass
 
@@ -259,44 +258,46 @@ class area_asset:
         self.do_draw_fill = not self.do_draw_fill
         self.draw()
 
-    def draw_fill(self, export_to_img=False):
+    def draw_fill(self):
+        print("being calledd")
         polygon_points = []
         for pt in self.stroke_data:
             pixel_pt = self.util.norm_pt_to_pixel_space(pt)
             polygon_points.append(pixel_pt[0])
             polygon_points.append(pixel_pt[1])
 
+        bgm_xy_coords = [
+            *self.util.norm_pt_to_pixel_space((0.0, 0.0)),
+            *self.util.norm_pt_to_pixel_space((0.0, 1.0)),
+            *self.util.norm_pt_to_pixel_space((1.0, 1.0)),
+            *self.util.norm_pt_to_pixel_space((1.0, 0.0))
+        ]
 
-        if export_to_img is True:
-            bgm_xy_coords = [
-                *self.util.norm_pt_to_pixel_space((0.0, 0.0)),
-                *self.util.norm_pt_to_pixel_space((0.0, 1.0)),
-                *self.util.norm_pt_to_pixel_space((1.0, 1.0)),
-                *self.util.norm_pt_to_pixel_space((1.0, 0.0))
-            ]
-
-            for id in range(len(bgm_xy_coords)):
-                if bgm_xy_coords[id] > 5:
-                    bgm_xy_coords[id] += 1
+        for id in range(len(bgm_xy_coords)):
+            if bgm_xy_coords[id] > 5:
+                bgm_xy_coords[id] += 1
 
 
-            img_size = self.util.norm_pt_to_pixel_space((1.0, 1.0))
-            img_size = (
-                (int)(img_size[0]),
-                (int)(img_size[1])
-            )
+        img_size = self.util.norm_pt_to_pixel_space((1.0, 1.0))
+        img_size = (
+            (int)(img_size[0]),
+            (int)(img_size[1])
+        )
 
-            fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
-            drawer = ImageDraw.Draw(fill_img)
-            drawer.polygon(bgm_xy_coords, fill="black")
-            drawer.polygon(polygon_points, fill="white")
+        self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
+        drawer = ImageDraw.Draw(self.fill_img)
+        # drawer.polygon(bgm_xy_coords, fill="black")
+        drawer.polygon(polygon_points, fill=(255,0,0,125))
 
-            fill_img.save(self._fill_img_filepath)
-            self.fill_img = fill_img
-            
+        self.fill_img.save(self._fill_img_filepath)
+        self.fill_img = self.fill_img
+        
+        self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
+        imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+        self.canvas.example = imageid
 
-        polygonID = self.canvas.create_polygon(polygon_points, fill=self.color.fill)
-        self.canvasIDs.append(polygonID)
+        # polygonID = self.canvas.create_polygon(polygon_points, fill=self.color.fill)
+        # self.canvasIDs.append(polygonID)
 
 
     # -------------------------------------------------------------- #
@@ -314,9 +315,14 @@ class area_asset:
         placeholder = StringVar()
         placeholder.set("Entry Text")
         self.drawer.labeled_entry(label_text="Example", entryVariable=placeholder)
-        
-        
-        self.drawer.button(text="Toggle Fill", command=self.toggle_fill)
+        self.drawer.seperator()
+
+        do_draw_points = BooleanVar(value=False)
+        self.drawer.labeled_toggle(label_text="Toggle path points", boolVar=do_draw_points)
+
+        do_fill = BooleanVar(value=self.do_draw_fill)
+        self.drawer.labeled_toggle(label_text="Toggle fill", command=self.toggle_fill, boolVar=do_fill)
+        self.drawer.labeled_slider("Fill Opacity")
         self.drawer.seperator()
 
         self.drawer.header(text="Statistics")
@@ -325,8 +331,9 @@ class area_asset:
         self.drawer.label("Area size: {}".format(0))
         self.drawer.label("Bounds: NW: {}, {}".format(0.5, 0.5))
         self.drawer.label("Bounds: NE: {}, {}".format(0.5, 0.5))
+        
+        self.drawer.vertical_divider()
         self.drawer.seperator()
-
         self.drawer.header(text="Actions")
         self.drawer.button(text="Sample Elevation")
         self.drawer.button(text="Delete area", command=self.draw_delete_popup)

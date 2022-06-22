@@ -13,10 +13,11 @@ Tasklist:
 from functools import partial
 import os
 import tkinter as tk
-from tkinter import OptionMenu, ttk
+from tkinter import BooleanVar, OptionMenu, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
+from matplotlib import image
 from matplotlib.pyplot import draw
 from AreaAsset import area_asset
 from TransformUtil import transform_util
@@ -227,24 +228,29 @@ class main_window:
         x2 = min(canvas_box[2], img_box[2]) - img_box[0]
         y2 = min(canvas_box[3], img_box[3]) - img_box[1]
 
+
+            
         # show image if it is in the visible area
-        if int(x2 - x1) > 0 and int(y2 - y1) > 0:
-            x = min(int(x2 / self.z_scale), self.image_raw.width)
-            y = min(int(y2 / self.z_scale), self.image_raw.height)
+        # if int(x2 - x1) > 0 and int(y2 - y1) > 0:
+        #     x = min(int(x2 / self.z_scale), self.image_raw.width)
+        #     y = min(int(y2 / self.z_scale), self.image_raw.height)
 
-            image = self.image_raw.crop((int(x1 / self.z_scale), int(y1 / self.z_scale), x, y))
-            imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1))))
-            imageid = self.canvas.create_image(max(canvas_box[0], img_box[0]),
-                                               max(canvas_box[1], img_box[1]),
-                                               anchor='nw', image=imagetk)
+            # image = self.image_raw.crop((int(x1 / self.z_scale), int(y1 / self.z_scale), x, y))
+            # imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1))))
+            # xCoord = max(canvas_box[0], img_box[0])
+            # yCoord = max(canvas_box[1], img_box[1])
 
+            # imageid = self.canvas.create_image(0, 0, anchor='nw', image=imagetk)
+            
             # Lower image data for overlaying later
-            self.canvas.lower(imageid)
+            # self.canvas.lower(imageid)
 
-        self.canvas.lift(self.id_mouse_oval)
-        
+
         for area in self.areas:
             area.draw()
+
+        # self.canvas.lift(self.id_mouse_oval)
+        
         
         if self.active_area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
@@ -284,9 +290,7 @@ class main_window:
     def setup_inspector(self):
         inspector = Frame(self.root, padx=0,pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
-        
-        # self.inspector_frame = Frame(self.root, bg=ui_colors.ui_bgm_col, padx=0,pady=0)
-        # self.inspector_frame.grid(row=2, column=2, sticky="nswe")
+
         self.inspector_util = inspector_drawers(inspector)
         drawer = self.inspector_util
 
@@ -323,8 +327,10 @@ class main_window:
         self.canvas = Canvas(viewport)
         self.canvasUtil = transform_util(self.canvas, target=self.target, image_raw=self.image_raw)
         self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
-        self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
         self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        imageid = self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
+        self.canvas.lower(imageid)
 
         self.canvas.bind("<Button-1>", self.handle_click)
         self.canvas.bind("<MouseWheel>", self.print_test)
@@ -352,9 +358,9 @@ class main_window:
                 break
 
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-        self.active_area.draw_perimeter()
         self.active_area.draw_last_point_to_cursor(self.mouse_pos)
         self.active_area.draw_inspector(self.inspector_util)
+        self.active_area.draw()
         
 
     def setup_statusbar(self):
