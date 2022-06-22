@@ -4,12 +4,15 @@ from tkinter import Frame, StringVar, Tk, Widget
 from tkinter import ttk
 from turtle import width
 
+from matplotlib import style
+
 from Utilities import ui_colors
 
 
 class inspector_drawers:
     '''
-    Abstraction of tkinter to streamline and manage inspector drawing
+    Abstraction of tkinter to streamline and manage inspector drawing.
+    Intended for rapid UI destroying and creation with inspector panels.
     '''
     def __init__(self, frame:Tk):
         self.frame = frame
@@ -53,8 +56,8 @@ class inspector_drawers:
         subframe.pack(fill='x')
         return entry
 
-    def button(self, text="", textVariable=None, command=None):
-        button = tk.Button(self.frame, text=text, textvariable=textVariable, command=command)
+    def button(self, text="", textVariable=None, command=None, *args, **kwargs):
+        button = ttk.Button(self.frame, text=text, textvariable=textVariable, command=command, *args, **kwargs)
         button.pack(fill='x', pady=4, padx=8)
         
         self.items.append(button)

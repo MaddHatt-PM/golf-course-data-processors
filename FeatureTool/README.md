@@ -15,9 +15,9 @@ Ideas:
     [ ] Display areas in the inspector via a drop down window
     [x] Implement api request tracking
     [x] Archive
-    [ ] Write area settings to json file
+    [x] Write area settings to json file
     [ ] Handle API requests concurrently
-    [ ] Keep a single preview line and only keep 
+    [x] Keep a single preview line and only keep 
 
 ---------------------------------------------------------------------
 v1.0 Notes
