@@ -1,10 +1,11 @@
 
 import tkinter as tk
-from tkinter import Frame, StringVar, Tk, Widget
+from tkinter import BooleanVar, Button, Frame, StringVar, Tk, Widget
 from tkinter import ttk
 from turtle import width
 
 from matplotlib import style
+from Toggle import Toggle
 
 from Utilities import ui_colors
 
@@ -56,16 +57,53 @@ class inspector_drawers:
         subframe.pack(fill='x')
         return entry
 
-    def button(self, text="", textVariable=None, command=None, *args, **kwargs):
+    def button(self, text="", textVariable=None, command=None, *args, **kwargs) -> ttk.Button:
         button = ttk.Button(self.frame, text=text, textvariable=textVariable, command=command, *args, **kwargs)
         button.pack(fill='x', pady=4, padx=8)
         
         self.items.append(button)
         return button
 
+    def labeled_toggle(self, label_text:str="", command=None, boolVar:BooleanVar=None) -> Button:
+        subframe = Frame(self.frame, padx=0, pady=0)
+        self.items.append(subframe)
+
+        label = tk.Label(subframe, text=label_text)
+        label.grid(row=0, column=0)
+        self.items.append(label)
+
+        button = Toggle(subframe, command, boolVar).button
+        button.grid(row=0, column=1)
+        self.items.append(button)
+
+        subframe.pack(fill='x')
+        return button
+
+    def labeled_slider(self, label_text:str="") -> ttk.Scale:
+        subframe = Frame(self.frame, padx=0, pady=0, bg='red')
+        subframe.pack(fill='x')
+        self.items.append(subframe)
+
+        label = tk.Label(subframe, text=label_text)
+        label.grid(row=0, column=0)
+        self.items.append(label)
+
+        slider = ttk.Scale(subframe, orient='horizontal')
+        slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
+        self.items.append(slider)
+
+        return slider
+
     def empty_space(self):
         space = tk.Label(self.frame, text="")
         space.pack(fill='x')
+
+        self.items.append(space)
+        return space
+
+    def vertical_divider(self):
+        space = tk.Label(self.frame, text="")
+        space.pack(fill='x', expand=True)
 
         self.items.append(space)
         return space
