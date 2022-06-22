@@ -1,7 +1,9 @@
 from enum import Enum
 import json
 from pathlib import Path
-from tkinter import Canvas, Frame, StringVar
+import tkinter as tk
+from tkinter import Canvas, Frame, Label, StringVar
+from tkinter import ttk
 from turtle import pos
 from PIL import Image, ImageDraw
 from cv2 import line
@@ -174,6 +176,9 @@ class area_asset:
         print("area_asset.get_points() => not implemented")
         return points
 
+    def destroy(self):
+        pass
+
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
     def draw(self):
@@ -314,7 +319,33 @@ class area_asset:
         self.drawer.button(text="Toggle Fill", command=self.toggle_fill)
         self.drawer.seperator()
 
-        self.drawer.header(text="(x,y) Coordinates: {}".format(len(self.stroke_data)))
+        self.drawer.header(text="Statistics")
+        self.drawer.label("Perimeter Point count: {}".format(len(self.stroke_data)))
+        self.drawer.label("Area point count: {}".format("N/A"))
+        self.drawer.label("Area size: {}".format(0))
+        self.drawer.label("Bounds: NW: {}, {}".format(0.5, 0.5))
+        self.drawer.label("Bounds: NE: {}, {}".format(0.5, 0.5))
+        self.drawer.seperator()
 
-        for pt in self.stroke_data:
-           self.drawer.label(text= "({0:.7f}, {0:.7f})".format(pt[0], pt[1]))
+        self.drawer.header(text="Actions")
+        self.drawer.button(text="Sample Elevation")
+        self.drawer.button(text="Delete area", command=self.draw_delete_popup)
+
+    def draw_delete_popup(self):
+        popup = tk.Toplevel()
+        popup.grab_set()
+        popup.focus_force()
+        popup.title("Warning")
+        popup.resizable(False, False)
+
+        warning = Label(popup, text="This action cannot be undone!\nAre you sure you want to delete:\n\n{}".format(self.name), padx=60, pady=20)
+        warning.grid(row=0, column=0, columnspan=2)
+
+        cancel = ttk.Button(popup, text="Cancel", command=popup.destroy)
+        cancel.grid(row=1, column=0, sticky='ew', padx=10)
+
+        delete = ttk.Button(popup, text="Delete", command=self.destroy())
+        delete.grid(row=1, column=1, sticky='ew', padx=10)
+
+        deadspace = Label(popup, text="")
+        deadspace.grid(row=2)
