@@ -103,6 +103,6 @@ class transform_util:
         
 
 
-geo:Geodesic = Geodesic.WGS84
-result = geo.Inverse(-41.32, 174, 40.96, -5.50)
-print(result)
+# geo:Geodesic = Geodesic.WGS84
+# result = geo.Inverse(-41.32, 174, 40.96, -5.50)
+# print(result)

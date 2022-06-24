@@ -5,6 +5,7 @@ from tkinter import ttk
 from turtle import width
 
 from matplotlib import style
+from numpy import pad
 from Toggle import Toggle
 
 from Utilities import ui_colors
@@ -34,12 +35,14 @@ class inspector_drawers:
         self.items.append(text)
         return text
 
-    def label(self, text=None, textVariable=None):
-        text = tk.Label(self.frame, text=text, textVariable=None,
-                        anchor='e')
-        text.pack(fill='x', padx=5)
+    def label(self, text:str=None):
+        lines = text.splitlines()
 
-        self.items.append(text)
+        for line in lines:
+            text = tk.Label(self.frame, text=line, anchor='e')
+            text.pack(fill='x', padx=5, pady=0)
+            self.items.append(text)
+
         return text
 
     def labeled_entry(self, label_text="", entryVariable="") -> ttk.Entry:
@@ -64,31 +67,38 @@ class inspector_drawers:
         self.items.append(button)
         return button
 
-    def labeled_toggle(self, label_text:str="", command=None, boolVar:BooleanVar=None) -> Button:
+    def labeled_toggle(self, boolVar:BooleanVar, label_text:str="", command=None ) -> Button:
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
-        label = tk.Label(subframe, text=label_text)
-        label.grid(row=0, column=0)
+        label = tk.Label(subframe, text=label_text, anchor='w', padx=6)
+        label.grid(row=0, column=0, sticky='ew')
         self.items.append(label)
 
         button = Toggle(subframe, command, boolVar).button
         button.grid(row=0, column=1)
         self.items.append(button)
 
+        space = tk.Label(subframe, text="")
+        space.grid(row=0, column=2)
+        self.items.append(space)
+
+        subframe.grid_columnconfigure(0, weight=1)
         subframe.pack(fill='x')
         return button
 
-    def labeled_slider(self, label_text:str="") -> ttk.Scale:
-        subframe = Frame(self.frame, padx=0, pady=0, bg='red')
+    def labeled_slider(self, label_text:str="", from_:float=0.0, to:float=1.0) -> ttk.Scale:
+        '''Create a slider with a range of 0.0 to 1.0 by default'''
+
+        subframe = Frame(self.frame, padx=0, pady=0)
         subframe.pack(fill='x')
         self.items.append(subframe)
 
-        label = tk.Label(subframe, text=label_text)
+        label = tk.Label(subframe, text=label_text, padx=6)
         label.grid(row=0, column=0)
         self.items.append(label)
 
-        slider = ttk.Scale(subframe, orient='horizontal')
+        slider = ttk.Scale(subframe, orient='horizontal', length=194, from_=from_, to=to)
         slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
         self.items.append(slider)
 
@@ -110,7 +120,10 @@ class inspector_drawers:
 
     def seperator(self):
         seperator = ttk.Separator(self.frame, orient="horizontal")
-        seperator.pack(fill='x')
+        seperator.pack(fill='x', pady=5)
 
         self.items.append(seperator)
         return seperator
+
+    def labeled_dropdown(self):
+        pass

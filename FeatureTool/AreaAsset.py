@@ -11,6 +11,8 @@ from InspectorDrawers import inspector_drawers
 from LoadedAsset import loaded_asset
 from Utilities import color_set, coord_mode, ui_colors
 
+from geographiclib.geodesic import Geodesic
+from geographiclib.polygonarea import PolygonArea
 
 class settings_keys:
     fill_alpha = "fill_alpha"
@@ -21,7 +23,7 @@ class settings_keys:
     _color_path = "color_path"
     _color_fill = "color_fill"
 
-class area_asset:    
+class area_asset:
     def __init__(self, name:str, target:loaded_asset) -> None:
         self.name = name
         self.is_dirty = False
@@ -31,6 +33,7 @@ class area_asset:
         self.drawer = None
         self.util = None
         self.do_draw_fill = False
+        self.do_draw_points = True
         self.possible_line = None
         self.is_fully_init = False
         self.fill_img:Image.Image = None
@@ -74,7 +77,7 @@ class area_asset:
                     self.stroke_data.append(eval(line))
 
         self.fill_img:Image = None
-        self._fill_img_filepath = Path(basepath + name + "_fill.tif")
+        self._fill_img_filepath = Path(basepath + name + "_fill.png")
         if self._fill_img_filepath.is_file():
             self.fill_img = Image.open(self._fill_img_filepath)
 
@@ -93,17 +96,15 @@ class area_asset:
         # if self.is_dirty == False:
         #     return
 
-        with self._stroke_filepath.open('r') as file:
-            header = file.readline()
-
         with open(str(self._stroke_filepath), 'w') as file:
-            file.write(header + '\n')
+            csv_header = "latitude,longitude,elevation,resolution"
+            file.write(csv_header)
 
             # Write stroke data
             for id, item in enumerate(self.stroke_data):
-                file.write(str(item))
+                file.write(str(item).removeprefix('(').removesuffix(')'))
                 if id - 1 != len(self.stroke_data):
-                    file.write('/n')
+                    file.write('\n')
         
         self.is_dirty = False
     
@@ -138,6 +139,11 @@ class area_asset:
     def remove_point(self, id:int):
         self.stroke_data.pop(id)
         self.is_dirty = True
+        self.draw_inspector()
+
+    def clear_points(self):
+        self.stroke_data.clear()
+        self.draw_canvas()
         self.draw_inspector()
 
         
@@ -176,12 +182,23 @@ class area_asset:
         print("area_asset.get_points() => not implemented")
         return points
 
+    def compute_info(self):
+        geo:Geodesic = Geodesic.WGS84
+        polygon = PolygonArea(geo, False)
+
+        for pt in self.stroke_data:
+            _pt = self.util.norm_pt_to_earth_space(pt)
+            # Order: LAT, Long
+            polygon.AddPoint(_pt[0], _pt[1])
+
+        return polygon.Compute(False, False)
+
     def destroy(self):
         pass
 
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
-    def draw(self):
+    def draw_canvas(self):
         self.clear_canvasIDs()
 
         if self.do_draw_fill is True:
@@ -193,6 +210,8 @@ class area_asset:
     def draw_perimeter(self):
         if self.is_fully_init is False:
             raise Exception("{} is not fully initiated, call drawing_init()")
+
+            
 
         data = self.stroke_data
         img_size = self.img_size
@@ -208,18 +227,19 @@ class area_asset:
                 self.canvasIDs.append(lineID)
 
 
-        pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
-        pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
+            pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
+            pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
 
-        lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.color.path, dash=(6,4))
-        self.canvasIDs.append(lineID)
+            lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.color.path, dash=(6,4))
+            self.canvasIDs.append(lineID)
 
         # Draw points
-        circle_size = 8
-        for point in self.stroke_data:
-            pt_a = point[0] * img_size[0], point[1] * img_size[1]
-            pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.color.path)
-            self.canvasIDs.append(pointID)
+        if self.do_draw_points:
+            circle_size = 8
+            for point in self.stroke_data:
+                pt_a = point[0] * img_size[0], point[1] * img_size[1]
+                pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.color.path)
+                self.canvasIDs.append(pointID)
 
     def draw_last_point_to_cursor(self, cursor_pos:tuple):
         data = self.stroke_data
@@ -256,10 +276,19 @@ class area_asset:
 
     def toggle_fill(self):
         self.do_draw_fill = not self.do_draw_fill
-        self.draw()
+
+        if self.do_draw_fill is False:
+            self.fill_img = None
+            self.image_pi = None
+
+        self.draw_canvas()
+
+    def toggle_points(self):
+        self.do_draw_points = not self.do_draw_points
+        self.draw_canvas()
+
 
     def draw_fill(self):
-        print("being calledd")
         polygon_points = []
         for pt in self.stroke_data:
             pixel_pt = self.util.norm_pt_to_pixel_space(pt)
@@ -286,7 +315,6 @@ class area_asset:
 
         self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
         drawer = ImageDraw.Draw(self.fill_img)
-        # drawer.polygon(bgm_xy_coords, fill="black")
         drawer.polygon(polygon_points, fill=(255,0,0,125))
 
         self.fill_img.save(self._fill_img_filepath)
@@ -294,10 +322,7 @@ class area_asset:
         
         self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
         imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
-        self.canvas.example = imageid
-
-        # polygonID = self.canvas.create_polygon(polygon_points, fill=self.color.fill)
-        # self.canvasIDs.append(polygonID)
+        # self.canvas.imageid_ref = imageid
 
 
     # -------------------------------------------------------------- #
@@ -312,30 +337,36 @@ class area_asset:
         self.drawer.clear_inspector()
         self.drawer.header(text="Settings")
 
-        placeholder = StringVar()
-        placeholder.set("Entry Text")
-        self.drawer.labeled_entry(label_text="Example", entryVariable=placeholder)
-        self.drawer.seperator()
-
-        do_draw_points = BooleanVar(value=False)
-        self.drawer.labeled_toggle(label_text="Toggle path points", boolVar=do_draw_points)
+        do_draw_points = BooleanVar(value=self.do_draw_points)
+        self.drawer.labeled_toggle(label_text="Toggle path points", command=self.toggle_points, boolVar=do_draw_points)
 
         do_fill = BooleanVar(value=self.do_draw_fill)
         self.drawer.labeled_toggle(label_text="Toggle fill", command=self.toggle_fill, boolVar=do_fill)
         self.drawer.labeled_slider("Fill Opacity")
         self.drawer.seperator()
 
+        area_info = self.compute_info()
+
         self.drawer.header(text="Statistics")
-        self.drawer.label("Perimeter Point count: {}".format(len(self.stroke_data)))
-        self.drawer.label("Area point count: {}".format("N/A"))
-        self.drawer.label("Area size: {}".format(0))
-        self.drawer.label("Bounds: NW: {}, {}".format(0.5, 0.5))
-        self.drawer.label("Bounds: NE: {}, {}".format(0.5, 0.5))
+        text = "Point count: {}\n".format(len(self.stroke_data))
+        text += "Perimeter (m): {:.4f}\n".format(area_info[1])
+        text += "Area (m²): {:.4f}\n".format(area_info[2])
+        text += "Bounds: NW: {}, {}\n".format(0.5, 0.5)
+        text += "Bounds: SE: {}, {}".format(0.5, 0.5)
+        self.drawer.label(text)
         
+        self.drawer.seperator()
+        placeholder = StringVar()
+        placeholder.set("Entry Text")
+        self.drawer.labeled_entry(label_text="Labeled Entry test", entryVariable=placeholder)
+        
+        # Lower half
         self.drawer.vertical_divider()
         self.drawer.seperator()
         self.drawer.header(text="Actions")
         self.drawer.button(text="Sample Elevation")
+        self.drawer.button(text="Save", command=self.save_data_to_files)
+        self.drawer.button(text="Clear Points", command=self.clear_points)
         self.drawer.button(text="Delete area", command=self.draw_delete_popup)
 
     def draw_delete_popup(self):
