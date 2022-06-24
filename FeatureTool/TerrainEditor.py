@@ -12,13 +12,13 @@ Tasklist:
 
 from functools import partial
 import os
+import random
+import string
 import tkinter as tk
 from tkinter import BooleanVar, OptionMenu, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
-from matplotlib import image
-from matplotlib.pyplot import draw
 from AreaAsset import area_asset
 from TransformUtil import transform_util
 from InspectorDrawers import inspector_drawers
@@ -140,8 +140,21 @@ class main_window:
 
         return tk.ACTIVE
 
-    def create_new_area(self, name:str):
-        pass
+    def create_new_area(self, name:str="", *args, **kwargs):
+        '''Rename this to something else'''
+        if name == "":
+            name = "NewArea_"
+            for i in range(5):
+                name += random.choice(string.ascii_letters)
+
+        area = area_asset(name, target=self.target)
+        area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
+
+        self.areas.append(area)
+        self.area_names.append(name)
+        self.select_area(area)
+        self.setup_inspector()
+        
 
     # -------------------------------------------------------------- #
     # --- Event Handling ------------------------------------------- #
@@ -247,10 +260,7 @@ class main_window:
 
 
         for area in self.areas:
-            area.draw()
-
-        # self.canvas.lift(self.id_mouse_oval)
-        
+            area.draw_canvas()
         
         if self.active_area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
@@ -292,18 +302,18 @@ class main_window:
         inspector.grid(row=0, column=2, sticky="nswe")
 
         self.inspector_util = inspector_drawers(inspector)
-        drawer = self.inspector_util
-
         area_selector_frame = Frame(inspector, padx=0, pady=0)
         tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
+        '''Area Selector'''
         dropdown_sel = tk.StringVar(self.root)
         dropdown_sel.set(self.area_names[0])
-        dropdown = ttk.OptionMenu(area_selector_frame, dropdown_sel, self.area_names[0], *self.area_names, command=self.select_area)
+        dropdown = ttk.OptionMenu(area_selector_frame, dropdown_sel, self.active_area.name, *self.area_names, command=self.select_area)
         dropdown.config(width=24)
         dropdown.grid(row=0, column=1, sticky='ew')
+        self.area_selector = dropdown
 
-        add_area = ttk.Button(area_selector_frame, text='+', width=2)
+        add_area = ttk.Button(area_selector_frame, text='+', width=2, command=self.create_new_area)
         add_area.grid(row=0, column=3)
         
         area_selector_frame.pack(fill="x", anchor="n", expand=False)
@@ -346,7 +356,7 @@ class main_window:
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-            area.draw()
+            area.draw_canvas()
 
     def select_area(self, choice):
         self.inspector_util.clear_inspector()
@@ -358,9 +368,8 @@ class main_window:
                 break
 
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-        self.active_area.draw_last_point_to_cursor(self.mouse_pos)
         self.active_area.draw_inspector(self.inspector_util)
-        self.active_area.draw()
+        self.active_area.draw_canvas()
         
 
     def setup_statusbar(self):
