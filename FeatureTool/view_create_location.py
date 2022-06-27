@@ -1,14 +1,19 @@
 import tkinter as tk
+from tkinter import StringVar
 from tkinter.ttk import Button, Entry, Frame, Label
+from data_downloader import download_imagery, services
 
-class grab_location_window:
-    def __init__(self, isMainWindow:bool=False) -> None:
+from loaded_asset import LoadedAsset
+
+class CreateLocationView:
+    def show(self, isMainWindow:bool=False) -> tk.Tk:
         '''
         UI for downloading new areas.
         Popup is designated as the rootUI when no loaded_asset is present
         '''
         if isMainWindow == True:
             popup = tk.Tk()
+            print("Has happened")
         else:
             popup=tk.Toplevel()
             popup.grab_set()
@@ -47,6 +52,33 @@ class grab_location_window:
 
         enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
 
-        popup.mainloop()
+        return popup
 
-grab_location_window(True)
+    def execute_download_btn(self):
+        '''Setup download environment, pull data via API, then reload program'''
+        # Move to disabling the button state when I figure tkinter out callbacks
+        if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
+            print("disabled")
+            return
+
+        newArea = LoadedAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+        print(str(newArea.coordinates()))
+        download_imagery(target=newArea, service=services.google_satelite)
+        
+        self.restart_with_new_target(newArea.savename)
+
+    def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
+        '''
+        Check if any variables are empty before allowing a download.
+        Returns tk.state:str for a button
+        '''
+        if filename.get().strip() == False:
+            return tk.DISABLED
+
+        try:
+            eval(pt_a.get())
+            eval(pt_b.get())
+        except:
+            return tk.DISABLED
+
+        return tk.ACTIVE

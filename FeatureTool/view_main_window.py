@@ -19,6 +19,8 @@ from tkinter import BooleanVar, OptionMenu, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
+# from Utilities import restart_with_new_target
+from view_create_area import CreateAreaView
 from utilities import SpaceTransformer
 from area_asset import AreaAsset
 # from TransformUtil import transform_util
@@ -27,14 +29,18 @@ from loaded_asset import LoadedAsset
 
 from data_downloader import download_imagery
 from data_downloader import services
-from utilities import CoordMode, UIColors
+from utilities import CoordMode, UIColors, restart_with_new_target
+from view_create_location import CreateLocationView
 
 class MainWindow:
     def __init__(self, target:LoadedAsset):
-        self.root = tk.Tk()
         self.target:LoadedAsset = target
-        self.prefsPath = Path("AppAssets/prefs.windowprefs")
 
+        if target is None:
+            return
+
+        self.root = tk.Tk()
+        self.prefsPath = Path("AppAssets/prefs.windowprefs")
         self.z_scale = 1.0 # unused for now, implement later
         self.mouse_pos = (-100, -100)
         self.status_text = tk.StringVar()
@@ -108,6 +114,7 @@ class MainWindow:
 
         enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
 
+    
     def execute_download_btn(self):
         '''Setup download environment, pull data via API, then reload program'''
         # Move to disabling the button state when I figure tkinter out callbacks
@@ -119,27 +126,27 @@ class MainWindow:
         print(str(newArea.coordinates()))
         download_imagery(target=newArea, service=services.google_satelite)
         
-        self.restart_with_new_target(newArea.savename)
+        restart_with_new_target(newArea.savename)
         
     def restart_with_new_target(self, area_name:str):
         self.root.destroy()
         os.system("py run.py " + area_name)
 
-    def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
-        '''
-        Check if any variables are empty before allowing a download.
-        Returns tk.state:str for a button
-        '''
-        if filename.get().strip() == False:
-            return tk.DISABLED
+    # def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
+    #     '''
+    #     Check if any variables are empty before allowing a download.
+    #     Returns tk.state:str for a button
+    #     '''
+    #     if filename.get().strip() == False:
+    #         return tk.DISABLED
 
-        try:
-            eval(pt_a.get())
-            eval(pt_b.get())
-        except:
-            return tk.DISABLED
+    #     try:
+    #         eval(pt_a.get())
+    #         eval(pt_b.get())
+    #     except:
+    #         return tk.DISABLED
 
-        return tk.ACTIVE
+    #     return tk.ACTIVE
 
     def create_new_area(self, name:str="", *args, **kwargs):
         '''Rename this to something else'''
@@ -236,13 +243,11 @@ class MainWindow:
             scroll_bbox[1] = img_box[1]
             scroll_bbox[3] = img_box[3]
 
-        self.canvas.configure(scrollregion=scroll_bbox)
-        x1 = max(canvas_box[0] - img_box[0], 0)
-        y1 = max(canvas_box[1] - img_box[1], 0)
-        x2 = min(canvas_box[2], img_box[2]) - img_box[0]
-        y2 = min(canvas_box[3], img_box[3]) - img_box[1]
-
-
+        # self.canvas.configure(scrollregion=scroll_bbox)
+        # x1 = max(canvas_box[0] - img_box[0], 0)
+        # y1 = max(canvas_box[1] - img_box[1], 0)
+        # x2 = min(canvas_box[2], img_box[2]) - img_box[0]
+        # y2 = min(canvas_box[3], img_box[3]) - img_box[1]
             
         # show image if it is in the visible area
         # if int(x2 - x1) > 0 and int(y2 - y1) > 0:
@@ -273,7 +278,9 @@ class MainWindow:
         menubar = Menu(root)
 
         filemenu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New", command=self.new_location_popup)
+        # filemenu.add_command(label="New Location", command=self.new_location_popup)
+        closure = partial(CreateLocationView().show)
+        filemenu.add_command(label="New Location", command=CreateLocationView().show)
 
         open_menu = Menu(filemenu, tearoff=0)
         directories = os.listdir('SavedAreas/')
@@ -281,7 +288,7 @@ class MainWindow:
         # partial() is used here to 'bake' dir into a new function
         # otherwise command would always use the last value of dir
         for dir in directories:
-            closure = partial(self.restart_with_new_target, dir)
+            closure = partial(restart_with_new_target, self.root, dir)
             open_menu.add_command(label=dir, command=closure)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
@@ -314,7 +321,8 @@ class MainWindow:
         dropdown.grid(row=0, column=1, sticky='ew')
         self.area_selector = dropdown
 
-        add_area = ttk.Button(area_selector_frame, text='+', width=2, command=self.create_new_area)
+        closure = partial(CreateAreaView().show, self.areas)
+        add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
         add_area.grid(row=0, column=3)
         
         area_selector_frame.pack(fill="x", anchor="n", expand=False)
@@ -388,8 +396,8 @@ class MainWindow:
     # --- Root-UI Drawing ------------------------------------------ #
     def show(self):
         if (self.target == None):
+            self.root = CreateLocationView().show(isMainWindow=True)
             self.root.title("None selected")
-            self.new_location_popup(isMainWindow=True)
             return self.root
 
         self.root.title(self.target.savename + " - Terrain Viewer")
