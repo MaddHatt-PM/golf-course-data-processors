@@ -1,5 +1,6 @@
 from enum import Enum
-from tkinter import Canvas, Image
+import os
+from tkinter import Canvas, Image, Tk
 from geographiclib.geodesic import Geodesic
 
 from loaded_asset import LoadedAsset
@@ -129,3 +130,6 @@ class SpaceTransformer:
             pt0 = self.pixel_pt_to_earth_space(pt0)
             pt1 = self.pixel_pt_to_earth_space(pt1)
 
+def restart_with_new_target(root:Tk, area_name:str):
+    root.destroy()
+    os.system("py run.py " + area_name)

@@ -2,10 +2,10 @@
 import tkinter as tk
 from tkinter import Tk
 from tkinter.ttk import Button, Entry, Label
-from loaded_asset import LoadedAsset
+from area_asset import AreaAsset
 
-class create_new_area_window:
-    def __init__(self, target:LoadedAsset, isMainWindow:bool=False) -> None:
+class CreateAreaView:
+    def show(self, areas:list[AreaAsset], isMainWindow:bool=False) -> None:
         if isMainWindow == True:
             self.popup = tk.Tk()
         else:
@@ -13,6 +13,7 @@ class create_new_area_window:
             self.popup.grab_set()
             self.popup.focus_force()
 
+        self.areas = areas
         self.popup.resizable(False,False)
 
         Label(self.popup, text="Area Name").grid(row=0, columnspan=2, pady=10)
@@ -29,14 +30,22 @@ class create_new_area_window:
         cancel_btn = Button(self.popup, text="Cancel", command=self.popup.destroy)
         cancel_btn.grid(row=3, column=1, pady=10, padx=10)
 
-        self.popup.mainloop()
+    # def show(self):
+    #     self.popup.mainloop()
 
 
     def validate_and_send(self) -> bool:
         invalid_char = list("#%&{}\\<>*?/$!\'\":@+`|=")
-        if '\\' in self.new_area_name.get():
-            self.error_text.set("Invalid characters in area name, this is a long error")
-            return
+        for character in invalid_char:
+            if character in self.new_area_name.get():
+                self.error_text.set("Invalid character: [{}]".format(character))
+                return
+
+        for area in self.areas:
+            if area.name == self.new_area_name.get():
+                self.error_text.set("Name taken")
+                return
+            
 
 if __name__ == "__main__":
-    create_new_area_window(None, isMainWindow=True)
+    CreateAreaView(None, isMainWindow=True)
