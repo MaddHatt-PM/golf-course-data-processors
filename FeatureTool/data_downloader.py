@@ -7,14 +7,14 @@ import json
 import cv2
 import numpy as np
 import requests
-import APIUsageTracker
-import APIKeys as keys
+import api_usage_tracker
+import api_keys as keys
 from typing import Tuple
 from pathlib import Path
-from AreaAsset import area_asset
-from LoadedAsset import loaded_asset
+from area_asset import AreaAsset
+from loaded_asset import LoadedAsset
 
-from GoogleMapsAPI import SatelliteInterface as gmap_si
+from google_maps_api import SatelliteInterface as gmap_si
 
 class service:
     def __init__(self, name:str, sku_cost:float, key:str) -> None:
@@ -36,7 +36,7 @@ def pil_to_cv(pil_image):
 
 # -------------------------------------------------------------- #
 # --- Imagery functions ---------------------------------------- #
-def __via_google_satelite(target:loaded_asset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
+def __via_google_satelite(target:LoadedAsset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
     grabber = gmap_si(keys.google_maps)
     result = grabber.get_maps_image(p0, p1, zoom=19)
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
@@ -44,12 +44,12 @@ def __via_google_satelite(target:loaded_asset, p0:Tuple[float, float], p1:Tuple[
     resultCv = pil_to_cv(result)
     cv2.imwrite(filename=str(target.sateliteImg_path()), img=resultCv)
 
-    APIUsageTracker.add_api_count(services.google_satelite, image_ct)
+    api_usage_tracker.add_api_count(services.google_satelite, image_ct)
     print("{} Images downloaded".format(image_ct))
 
     return target.sateliteImg_path()
 
-def download_imagery(target:loaded_asset, service:str) -> Path:
+def download_imagery(target:LoadedAsset, service:str) -> Path:
     '''Pull data from specified service'''
 
     # Unpack coordinates for readability
@@ -62,7 +62,7 @@ def download_imagery(target:loaded_asset, service:str) -> Path:
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def __via_google_elevation(target:loaded_asset, area:area_asset) -> Path:
+def __via_google_elevation(target:LoadedAsset, area:AreaAsset) -> Path:
     '''
     - Google Documentation: https://developers.google.com/maps/documentation/elevation/start#maps_http_elevation_locations-py
     - Submit a single request using https://stackoverflow.com/questions/29418423/how-to-use-an-array-of-coordinates-with-google-elevation-api
@@ -130,10 +130,10 @@ def __via_google_elevation(target:loaded_asset, area:area_asset) -> Path:
     with target.elevationCSV.open(mode='w') as outfile:
         outfile.write(output)
 
-    APIUsageTracker.add_api_count(services.google_elevation, len(points))
+    api_usage_tracker.add_api_count(services.google_elevation, len(points))
     return target.elevationCSV
 
-def download_elevation(target:loaded_asset, area:area_asset, service:services) -> Path:
+def download_elevation(target:LoadedAsset, area:AreaAsset, service:services) -> Path:
     if service is services.google_elevation:
         return __via_google_elevation(target, area)
 

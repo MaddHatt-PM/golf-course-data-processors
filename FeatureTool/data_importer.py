@@ -1,8 +1,8 @@
-from LoadedAsset import loaded_asset
+from loaded_asset import LoadedAsset
 from pathlib import Path
 import csv
 
-def convert_csv_to_area(in_path:Path, asset:loaded_asset=None) -> Path:
+def convert_csv_to_area(in_path:Path, asset:LoadedAsset=None) -> Path:
     if in_path.exists() is False and in_path.is_file() is False:
         raise Exception("Error from trying to retrieve file at: {}".format(str(in_path)))
 
