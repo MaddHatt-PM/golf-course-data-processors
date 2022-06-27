@@ -2,13 +2,8 @@
 import tkinter as tk
 from tkinter import BooleanVar, Button, Frame, StringVar, Tk, Widget
 from tkinter import ttk
-from turtle import width
 
-from matplotlib import style
-from numpy import pad
-from Toggle import Toggle
-
-from Utilities import ui_colors
+from ui_toggle import Toggle
 
 
 class inspector_drawers:

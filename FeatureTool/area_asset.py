@@ -6,15 +6,15 @@ from tkinter import BooleanVar, Canvas, Frame, Label, StringVar
 from tkinter import ttk
 from turtle import pos
 from PIL import Image, ImageDraw, ImageTk
-from TransformUtil import transform_util
-from InspectorDrawers import inspector_drawers
-from LoadedAsset import loaded_asset
-from Utilities import color_set, coord_mode, ui_colors
+from utilities import SpaceTransformer
+from ui_inspector_drawer import inspector_drawers
+from loaded_asset import LoadedAsset
+from utilities import ColorSet, CoordMode, UIColors
 
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
-class settings_keys:
+class Settings:
     fill_alpha = "fill_alpha"
     stroke_width = "stroke_width"
     do_draw_points = True
@@ -23,8 +23,8 @@ class settings_keys:
     _color_path = "color_path"
     _color_fill = "color_fill"
 
-class area_asset:
-    def __init__(self, name:str, target:loaded_asset) -> None:
+class AreaAsset:
+    def __init__(self, name:str, target:LoadedAsset) -> None:
         self.name = name
         self.is_dirty = False
         self.canvasIDs = []
@@ -46,22 +46,22 @@ class area_asset:
             with self._settings_path.open('r') as file:
                 self.settings:dict = json.loads(file.read())
                 
-                path = self.settings.pop(settings_keys._color_path)
-                fill = self.settings.pop(settings_keys._color_fill)
-                self.settings[settings_keys.color] = color_set(path, fill)
+                path = self.settings.pop(Settings._color_path)
+                fill = self.settings.pop(Settings._color_fill)
+                self.settings[Settings.color] = ColorSet(path, fill)
         else:
             self.settings = {}
-            self.settings[settings_keys.fill_alpha] = 0.25
-            self.settings[settings_keys.stroke_width] = 3.0
-            self.settings[settings_keys.color] = ui_colors.indigo
+            self.settings[Settings.fill_alpha] = 0.25
+            self.settings[Settings.stroke_width] = 3.0
+            self.settings[Settings.color] = UIColors.indigo
             self.__save_settings()
 
         self.fill_alpha = 0.25
         self.stroke_width = 3.0
-        self.color = ui_colors.indigo
+        self.color = UIColors.indigo
 
         self._stroke_filepath = Path(basepath + name + "_area.csv")
-        self.coord_id:coord_mode = coord_mode.normalized
+        self.coord_id:CoordMode = CoordMode.normalized
         self.stroke_data = []
 
         if self._stroke_filepath.is_file():
@@ -83,9 +83,9 @@ class area_asset:
 
     def __save_settings(self):
         settings = dict(self.settings)
-        color:color_set = settings.pop(settings_keys.color)
-        settings[settings_keys._color_path] = color.path
-        settings[settings_keys._color_fill] = color.fill
+        color:ColorSet = settings.pop(Settings.color)
+        settings[Settings._color_path] = color.path
+        settings[Settings._color_fill] = color.fill
 
         with self._settings_path.open('w') as file:
             # color_set is not json compatible
@@ -108,7 +108,7 @@ class area_asset:
         
         self.is_dirty = False
     
-    def drawing_init(self, canvas:Canvas, util:transform_util, img_size:tuple):
+    def drawing_init(self, canvas:Canvas, util:SpaceTransformer, img_size:tuple):
         self.is_fully_init = True
 
         self.canvas = canvas
@@ -128,8 +128,8 @@ class area_asset:
         self.is_dirty = True
         self.draw_inspector()
 
-    def append_point(self, position:tuple, coordID:coord_mode):
-        if (coordID == coord_mode.pixel):
+    def append_point(self, position:tuple, coordID:CoordMode):
+        if (coordID == CoordMode.pixel):
             position = self.util.pixel_pt_to_norm_space(position)
 
         self.stroke_data.append(position)
@@ -149,7 +149,7 @@ class area_asset:
         
     # -------------------------------------------------------------- #
     # --- Utility functions ---------------------------------------- #
-    def is_point_in_area(self, pt:tuple, coord_id:coord_mode) -> bool:
+    def is_point_in_area(self, pt:tuple, coord_id:CoordMode) -> bool:
         '''
         This method checks if a point is within an
         irregular polygon is directly tied to the satellite
@@ -163,11 +163,11 @@ class area_asset:
         if self.fill_img is None:
             self.draw_fill()
 
-        if coord_id is coord_mode.pixel:
+        if coord_id is CoordMode.pixel:
             pass
-        elif coord_id is coord_mode.earth:
+        elif coord_id is CoordMode.earth:
             pt = self.util.earth_pt_to_pixel_space(pt, to_int=True)
-        elif coord_id is coord_mode.normalized:
+        elif coord_id is CoordMode.normalized:
             pt = self.util.norm_pt_to_pixel_space(pt, to_int=True)
 
         # Check only the red channel
@@ -313,16 +313,17 @@ class area_asset:
             (int)(img_size[1])
         )
 
-        self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
-        drawer = ImageDraw.Draw(self.fill_img)
-        drawer.polygon(polygon_points, fill=(255,0,0,125))
+        if len(polygon_points) > 2:
+            self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
+            drawer = ImageDraw.Draw(self.fill_img)
+            drawer.polygon(polygon_points, fill=(255,0,0,125))
 
-        self.fill_img.save(self._fill_img_filepath)
-        self.fill_img = self.fill_img
-        
-        self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
-        imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
-        # self.canvas.imageid_ref = imageid
+            self.fill_img.save(self._fill_img_filepath)
+            self.fill_img = self.fill_img
+            
+            self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
+            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            # self.canvas.imageid_ref = imageid
 
 
     # -------------------------------------------------------------- #

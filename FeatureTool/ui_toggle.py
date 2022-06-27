@@ -1,7 +1,6 @@
 from functools import partial
 from tkinter import BooleanVar, Button, Misc, ttk
 
-
 class Toggle:
     on = '◼'
     off = '◻'

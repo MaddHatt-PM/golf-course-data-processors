@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Tuple
 from os import listdir, walk
 
-class loaded_asset:
+class LoadedAsset:
 
     def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None):
         self.savename:str = savename

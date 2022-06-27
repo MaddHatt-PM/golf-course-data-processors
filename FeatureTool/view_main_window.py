@@ -19,19 +19,20 @@ from tkinter import BooleanVar, OptionMenu, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
-from AreaAsset import area_asset
-from TransformUtil import transform_util
-from InspectorDrawers import inspector_drawers
-from LoadedAsset import loaded_asset
+from utilities import SpaceTransformer
+from area_asset import AreaAsset
+# from TransformUtil import transform_util
+from ui_inspector_drawer import inspector_drawers
+from loaded_asset import LoadedAsset
 
-from DownloadData import download_imagery
-from DownloadData import services
-from Utilities import coord_mode, ui_colors
+from data_downloader import download_imagery
+from data_downloader import services
+from utilities import CoordMode, UIColors
 
-class main_window:
-    def __init__(self, target:loaded_asset):
+class MainWindow:
+    def __init__(self, target:LoadedAsset):
         self.root = tk.Tk()
-        self.target:loaded_asset = target
+        self.target:LoadedAsset = target
         self.prefsPath = Path("AppAssets/prefs.windowprefs")
 
         self.z_scale = 1.0 # unused for now, implement later
@@ -46,11 +47,11 @@ class main_window:
         self.active_area = None
 
         filenames = os.listdir(target.basePath)
-        self.areas:list[area_asset] = []
+        self.areas:list[AreaAsset] = []
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
-                self.areas.append(area_asset(area_name, self.target))
+                self.areas.append(AreaAsset(area_name, self.target))
         self.area_names:list[str] = [x.name for x in self.areas]
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
@@ -62,7 +63,7 @@ class main_window:
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
-    def new_area_popup(self, isMainWindow:bool=False):
+    def new_location_popup(self, isMainWindow:bool=False):
         '''
         UI for downloading new areas.
         Popup is designated as the rootUI when no loaded_asset is present
@@ -114,7 +115,7 @@ class main_window:
             print("disabled")
             return
 
-        newArea = loaded_asset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+        newArea = LoadedAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
         print(str(newArea.coordinates()))
         download_imagery(target=newArea, service=services.google_satelite)
         
@@ -147,7 +148,7 @@ class main_window:
             for i in range(5):
                 name += random.choice(string.ascii_letters)
 
-        area = area_asset(name, target=self.target)
+        area = AreaAsset(name, target=self.target)
         area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
 
         self.areas.append(area)
@@ -164,7 +165,7 @@ class main_window:
 
     def handle_click(self, event):
         if self.active_area is not None:
-            self.active_area.append_point((event.x, event.y), coord_mode.pixel)
+            self.active_area.append_point((event.x, event.y), CoordMode.pixel)
 
         self.redraw_viewport()
         
@@ -272,7 +273,7 @@ class main_window:
         menubar = Menu(root)
 
         filemenu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New", command=self.new_area_popup)
+        filemenu.add_command(label="New", command=self.new_location_popup)
 
         open_menu = Menu(filemenu, tearoff=0)
         directories = os.listdir('SavedAreas/')
@@ -324,7 +325,7 @@ class main_window:
 
 
     def setup_viewport(self):
-        viewport = Frame(self.root, bg=ui_colors.canvas_col)
+        viewport = Frame(self.root, bg=UIColors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
         
         satelite_raw = Image.open(self.target.sateliteImg)
@@ -335,8 +336,8 @@ class main_window:
         self.image_pi = satelite_pi
 
         self.canvas = Canvas(viewport)
-        self.canvasUtil = transform_util(self.canvas, target=self.target, image_raw=self.image_raw)
-        self.canvas.configure(bg=ui_colors.canvas_col, highlightthickness=0)
+        self.canvasUtil = SpaceTransformer(self.canvas, target=self.target, image_raw=self.image_raw)
+        self.canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
         imageid = self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
@@ -373,9 +374,9 @@ class main_window:
         
 
     def setup_statusbar(self):
-        statusbar = Frame(self.root, bg=ui_colors.ui_bgm_col)
+        statusbar = Frame(self.root, bg=UIColors.ui_bgm_col)
         statusbar.grid(row=2, column= 0, sticky="nswe")
-        status = tk.Label(statusbar, textvariable=self.status_text, bg=ui_colors.ui_bgm_col, fg="white")
+        status = tk.Label(statusbar, textvariable=self.status_text, bg=UIColors.ui_bgm_col, fg="white")
         status.pack(anchor="w")
 
     def setup_blanks(self):
@@ -385,16 +386,16 @@ class main_window:
 
     # -------------------------------------------------------------- #
     # --- Root-UI Drawing ------------------------------------------ #
-    def define_root(self):
+    def show(self):
         if (self.target == None):
             self.root.title("None selected")
-            self.new_area_popup(isMainWindow=True)
+            self.new_location_popup(isMainWindow=True)
             return self.root
 
         self.root.title(self.target.savename + " - Terrain Viewer")
         self.root.minsize(width=500, height=400)
         self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
-        self.root.config(bg=ui_colors.canvas_col)
+        self.root.config(bg=UIColors.canvas_col)
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=5)
         self.root.config(menu=self.setup_menubar(self.root))

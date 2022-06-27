@@ -10,15 +10,15 @@ TaskList:
         - https://stackoverflow.com/questions/12332975/installing-python-module-within-code
 '''
 
-from TerrainEditor import main_window
-from LoadedAsset import loaded_asset
+from view_main_window import MainWindow
+from loaded_asset import LoadedAsset
 import sys
 
 
 if len(sys.argv) == 1:
     target=None
 else:
-    target=loaded_asset(savename=sys.argv[1])
+    target=LoadedAsset(savename=sys.argv[1])
 
-app = main_window(target).define_root()
+app = MainWindow(target).show()
 app.mainloop()
