@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import StringVar
 from tkinter.ttk import Button, Entry, Frame, Label
 from utilities import restart_with_new_target
 from data_downloader import download_imagery, services

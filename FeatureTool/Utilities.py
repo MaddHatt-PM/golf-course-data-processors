@@ -1,5 +1,5 @@
-from enum import Enum
 import os
+from enum import Enum
 from tkinter import Canvas, Image, Tk
 from geographiclib.geodesic import Geodesic
 

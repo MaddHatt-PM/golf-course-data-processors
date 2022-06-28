@@ -1,5 +1,4 @@
-from functools import partial
-from tkinter import BooleanVar, Button, Misc, ttk
+from tkinter import BooleanVar, Misc, ttk
 
 class Toggle:
     on = '◼'

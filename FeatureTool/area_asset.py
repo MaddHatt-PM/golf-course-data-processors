@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import BooleanVar, Canvas, Frame, Label, StringVar
+from tkinter import BooleanVar, Canvas, Label, StringVar
 from tkinter import ttk
 from PIL import Image, ImageDraw, ImageTk
 from utilities import SpaceTransformer

@@ -1,6 +1,5 @@
 
 import tkinter as tk
-from tkinter import Tk
 from tkinter.ttk import Button, Entry, Label
 from area_asset import AreaAsset
 

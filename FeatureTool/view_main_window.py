@@ -15,21 +15,18 @@ import os
 import random
 import string
 import tkinter as tk
-from tkinter import BooleanVar, OptionMenu, ttk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, StringVar, Tk
+from tkinter import ttk
+from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
-# from Utilities import restart_with_new_target
-from view_create_area import CreateAreaView
-from utilities import SpaceTransformer
-from area_asset import AreaAsset
-# from TransformUtil import transform_util
-from ui_inspector_drawer import inspector_drawers
-from loaded_asset import LoadedAsset
 
-from data_downloader import download_imagery
-from data_downloader import services
+from area_asset import AreaAsset
+from loaded_asset import LoadedAsset
+from utilities import SpaceTransformer
+from ui_inspector_drawer import inspector_drawers
+from data_downloader import services, download_imagery
 from utilities import CoordMode, UIColors, restart_with_new_target
+from view_create_area import CreateAreaView
 from view_create_location import CreateLocationView
 
 class MainWindow:
