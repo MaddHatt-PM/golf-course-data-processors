@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import List, Tuple
-from os import listdir, walk
 
 class LoadedAsset:
 

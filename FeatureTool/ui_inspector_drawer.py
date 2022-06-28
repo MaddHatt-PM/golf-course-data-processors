@@ -1,6 +1,5 @@
-
 import tkinter as tk
-from tkinter import BooleanVar, Button, Frame, StringVar, Tk, Widget
+from tkinter import BooleanVar, Button, Frame, Tk
 from tkinter import ttk
 
 from ui_toggle import Toggle
