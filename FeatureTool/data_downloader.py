@@ -11,7 +11,7 @@ import api_usage_tracker
 import api_keys as keys
 from typing import Tuple
 from pathlib import Path
-from area_asset import AreaAsset
+from asset_area import AreaAsset
 from loaded_asset import LoadedAsset
 
 from google_maps_api import SatelliteInterface as gmap_si

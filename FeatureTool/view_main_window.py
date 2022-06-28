@@ -20,7 +20,7 @@ from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
 
-from area_asset import AreaAsset
+from asset_area import AreaAsset
 from loaded_asset import LoadedAsset
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
@@ -263,7 +263,7 @@ class MainWindow:
 
 
         for area in self.areas:
-            area.draw_canvas()
+            area.draw_to_canvas()
         
         if self.active_area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
@@ -326,7 +326,7 @@ class MainWindow:
         ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
         if self.active_area is not None:
-            self.active_area.draw_inspector(self.inspector_util)
+            self.active_area.draw_to_inspector(self.inspector_util)
 
 
     def setup_viewport(self):
@@ -362,7 +362,7 @@ class MainWindow:
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-            area.draw_canvas()
+            area.draw_to_canvas()
 
     def select_area(self, choice):
         self.inspector_util.clear_inspector()
@@ -374,8 +374,8 @@ class MainWindow:
                 break
 
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-        self.active_area.draw_inspector(self.inspector_util)
-        self.active_area.draw_canvas()
+        self.active_area.draw_to_inspector(self.inspector_util)
+        self.active_area.draw_to_canvas()
         
 
     def setup_statusbar(self):

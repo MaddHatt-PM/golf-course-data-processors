@@ -52,7 +52,7 @@ class AreaAsset:
             self.settings[Settings.fill_alpha] = 0.25
             self.settings[Settings.stroke_width] = 3.0
             self.settings[Settings.color] = UIColors.indigo
-            self.__save_settings()
+            self._save_settings()
 
         self.fill_alpha = 0.25
         self.stroke_width = 3.0
@@ -79,7 +79,7 @@ class AreaAsset:
         if self._fill_img_filepath.is_file():
             self.fill_img = Image.open(self._fill_img_filepath)
 
-    def __save_settings(self):
+    def _save_settings(self):
         settings = dict(self.settings)
         color:ColorSet = settings.pop(Settings.color)
         settings[Settings._color_path] = color.path
@@ -119,12 +119,12 @@ class AreaAsset:
     def modify_point(self, id:int, position:tuple):
         self.stroke_data[id] = position
         self.is_dirty = True
-        self.draw_inspector()
+        self.draw_to_inspector()
 
     def insert_point(self, position:tuple):
         self.stroke_data.insert(position)
         self.is_dirty = True
-        self.draw_inspector()
+        self.draw_to_inspector()
 
     def append_point(self, position:tuple, coordID:CoordMode):
         if (coordID == CoordMode.pixel):
@@ -132,17 +132,17 @@ class AreaAsset:
 
         self.stroke_data.append(position)
         self.is_dirty = True
-        self.draw_inspector()
+        self.draw_to_inspector()
 
     def remove_point(self, id:int):
         self.stroke_data.pop(id)
         self.is_dirty = True
-        self.draw_inspector()
+        self.draw_to_inspector()
 
     def clear_points(self):
         self.stroke_data.clear()
-        self.draw_canvas()
-        self.draw_inspector()
+        self.draw_to_canvas()
+        self.draw_to_inspector()
 
         
     # -------------------------------------------------------------- #
@@ -159,7 +159,7 @@ class AreaAsset:
             [b] average the value of surrounding pixels since getpixel() uses an int and not a float
         '''
         if self.fill_img is None:
-            self.draw_fill()
+            self.__draw_fill()
 
         if coord_id is CoordMode.pixel:
             pass
@@ -196,15 +196,16 @@ class AreaAsset:
 
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
-    def draw_canvas(self):
+    def draw_to_canvas(self):
         self.clear_canvasIDs()
 
         if self.do_draw_fill is True:
-            self.draw_fill()
+            self.__draw_fill()
             
-        self.draw_perimeter()
-        
-    def draw_perimeter(self):
+        self.__draw_perimeter()
+    
+    
+    def __draw_perimeter(self):
         if self.is_fully_init is False:
             raise Exception("{} is not fully initiated, call drawing_init()")
 
@@ -212,7 +213,6 @@ class AreaAsset:
         img_size = self.img_size
         util = self.util
 
-        # Draw fill (do later)
         # Draw lines
         if len(data) >= 2:
             for id in range(0, len(data) - 1):
@@ -235,6 +235,43 @@ class AreaAsset:
                 pt_a = point[0] * img_size[0], point[1] * img_size[1]
                 pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.color.path)
                 self.canvasIDs.append(pointID)
+
+    def __draw_fill(self):
+        polygon_points = []
+        for pt in self.stroke_data:
+            pixel_pt = self.util.norm_pt_to_pixel_space(pt)
+            polygon_points.append(pixel_pt[0])
+            polygon_points.append(pixel_pt[1])
+
+        bgm_xy_coords = [
+            *self.util.norm_pt_to_pixel_space((0.0, 0.0)),
+            *self.util.norm_pt_to_pixel_space((0.0, 1.0)),
+            *self.util.norm_pt_to_pixel_space((1.0, 1.0)),
+            *self.util.norm_pt_to_pixel_space((1.0, 0.0))
+        ]
+
+        for id in range(len(bgm_xy_coords)):
+            if bgm_xy_coords[id] > 5:
+                bgm_xy_coords[id] += 1
+
+
+        img_size = self.util.norm_pt_to_pixel_space((1.0, 1.0))
+        img_size = (
+            (int)(img_size[0]),
+            (int)(img_size[1])
+        )
+
+        if len(polygon_points) > 2:
+            self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
+            drawer = ImageDraw.Draw(self.fill_img)
+            drawer.polygon(polygon_points, fill=(255,0,0,125))
+
+            self.fill_img.save(self._fill_img_filepath)
+            self.fill_img = self.fill_img
+            
+            self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
+            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+
 
     def draw_last_point_to_cursor(self, cursor_pos:tuple):
         data = self.stroke_data
@@ -276,53 +313,16 @@ class AreaAsset:
             self.fill_img = None
             self.image_pi = None
 
-        self.draw_canvas()
+        self.draw_to_canvas()
 
     def toggle_points(self):
         self.do_draw_points = not self.do_draw_points
-        self.draw_canvas()
-
-
-    def draw_fill(self):
-        polygon_points = []
-        for pt in self.stroke_data:
-            pixel_pt = self.util.norm_pt_to_pixel_space(pt)
-            polygon_points.append(pixel_pt[0])
-            polygon_points.append(pixel_pt[1])
-
-        bgm_xy_coords = [
-            *self.util.norm_pt_to_pixel_space((0.0, 0.0)),
-            *self.util.norm_pt_to_pixel_space((0.0, 1.0)),
-            *self.util.norm_pt_to_pixel_space((1.0, 1.0)),
-            *self.util.norm_pt_to_pixel_space((1.0, 0.0))
-        ]
-
-        for id in range(len(bgm_xy_coords)):
-            if bgm_xy_coords[id] > 5:
-                bgm_xy_coords[id] += 1
-
-
-        img_size = self.util.norm_pt_to_pixel_space((1.0, 1.0))
-        img_size = (
-            (int)(img_size[0]),
-            (int)(img_size[1])
-        )
-
-        if len(polygon_points) > 2:
-            self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
-            drawer = ImageDraw.Draw(self.fill_img)
-            drawer.polygon(polygon_points, fill=(255,0,0,125))
-
-            self.fill_img.save(self._fill_img_filepath)
-            self.fill_img = self.fill_img
-            
-            self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
-            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+        self.draw_to_canvas()
 
 
     # -------------------------------------------------------------- #
     # --- Inspector functions -------------------------------------- #
-    def draw_inspector(self, drawer:inspector_drawers=None):
+    def draw_to_inspector(self, drawer:inspector_drawers=None):
         if drawer is not None:
             self.drawer = drawer
 
