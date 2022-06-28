@@ -1,7 +1,7 @@
 
 import tkinter as tk
 from tkinter.ttk import Button, Entry, Label
-from area_asset import AreaAsset
+from asset_area import AreaAsset
 
 class CreateAreaView:
     def show(self, areas:list[AreaAsset], isMainWindow:bool=False) -> None:
