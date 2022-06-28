@@ -127,11 +127,11 @@ def __via_google_elevation(target:LoadedAsset, area:AreaAsset) -> Path:
                 item["resolution"])
 
     output = output.removesuffix('\n')
-    with target.elevationCSV.open(mode='w') as outfile:
+    with target.elevationCSV_path.open(mode='w') as outfile:
         outfile.write(output)
 
     api_usage_tracker.add_api_count(services.google_elevation, len(points))
-    return target.elevationCSV
+    return target.elevationCSV_path
 
 def download_elevation(target:LoadedAsset, area:AreaAsset, service:services) -> Path:
     if service is services.google_elevation:

@@ -1,10 +1,8 @@
-from enum import Enum
 import json
 from pathlib import Path
 import tkinter as tk
 from tkinter import BooleanVar, Canvas, Frame, Label, StringVar
 from tkinter import ttk
-from turtle import pos
 from PIL import Image, ImageDraw, ImageTk
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
@@ -97,7 +95,7 @@ class AreaAsset:
         #     return
 
         with open(str(self._stroke_filepath), 'w') as file:
-            csv_header = "latitude,longitude,elevation,resolution"
+            csv_header = "latitude,longitude,elevation,resolution\n"
             file.write(csv_header)
 
             # Write stroke data
@@ -206,12 +204,9 @@ class AreaAsset:
             
         self.draw_perimeter()
         
-
     def draw_perimeter(self):
         if self.is_fully_init is False:
             raise Exception("{} is not fully initiated, call drawing_init()")
-
-            
 
         data = self.stroke_data
         img_size = self.img_size
@@ -219,7 +214,7 @@ class AreaAsset:
 
         # Draw fill (do later)
         # Draw lines
-        if len(data) > 2:
+        if len(data) >= 2:
             for id in range(0, len(data) - 1):
                 pt_a = data[id+0][0] * img_size[0], data[id+0][1] * img_size[1]
                 pt_b = data[id+1][0] * img_size[0], data[id+1][1] * img_size[1]
@@ -323,7 +318,6 @@ class AreaAsset:
             
             self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
             imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
-            # self.canvas.imageid_ref = imageid
 
 
     # -------------------------------------------------------------- #

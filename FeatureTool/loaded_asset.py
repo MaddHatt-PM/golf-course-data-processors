@@ -10,13 +10,12 @@ class LoadedAsset:
         basePath = "SavedAreas/" + savename + "/" 
         self.basePath:Path = Path(basePath)
         self.basePath.mkdir(parents=True, exist_ok=True)
-        print(self.basePath)
 
-        self.loadFile:Path = Path(basePath + savename + ".area")
-        self.sateliteImg:Path = Path(basePath + "Satelite.tif")
+        self.loadFile_path:Path = Path(basePath + savename + ".area")
+        self.sateliteImg_path:Path = Path(basePath + "Satelite.tif")
         self.__coordinates:Path = Path(basePath + "Coordinates.csv")
-        self.elevationImg:Path = Path(basePath + "Elevation.tif")
-        self.elevationCSV:Path = Path(basePath + "Elevation.csv")
+        self.elevationImg_path:Path = Path(basePath + "Elevation.tif")
+        self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
 
         # If provided, save out coordinates data
         if p0 != None and p1 != None:
@@ -39,10 +38,4 @@ class LoadedAsset:
             return [(1.0, 1.0), (0.0, 0.0)]
 
     def does_satelite_data_exist(self) -> bool:
-        return self.sateliteImg.is_file()
-
-    def savename(self): return self.savename
-    def loadFile_path(self): return self.loadFile
-    def sateliteImg_path(self): return self.sateliteImg
-    def elevationImg_path(self): return self.elevationImg
-    def elevationCSV_path(self): return self.elevationCSV
+        return self.sateliteImg_path.is_file()
