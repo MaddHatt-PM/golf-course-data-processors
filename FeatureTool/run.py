@@ -11,14 +11,14 @@ TaskList:
 '''
 
 from view_main_window import MainWindow
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 import sys
 
 
 if len(sys.argv) == 1:
     target=None
 else:
-    target=LoadedAsset(savename=sys.argv[1])
+    target=ProjectAsset(savename=sys.argv[1])
 
 app = MainWindow(target).show()
 app.mainloop()

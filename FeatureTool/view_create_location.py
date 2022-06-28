@@ -3,7 +3,7 @@ from tkinter.ttk import Button, Entry, Frame, Label
 from utilities import restart_with_new_target
 from data_downloader import download_imagery, services
 
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 
 class CreateLocationView:
     def show(self, isMainWindow:bool=False) -> tk.Tk:
@@ -69,7 +69,7 @@ class CreateLocationView:
             self.error_msg.set("Error: Invalid points")
             return
 
-        newArea = LoadedAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
         print(str(newArea.coordinates()))
         download_imagery(target=newArea, service=services.google_satelite)
         

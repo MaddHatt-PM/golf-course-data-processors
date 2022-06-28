@@ -3,7 +3,7 @@ from enum import Enum
 from tkinter import Canvas, Image, Tk
 from geographiclib.geodesic import Geodesic
 
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 
 class ColorSet:
     def __init__(self, path:str, fill:str) -> None:
@@ -35,7 +35,7 @@ class ToolMode(Enum):
     default = 0
 
 class SpaceTransformer:
-    def __init__(self, canvasRef: Canvas, target:LoadedAsset, image_raw:Image):
+    def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_raw:Image):
         self.canvasRef = canvasRef
         self.target = target
         self.image_raw = image_raw
@@ -133,3 +133,9 @@ class SpaceTransformer:
 def restart_with_new_target(root:Tk, area_name:str):
     root.destroy()
     os.system("py run.py " + area_name)
+
+def clamp01(value) -> float:
+    return max(min(value, 1.0), 0.0)
+
+def clamp(value, min_value, max_value) -> float:
+    return max(min(value, max_value), min_value)

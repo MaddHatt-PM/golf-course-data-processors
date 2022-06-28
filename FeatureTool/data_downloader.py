@@ -12,7 +12,7 @@ import api_keys as keys
 from typing import Tuple
 from pathlib import Path
 from asset_area import AreaAsset
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 
 from google_maps_api import SatelliteInterface as gmap_si
 
@@ -36,7 +36,7 @@ def pil_to_cv(pil_image):
 
 # -------------------------------------------------------------- #
 # --- Imagery functions ---------------------------------------- #
-def __via_google_satelite(target:LoadedAsset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
+def __via_google_satelite(target:ProjectAsset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
     grabber = gmap_si(keys.google_maps)
     result = grabber.get_maps_image(p0, p1, zoom=19)
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
@@ -49,7 +49,7 @@ def __via_google_satelite(target:LoadedAsset, p0:Tuple[float, float], p1:Tuple[f
 
     return target.sateliteImg_path()
 
-def download_imagery(target:LoadedAsset, service:str) -> Path:
+def download_imagery(target:ProjectAsset, service:str) -> Path:
     '''Pull data from specified service'''
 
     # Unpack coordinates for readability
@@ -62,7 +62,7 @@ def download_imagery(target:LoadedAsset, service:str) -> Path:
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def __via_google_elevation(target:LoadedAsset, area:AreaAsset) -> Path:
+def __via_google_elevation(target:ProjectAsset, area:AreaAsset) -> Path:
     '''
     - Google Documentation: https://developers.google.com/maps/documentation/elevation/start#maps_http_elevation_locations-py
     - Submit a single request using https://stackoverflow.com/questions/29418423/how-to-use-an-array-of-coordinates-with-google-elevation-api
@@ -133,7 +133,7 @@ def __via_google_elevation(target:LoadedAsset, area:AreaAsset) -> Path:
     api_usage_tracker.add_api_count(services.google_elevation, len(points))
     return target.elevationCSV_path
 
-def download_elevation(target:LoadedAsset, area:AreaAsset, service:services) -> Path:
+def download_elevation(target:ProjectAsset, area:AreaAsset, service:services) -> Path:
     if service is services.google_elevation:
         return __via_google_elevation(target, area)
 

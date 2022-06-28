@@ -21,7 +21,7 @@ from pathlib import Path
 from PIL import Image, ImageTk
 
 from asset_area import AreaAsset
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from data_downloader import services, download_imagery
@@ -30,8 +30,8 @@ from view_create_area import CreateAreaView
 from view_create_location import CreateLocationView
 
 class MainWindow:
-    def __init__(self, target:LoadedAsset):
-        self.target:LoadedAsset = target
+    def __init__(self, target:ProjectAsset):
+        self.target:ProjectAsset = target
 
         if target is None:
             return
@@ -119,7 +119,7 @@ class MainWindow:
             print("disabled")
             return
 
-        newArea = LoadedAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
         print(str(newArea.coordinates()))
         download_imagery(target=newArea, service=services.google_satelite)
         

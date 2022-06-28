@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
-class LoadedAsset:
+class ProjectAsset:
 
     def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None):
         self.savename:str = savename
@@ -15,6 +15,7 @@ class LoadedAsset:
         self.__coordinates:Path = Path(basePath + "Coordinates.csv")
         self.elevationImg_path:Path = Path(basePath + "Elevation.tif")
         self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
+        self.treesCSV_path:Path = Path(basePath + "Trees.csv")
 
         # If provided, save out coordinates data
         if p0 != None and p1 != None:
