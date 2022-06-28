@@ -336,7 +336,7 @@ class MainWindow:
         viewport = Frame(self.root, bg=UIColors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
         
-        satelite_raw = Image.open(self.target.sateliteImg)
+        satelite_raw = Image.open(self.target.sateliteImg_path)
         satelite_pi = ImageTk.PhotoImage(image=satelite_raw)
 
         # Keep image references to avoid Garbage Collector
