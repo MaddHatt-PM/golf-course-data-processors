@@ -6,7 +6,7 @@ from tkinter import ttk
 from PIL import Image, ImageDraw, ImageTk
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
-from loaded_asset import LoadedAsset
+from asset_project import ProjectAsset
 from utilities import ColorSet, CoordMode, UIColors
 
 from geographiclib.geodesic import Geodesic
@@ -22,7 +22,7 @@ class Settings:
     _color_fill = "color_fill"
 
 class AreaAsset:
-    def __init__(self, name:str, target:LoadedAsset) -> None:
+    def __init__(self, name:str, target:ProjectAsset) -> None:
         self.name = name
         self.is_dirty = False
         self.canvasIDs = []
