@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import BooleanVar, Button, Frame, Tk
+from tkinter import BooleanVar, Button, Frame, StringVar, Tk
 from tkinter import ttk
 
 from ui_toggle import Toggle
@@ -39,7 +39,7 @@ class inspector_drawers:
 
         return text
 
-    def labeled_entry(self, label_text="", entryVariable="") -> ttk.Entry:
+    def labeled_entry(self, label_text="", entry_variable:StringVar=None, command=None) -> ttk.Entry:
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
@@ -47,10 +47,11 @@ class inspector_drawers:
         label.grid(row=0, column=0)
         self.items.append(label)
 
-        entry = ttk.Entry(subframe, textvariable=entryVariable)
+        entry = ttk.Entry(subframe, textvariable=entry_variable, validatecommand=command)
         entry.grid(row=0, column=2, sticky='e')
         self.items.append(entry)
 
+        subframe.grid_columnconfigure(1, weight=3)
         subframe.pack(fill='x')
         return entry
 

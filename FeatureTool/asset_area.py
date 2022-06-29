@@ -353,7 +353,7 @@ class AreaAsset:
         self.drawer.seperator()
         placeholder = StringVar()
         placeholder.set("Entry Text")
-        self.drawer.labeled_entry(label_text="Labeled Entry test", entryVariable=placeholder)
+        self.drawer.labeled_entry(label_text="Labeled Entry test", entry_variable=placeholder)
         
         # Lower half
         self.drawer.vertical_divider()
