@@ -2,14 +2,18 @@
 Super ellipse equation: https://www.desmos.com/calculator/byif8mjgy3
 '''
 
+from functools import partial
 from pathlib import Path
 import sys
-from tkinter import Canvas
+import tkinter as tk
+from tkinter import Canvas, DoubleVar, Frame, StringVar
+from tkinter import ttk
 
 from black import out
 
 from asset_project import ProjectAsset
-from utilities import clamp01
+from ui_inspector_drawer import inspector_drawers
+from utilities import SpaceTransformer, clamp01
 
 class TreeAsset:
     global taper_range; taper_minmax = 0.0, 1.0
@@ -33,6 +37,7 @@ class TreeAsset:
         self.position_y = position_y
 
         self._name = ""
+        self.__tkVars:dict[str, any] = {}
 
         if header != "" and data != "":
             variables = zip(header.split(','), data.split(','))
@@ -41,6 +46,20 @@ class TreeAsset:
                     self.__setattr__(itemset[0], eval(itemset[1]))
                 else:
                     print("TreeAsset: {} not in __init__ variables".format(itemset[0]))
+
+    def sync_variable(self, key:str, tkVar:DoubleVar, *args, **kwargs):
+        print("{} -> {}".format(key, tkVar.get()))
+
+    def select(self):
+        self.__tkVars.clear()
+
+        for key in self.__dict__:
+            if "trunk" in key or "foliage" in key:
+                tkVar = DoubleVar()
+                tkVar.set(self.__dict__[key])
+                closure = partial(self.sync_variable, key, tkVar)
+                tkVar.trace_add("write", closure)
+                self.__tkVars[key] = tkVar
 
     def load_preset(self, tree:"TreeAsset"):
         preset = tree.__dict__
@@ -137,14 +156,33 @@ class TreeAsset:
         height = max(self.trunk_height + self.trunk_offset, self.foliage_offset + self.foliage_height)
         return max(radius, height)
 
+    def example(self, *args, **kwargs):
+        print("Test")
+
+    def draw_to_inspector(self, inspector:Frame, drawer:inspector_drawers):
+        for key in self.__tkVars:
+            cleaned_name = key.replace('_', ' ').capitalize()
+
+            drawer.labeled_entry(
+                label_text=cleaned_name,
+                entry_variable=self.__tkVars[key])
+
 class TreeCollectionAsset:
     def __init__(self, target:ProjectAsset) -> None:
         self.target = target
         self.trees:list[TreeAsset] = []
         self.selected_tree:TreeAsset = None
+        if len(self.trees) == 0:
+            self.trees.append(TreeAsset())
+
+        if len(self.trees) > 0:
+            self.selected_tree = self.trees[0]
+            self.selected_tree.select()
 
         self.presets_path = Path("AppAssets/tree_presets.csv")
         self.presets:list[TreeAsset] = []
+
+        self.canvas_ids = []
 
         if self.presets_path.is_file() is True:
             with self.presets_path.open('r') as file:
@@ -152,9 +190,6 @@ class TreeCollectionAsset:
                 header = lines.pop(0)
                 for line in lines:
                     self.presets.append(TreeAsset(header, line))
-
-    def drawing_init(self, canvas:Canvas):
-        self.canvas = canvas
 
     def save_data_to_files(self):
         with self.target.treesCSV_path.open() as file:
@@ -165,7 +200,6 @@ class TreeCollectionAsset:
 
             output = output.removesuffix('\n')
             file.write(output)
-            
 
     # -------------------------------------------------------------- #
     # --- Presets -------------------------------------------------- #
@@ -196,16 +230,47 @@ class TreeCollectionAsset:
     def add_tree(self):
         tree = TreeAsset()
         self.trees.append(tree)
+        self.save_data_to_files()
+        self.draw_to_inspector()
 
-    # def 
+    def remove_tree(self, tree:TreeAsset):
+        self.trees.remove(tree)
+        self.save_data_to_files()
+        self.draw_to_inspector()
+        
 
-    def draw_to_canvas(self):
+    def draw_to_canvas(self, canvas:Canvas, util:SpaceTransformer):
+        for id in self.canvas_ids:
+            canvas.delete(id)
+        self.canvas_ids.clear()
+
         for tree in self.trees:
-            # Draw a dot circle
-            # Draw a 
-            pass
+            pos = tree.position_x, tree.position_y
+            pos = util.norm_pt_to_pixel_space(pos)
 
-    def draw_to_inspector(self):
+            half_length = 2.0 # pixels
+            center_coords = tuple(
+                pos[0] - half_length,
+                pos[1] - half_length,
+                pos[0] + half_length,
+                pos[1] + half_length
+            )
+            
+            center_id = canvas.create_rectangle(*center_coords, fill="white")
+            self.canvas_ids.append(center_id)
+
+            # Draw radius
+            radius = max(tree.trunk_radius, tree.foliage_radius)
+            radius_cords = tuple(
+                pos[0] - radius,
+                pos[1] - radius,
+                pos[0] + radius,
+                pos[1] + radius
+            )
+            radius_id = canvas.create_oval(*radius_cords, fill="blue")
+            self.canvas_ids.append(radius_id)
+
+    def draw_to_inspector(self, inspector:Frame, drawer:inspector_drawers):
         '''
         Mockup:
         
@@ -213,19 +278,27 @@ class TreeCollectionAsset:
         sub_canvas renderer
         '''
 
-        pass
+        selector_frame = Frame(inspector, padx=0, pady=0)
+        tk.Label(selector_frame, text="Selected Tree:").grid(row=0, column=0)
+        ttk.Button(selector_frame, text='+', width=2).grid(row=0, column=2)
+        selector_frame.pack(fill="x", anchor="n", expand=False)
 
-# tree = TreeAsset()
-# tree.demo()
-# print(tree.header())
-# print(tree.export_to_csv())
+        self.selected_tree.draw_to_inspector(inspector, drawer)
+        drawer.seperator()
 
-project = ProjectAsset(savename="AshevilleClub")
-treeCol = TreeCollectionAsset(target=project)
-treeCol.save_presets()
 
-header = "trunk_radius,trunk_height,trunk_offset,trunk_lower_taper,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_lower_curv,foliage_midpoint,foliage_upper_curv"
-data = "999.999,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,123.123"
-tree = TreeAsset(header, data)
-print(tree.to_csv())
 
+if __name__ == "__main__":
+    # tree = TreeAsset()
+    # tree.demo()
+    # print(tree.header())
+    # print(tree.export_to_csv())
+
+    project = ProjectAsset(savename="AshevilleClub")
+    treeCol = TreeCollectionAsset(target=project)
+    treeCol.save_presets()
+
+    header = "trunk_radius,trunk_height,trunk_offset,trunk_lower_taper,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_lower_curv,foliage_midpoint,foliage_upper_curv"
+    data = "999.999,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,123.123"
+    tree = TreeAsset(header, data)
+    print(tree.to_csv())

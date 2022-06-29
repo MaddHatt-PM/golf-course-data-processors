@@ -22,6 +22,7 @@ from PIL import Image, ImageTk
 
 from asset_area import AreaAsset
 from asset_project import ProjectAsset
+from asset_trees import TreeCollectionAsset
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from data_downloader import services, download_imagery
@@ -59,6 +60,8 @@ class MainWindow:
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
 
+        self.tree_manager = TreeCollectionAsset(self.target)
+
         # try:
         #     self.selected_area = area_asset("example", target)
         # except:
@@ -90,13 +93,13 @@ class MainWindow:
         prompts_f.grid(row=2)
 
         Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
-        filename_entry = Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
+        Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
 
         Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
-        pt_a_entry = Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
+        Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
 
         Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
-        pt_b_entry = Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
+        Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
 
         buttons_f = Frame(popup)
         buttons_f.grid(row=3)
@@ -128,22 +131,6 @@ class MainWindow:
     def restart_with_new_target(self, area_name:str):
         self.root.destroy()
         os.system("py run.py " + area_name)
-
-    # def validate_download_btn(self, filename:StringVar, pt_a:StringVar, pt_b:StringVar) -> str:
-    #     '''
-    #     Check if any variables are empty before allowing a download.
-    #     Returns tk.state:str for a button
-    #     '''
-    #     if filename.get().strip() == False:
-    #         return tk.DISABLED
-
-    #     try:
-    #         eval(pt_a.get())
-    #         eval(pt_b.get())
-    #     except:
-    #         return tk.DISABLED
-
-    #     return tk.ACTIVE
 
     def create_new_area(self, name:str="", *args, **kwargs):
         '''Rename this to something else'''
@@ -240,28 +227,6 @@ class MainWindow:
             scroll_bbox[1] = img_box[1]
             scroll_bbox[3] = img_box[3]
 
-        # self.canvas.configure(scrollregion=scroll_bbox)
-        # x1 = max(canvas_box[0] - img_box[0], 0)
-        # y1 = max(canvas_box[1] - img_box[1], 0)
-        # x2 = min(canvas_box[2], img_box[2]) - img_box[0]
-        # y2 = min(canvas_box[3], img_box[3]) - img_box[1]
-            
-        # show image if it is in the visible area
-        # if int(x2 - x1) > 0 and int(y2 - y1) > 0:
-        #     x = min(int(x2 / self.z_scale), self.image_raw.width)
-        #     y = min(int(y2 / self.z_scale), self.image_raw.height)
-
-            # image = self.image_raw.crop((int(x1 / self.z_scale), int(y1 / self.z_scale), x, y))
-            # imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1))))
-            # xCoord = max(canvas_box[0], img_box[0])
-            # yCoord = max(canvas_box[1], img_box[1])
-
-            # imageid = self.canvas.create_image(0, 0, anchor='nw', image=imagetk)
-            
-            # Lower image data for overlaying later
-            # self.canvas.lower(imageid)
-
-
         for area in self.areas:
             area.draw_to_canvas()
         
@@ -307,13 +272,18 @@ class MainWindow:
         inspector.grid(row=0, column=2, sticky="nswe")
 
         self.inspector_util = inspector_drawers(inspector)
+
+        '''Functionality Switcher'''
+        function_frame = Frame(inspector, padx=0, pady=0)
+        function_frame.pack()
+
+        '''Area Selector'''
         area_selector_frame = Frame(inspector, padx=0, pady=0)
         tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
-        '''Area Selector'''
-        dropdown_sel = tk.StringVar(self.root)
-        dropdown_sel.set(self.area_names[0])
-        dropdown = ttk.OptionMenu(area_selector_frame, dropdown_sel, self.active_area.name, *self.area_names, command=self.select_area)
+        area_selector = tk.StringVar(self.root)
+        area_selector.set(self.area_names[0])
+        dropdown = ttk.OptionMenu(area_selector_frame, area_selector, self.active_area.name, *self.area_names, command=self.select_area)
         dropdown.config(width=24)
         dropdown.grid(row=0, column=1, sticky='ew')
         self.area_selector = dropdown
@@ -325,8 +295,14 @@ class MainWindow:
         area_selector_frame.pack(fill="x", anchor="n", expand=False)
         ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
+        '''Active Area'''
         if self.active_area is not None:
             self.active_area.draw_to_inspector(self.inspector_util)
+
+        '''Tree Selector'''
+        self.tree_manager.draw_to_inspector(inspector, self.inspector_util)
+        ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+
 
 
     def setup_viewport(self):
