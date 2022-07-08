@@ -14,7 +14,7 @@ class CreateLocationView:
         if isMainWindow == True:
             popup = tk.Tk()
         else:
-            popup=tk.Toplevel()
+            popup = tk.Toplevel()
             popup.grab_set()
             popup.focus_force()
 
