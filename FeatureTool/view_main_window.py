@@ -23,7 +23,7 @@ from PIL import Image, ImageTk
 from asset_area import AreaAsset
 from asset_project import ProjectAsset
 from asset_trees import TreeCollectionAsset
-from utilities import SpaceTransformer
+from utilities import SpaceTransformer, ToolMode
 from ui_inspector_drawer import inspector_drawers
 from data_downloader import services, download_imagery
 from utilities import CoordMode, UIColors, restart_with_new_target
@@ -43,6 +43,7 @@ class MainWindow:
         self.mouse_pos = (-100, -100)
         self.status_text = tk.StringVar()
         self.status_text.set("")
+        self.toolmode = ToolMode.area
 
         self.canvas:Canvas = None
         self.container = None
@@ -140,6 +141,7 @@ class MainWindow:
                 name += random.choice(string.ascii_letters)
 
         area = AreaAsset(name, target=self.target)
+        area.save_data_to_files()
         area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
 
         self.areas.append(area)
@@ -267,41 +269,58 @@ class MainWindow:
         menubar.add_cascade(label="Help", menu=helpmenu)
         return menubar
 
+    def mode_to_area(self):
+        self.toolmode = ToolMode.area
+        self.setup_inspector()
+        
+    def mode_to_tree(self):
+        self.toolmode = ToolMode.tree
+        self.setup_inspector()
+
     def setup_inspector(self):
-        inspector = Frame(self.root, padx=0,pady=0)
+        inspector = Frame(self.root, padx=4, pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
+        # inspector.configure(width=45)
 
         self.inspector_util = inspector_drawers(inspector)
 
         '''Functionality Switcher'''
-        function_frame = Frame(inspector, padx=0, pady=0)
-        function_frame.pack()
-
-        '''Area Selector'''
-        area_selector_frame = Frame(inspector, padx=0, pady=0)
-        tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
-
-        area_selector = tk.StringVar(self.root)
-        area_selector.set(self.area_names[0])
-        dropdown = ttk.OptionMenu(area_selector_frame, area_selector, self.active_area.name, *self.area_names, command=self.select_area)
-        dropdown.config(width=24)
-        dropdown.grid(row=0, column=1, sticky='ew')
-        self.area_selector = dropdown
-
-        closure = partial(CreateAreaView().show, self.areas)
-        add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
-        add_area.grid(row=0, column=3)
+        mode_frame = Frame(inspector, padx=0, pady=0)
+        ttk.Button(mode_frame, text="Areas", command=self.mode_to_area).grid(row=0, column=0, sticky='ew')
+        ttk.Button(mode_frame, text="Trees", command=self.mode_to_tree).grid(row=0, column=1, sticky='ew')
+        mode_frame.grid_columnconfigure(0, weight=1)
+        mode_frame.grid_columnconfigure(1, weight=1)
+        mode_frame.pack(fill='x', anchor='n', expand=False)
         
-        area_selector_frame.pack(fill="x", anchor="n", expand=False)
-        ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+        ttk.Separator(inspector, orient="horizontal").pack(fill='x', pady=4)
 
-        '''Active Area'''
-        if self.active_area is not None:
-            self.active_area.draw_to_inspector(self.inspector_util)
+        '''Area UI'''
+        if (self.toolmode == ToolMode.area):
+            area_selector_frame = Frame(inspector, padx=0, pady=0)
+            tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
-        '''Tree Selector'''
-        self.tree_manager.draw_to_inspector(inspector, self.inspector_util)
-        ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+            area_selector = tk.StringVar(self.root)
+            area_selector.set(self.area_names[0])
+            dropdown = ttk.OptionMenu(area_selector_frame, area_selector, self.active_area.name, *self.area_names, command=self.select_area)
+            # dropdown.config(width=24)
+            dropdown.grid(row=0, column=1, sticky='ew')
+            area_selector_frame.grid_columnconfigure(1, weight=5)
+            self.area_selector = dropdown
+
+            closure = partial(CreateAreaView().show, self, self.areas)
+            add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
+            add_area.grid(row=0, column=3)
+            
+            area_selector_frame.pack(fill="x", anchor="n", expand=False)
+            ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+
+            if self.active_area is not None:
+                self.active_area.draw_to_inspector(self.inspector_util)
+
+        '''Tree UI'''
+        if (self.toolmode == ToolMode.tree):
+            self.tree_manager.draw_to_inspector(inspector, self.inspector_util)
+            ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
 
 
@@ -379,6 +398,7 @@ class MainWindow:
         self.root.config(bg=UIColors.canvas_col)
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=5)
+        self.root.grid_columnconfigure(2, minsize=340)
         self.root.config(menu=self.setup_menubar(self.root))
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 

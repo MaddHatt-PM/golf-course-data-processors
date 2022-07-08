@@ -32,7 +32,8 @@ class CoordMode(Enum):
     earth = 2
 
 class ToolMode(Enum):
-    default = 0
+    area = 0,
+    tree = 1
 
 class SpaceTransformer:
     def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_raw:Image):
