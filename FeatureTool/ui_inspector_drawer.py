@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import BooleanVar, Button, Frame, StringVar, Tk
+from tkinter import BooleanVar, Button, DoubleVar, Frame, StringVar, Tk
 from tkinter import ttk
+from turtle import width
 
 from ui_toggle import Toggle
 
@@ -13,9 +14,11 @@ class inspector_drawers:
     def __init__(self, frame:Tk):
         self.frame = frame
         self.items = []
-        widthSize = 36
-        width_definer = tk.Label(self.frame, text="", width=widthSize, height=1)
-        width_definer.pack(anchor='s')
+        
+        # widthSize = 36
+        # width_definer = tk.Label(self.frame, text="", width=widthSize, height=1)
+        # width_definer.pack(anchor='s')
+        # width_definer.place(relx=0, rely=0)
 
     def clear_inspector(self, *args, **kwargs):
         for item in self.items:
@@ -39,7 +42,7 @@ class inspector_drawers:
 
         return text
 
-    def labeled_entry(self, label_text="", entry_variable:StringVar=None, command=None) -> ttk.Entry:
+    def labeled_entry(self, label_text="", entry_variable:StringVar=None, validate_command=None, pady=0) -> ttk.Entry:
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
@@ -47,8 +50,8 @@ class inspector_drawers:
         label.grid(row=0, column=0)
         self.items.append(label)
 
-        entry = ttk.Entry(subframe, textvariable=entry_variable, validatecommand=command)
-        entry.grid(row=0, column=2, sticky='e')
+        entry = ttk.Entry(subframe, textvariable=entry_variable, validate='key', validatecommand=validate_command)
+        entry.grid(row=0, column=2, sticky='e',pady=pady)
         self.items.append(entry)
 
         subframe.grid_columnconfigure(1, weight=3)
@@ -82,7 +85,7 @@ class inspector_drawers:
         subframe.pack(fill='x')
         return button
 
-    def labeled_slider(self, label_text:str="", from_:float=0.0, to:float=1.0) -> ttk.Scale:
+    def labeled_slider(self, label_text:str="", from_:float=0.0, to:float=1.0, tkVar:DoubleVar=None) -> ttk.Scale:
         '''Create a slider with a range of 0.0 to 1.0 by default'''
 
         subframe = Frame(self.frame, padx=0, pady=0)
@@ -93,7 +96,7 @@ class inspector_drawers:
         label.grid(row=0, column=0)
         self.items.append(label)
 
-        slider = ttk.Scale(subframe, orient='horizontal', length=194, from_=from_, to=to)
+        slider = ttk.Scale(subframe, orient='horizontal', length=194, from_=from_, to=to, variable=tkVar)
         slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
         self.items.append(slider)
 

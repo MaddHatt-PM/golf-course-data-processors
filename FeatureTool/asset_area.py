@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import BooleanVar, Canvas, Label, StringVar
+from tkinter import BooleanVar, Canvas, DoubleVar, Frame, Label, StringVar
 from tkinter import ttk
+from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
@@ -144,7 +145,6 @@ class AreaAsset:
         self.draw_to_canvas()
         self.draw_to_inspector()
 
-        
     # -------------------------------------------------------------- #
     # --- Utility functions ---------------------------------------- #
     def is_point_in_area(self, pt:tuple, coord_id:CoordMode) -> bool:
@@ -189,7 +189,25 @@ class AreaAsset:
             # Order: LAT, Long
             polygon.AddPoint(_pt[0], _pt[1])
 
-        return polygon.Compute(False, False)
+        '''
+        Counterclockwise and clockwise return different results.
+        Return lowest to counter user input
+        '''
+        return min(polygon.Compute(False, False), polygon.Compute(True, False))
+    
+    def get_bounds(self) -> Tuple[float,float,float,float]:
+        '''
+        NW -> MaxMin
+        SE -> MinMax
+        '''
+        n,w = float("-inf"), float("inf")
+        s,e = float("inf"), float("-inf")
+
+        for pt in self.stroke_data:
+            n,w = max(n, pt[0]), min(w, pt[1])
+            s,e = min(s, pt[0]), max(e, pt[1])
+
+        return n,w,s,e
 
     def destroy(self):
         pass
@@ -332,22 +350,28 @@ class AreaAsset:
         self.drawer.clear_inspector()
         self.drawer.header(text="Settings")
 
+        dropdown_frame = Frame(drawer.frame, padx=0, pady=0)
+        # color_dropdown = ttk.OptionMenu(dropdown_frame, )
+
         do_draw_points = BooleanVar(value=self.do_draw_points)
         self.drawer.labeled_toggle(label_text="Toggle path points", command=self.toggle_points, boolVar=do_draw_points)
 
         do_fill = BooleanVar(value=self.do_draw_fill)
         self.drawer.labeled_toggle(label_text="Toggle fill", command=self.toggle_fill, boolVar=do_fill)
+
+        valueVar = DoubleVar()
         self.drawer.labeled_slider("Fill Opacity")
         self.drawer.seperator()
 
         area_info = self.compute_info()
+        bounds = self.get_bounds()
 
         self.drawer.header(text="Statistics")
         text = "Point count: {}\n".format(len(self.stroke_data))
         text += "Perimeter (m): {:.4f}\n".format(area_info[1])
         text += "Area (m²): {:.4f}\n".format(area_info[2])
-        text += "Bounds: NW: {}, {}\n".format(0.5, 0.5)
-        text += "Bounds: SE: {}, {}".format(0.5, 0.5)
+        text += "Bounds: NW: {:.5f}, {:.5f}\n".format(bounds[0], bounds[1])
+        text += "Bounds: SE: {:.5f}, {:.5f}".format(bounds[2], bounds[3])
         self.drawer.label(text)
         
         self.drawer.seperator()
