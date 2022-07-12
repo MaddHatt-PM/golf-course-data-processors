@@ -392,13 +392,15 @@ class MainWindow:
             self.root.title("None selected")
             return self.root
 
+        INSPECTOR_WIDTH = 260
+
         self.root.title(self.target.savename + " - Terrain Viewer")
         self.root.minsize(width=500, height=400)
         self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
         self.root.config(bg=UIColors.canvas_col)
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=5)
-        self.root.grid_columnconfigure(2, minsize=340)
+        self.root.grid_columnconfigure(2, minsize=INSPECTOR_WIDTH)
         self.root.config(menu=self.setup_menubar(self.root))
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 

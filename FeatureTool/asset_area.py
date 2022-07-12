@@ -1,10 +1,11 @@
+from functools import partial
 import json
 from pathlib import Path
 import tkinter as tk
 from tkinter import BooleanVar, Canvas, DoubleVar, Frame, Label, StringVar
 from tkinter import ttk
 from typing import Tuple
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw, ImageTk, ImageColor
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from asset_project import ProjectAsset
@@ -14,11 +15,16 @@ from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
 class Settings:
+    '''
+    TODO: Move all settings variables and save/load methods to here,
+          and have the variables be loaded as a keyword dict from self
+    '''
     fill_alpha = "fill_alpha"
     stroke_width = "stroke_width"
-    do_draw_points = True
-    do_draw_fill = False
+    do_draw_points = "do_draw_points"
+    do_draw_fill = "do_draw_fill"
     color = "color"
+
     _color_path = "color_path"
     _color_fill = "color_fill"
 
@@ -27,15 +33,14 @@ class AreaAsset:
         self.name = name
         self.is_dirty = False
         self.canvasIDs = []
-        self.inspectorIDs = []
         self.canvas = None
         self.drawer = None
         self.util = None
-        self.do_draw_fill = False
-        self.do_draw_points = True
+
         self.possible_line = None
         self.is_fully_init = False
         self.fill_img:Image.Image = None
+        self.canvasID_fill = None
 
         basepath = "SavedAreas/" + target.savename + "/" 
 
@@ -44,6 +49,9 @@ class AreaAsset:
         if self._settings_path.is_file():
             with self._settings_path.open('r') as file:
                 self.settings:dict = json.loads(file.read())
+                # print('init', self.settings)
+                # self.settings['do_draw_fill'] = False
+                # self.settings['do_draw_points'] = True
                 
                 path = self.settings.pop(Settings._color_path)
                 fill = self.settings.pop(Settings._color_fill)
@@ -57,7 +65,6 @@ class AreaAsset:
 
         self.fill_alpha = 0.25
         self.stroke_width = 3.0
-        self.color = UIColors.indigo
 
         self._stroke_filepath = Path(basepath + name + "_area.csv")
         self.coord_id:CoordMode = CoordMode.normalized
@@ -82,12 +89,13 @@ class AreaAsset:
 
     def _save_settings(self):
         settings = dict(self.settings)
+        
+        # color_set is not json compatible
         color:ColorSet = settings.pop(Settings.color)
         settings[Settings._color_path] = color.path
         settings[Settings._color_fill] = color.fill
 
         with self._settings_path.open('w') as file:
-            # color_set is not json compatible
             settings_str = json.dumps(settings)
             file.write(settings_str)
         
@@ -212,12 +220,13 @@ class AreaAsset:
     def destroy(self):
         pass
 
+
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
     def draw_to_canvas(self):
         self.clear_canvasIDs()
 
-        if self.do_draw_fill is True:
+        if self.settings.get('do_draw_fill', False) is True:
             self.__draw_fill()
             
         self.__draw_perimeter()
@@ -236,25 +245,26 @@ class AreaAsset:
             for id in range(0, len(data) - 1):
                 pt_a = data[id+0][0] * img_size[0], data[id+0][1] * img_size[1]
                 pt_b = data[id+1][0] * img_size[0], data[id+1][1] * img_size[1]
-                lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.color.path)
+                lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path)
                 self.canvasIDs.append(lineID)
 
 
             pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
             pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
 
-            lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.color.path, dash=(6,4))
+            lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path, dash=(6,4))
             self.canvasIDs.append(lineID)
 
         # Draw points
-        if self.do_draw_points:
+        if self.settings['do_draw_points']:
             circle_size = 8
             for point in self.stroke_data:
                 pt_a = point[0] * img_size[0], point[1] * img_size[1]
-                pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.color.path)
+                pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.settings['color'].path)
                 self.canvasIDs.append(pointID)
 
-    def __draw_fill(self):
+    def __draw_fill(self, render_image=True):
+        print("redrawing")
         polygon_points = []
         for pt in self.stroke_data:
             pixel_pt = self.util.norm_pt_to_pixel_space(pt)
@@ -280,15 +290,21 @@ class AreaAsset:
         )
 
         if len(polygon_points) > 2:
-            self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
-            drawer = ImageDraw.Draw(self.fill_img)
-            drawer.polygon(polygon_points, fill=(255,0,0,125))
+            if render_image is True or self._fill_img_filepath.is_file() is False:
+                fill = ImageColor.getcolor(self.settings['color'].fill, 'RGB')
+                alpha = int(self.settings['fill_alpha'] * 255)
+                
+                self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
+                drawer = ImageDraw.Draw(self.fill_img)
+                drawer.polygon(polygon_points, fill=(*fill, alpha))
 
-            self.fill_img.save(self._fill_img_filepath)
-            self.fill_img = self.fill_img
+                self.fill_img.save(self._fill_img_filepath)
+                self.fill_img = self.fill_img
             
             self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
-            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            if self.canvasID_fill is None:
+                self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            # imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
 
     def draw_last_point_to_cursor(self, cursor_pos:tuple):
@@ -324,22 +340,28 @@ class AreaAsset:
 
         self.canvasIDs.clear()
 
-    def toggle_fill(self):
-        self.do_draw_fill = not self.do_draw_fill
+    def set_color(self, color:ColorSet, *args, **kwargs):
+        self.settings['color'] = color
+        self.draw_to_canvas()
+        self._save_settings()
 
-        if self.do_draw_fill is False:
+    def toggle_fill(self):
+        self.settings['do_draw_fill'] = not self.settings['do_draw_fill']
+
+        if self.settings['do_draw_fill'] is False:
             self.fill_img = None
             self.image_pi = None
 
         self.draw_to_canvas()
 
     def toggle_points(self):
-        self.do_draw_points = not self.do_draw_points
+        self.settings['do_draw_points'] = not self.settings['do_draw_points']
         self.draw_to_canvas()
 
 
     # -------------------------------------------------------------- #
     # --- Inspector functions -------------------------------------- #
+
     def draw_to_inspector(self, drawer:inspector_drawers=None):
         if drawer is not None:
             self.drawer = drawer
@@ -350,17 +372,32 @@ class AreaAsset:
         self.drawer.clear_inspector()
         self.drawer.header(text="Settings")
 
-        dropdown_frame = Frame(drawer.frame, padx=0, pady=0)
-        # color_dropdown = ttk.OptionMenu(dropdown_frame, )
+        color_dropdown = self.drawer.labeled_dropdown(
+            self.settings['color'],
+            value_data=UIColors.colors,
+            value_names=UIColors.names,
+            default_index=0,
+            label_text="Color",
+            change_commands=self.set_color)
 
-        do_draw_points = BooleanVar(value=self.do_draw_points)
-        self.drawer.labeled_toggle(label_text="Toggle path points", command=self.toggle_points, boolVar=do_draw_points)
+        do_draw_points = BooleanVar(value=self.settings['do_draw_points'])
+        self.drawer.labeled_toggle(
+            label_text="Toggle path points",
+            command=self.toggle_points,
+            boolVar=do_draw_points)
 
-        do_fill = BooleanVar(value=self.do_draw_fill)
+        do_fill = BooleanVar(value=self.settings['do_draw_fill'])
         self.drawer.labeled_toggle(label_text="Toggle fill", command=self.toggle_fill, boolVar=do_fill)
 
+        def sync_fill_alpha(self:AreaAsset, tkVar:DoubleVar, *args, **kwargs):
+            self.settings['fill_alpha'] = tkVar.get()
+            self.draw_to_canvas()
+
         valueVar = DoubleVar()
-        self.drawer.labeled_slider("Fill Opacity")
+        valueVar.set(self.settings['fill_alpha']) 
+        closure = partial(sync_fill_alpha, self, valueVar)
+        valueVar.trace_add('write', closure)
+        self.drawer.labeled_slider("Fill Opacity", tkVar=valueVar)
         self.drawer.seperator()
 
         area_info = self.compute_info()
@@ -373,11 +410,6 @@ class AreaAsset:
         text += "Bounds: NW: {:.5f}, {:.5f}\n".format(bounds[0], bounds[1])
         text += "Bounds: SE: {:.5f}, {:.5f}".format(bounds[2], bounds[3])
         self.drawer.label(text)
-        
-        self.drawer.seperator()
-        placeholder = StringVar()
-        placeholder.set("Entry Text")
-        self.drawer.labeled_entry(label_text="Labeled Entry test", entry_variable=placeholder)
         
         # Lower half
         self.drawer.vertical_divider()
