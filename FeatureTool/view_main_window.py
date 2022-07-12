@@ -229,8 +229,8 @@ class MainWindow:
             scroll_bbox[1] = img_box[1]
             scroll_bbox[3] = img_box[3]
 
-        for area in self.areas:
-            area.draw_to_canvas()
+        # for area in self.areas:
+        #     area.draw_to_canvas()
         
         if self.active_area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)

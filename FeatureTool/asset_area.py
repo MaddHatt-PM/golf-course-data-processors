@@ -32,6 +32,7 @@ class AreaAsset:
     def __init__(self, name:str, target:ProjectAsset) -> None:
         self.name = name
         self.is_dirty = False
+        self.is_fill_dirty = True
         self.canvasIDs = []
         self.canvas = None
         self.drawer = None
@@ -63,7 +64,7 @@ class AreaAsset:
             self.settings[Settings.color] = UIColors.indigo
             self._save_settings()
 
-        self.fill_alpha = 0.25
+        # self.fill_alpha = 0.25
         self.stroke_width = 3.0
 
         self._stroke_filepath = Path(basepath + name + "_area.csv")
@@ -127,31 +128,33 @@ class AreaAsset:
     # --- Wrappers for stroke_data --------------------------------- #
     def modify_point(self, id:int, position:tuple):
         self.stroke_data[id] = position
-        self.is_dirty = True
-        self.draw_to_inspector()
+        self.mark_area_to_be_redrawn()
 
     def insert_point(self, position:tuple):
         self.stroke_data.insert(position)
-        self.is_dirty = True
-        self.draw_to_inspector()
+        self.mark_area_to_be_redrawn()
 
     def append_point(self, position:tuple, coordID:CoordMode):
         if (coordID == CoordMode.pixel):
             position = self.util.pixel_pt_to_norm_space(position)
 
         self.stroke_data.append(position)
-        self.is_dirty = True
-        self.draw_to_inspector()
+        self.mark_area_to_be_redrawn()
 
     def remove_point(self, id:int):
         self.stroke_data.pop(id)
-        self.is_dirty = True
-        self.draw_to_inspector()
+        self.mark_area_to_be_redrawn()
 
     def clear_points(self):
         self.stroke_data.clear()
+        self.mark_area_to_be_redrawn()
+
+    def mark_area_to_be_redrawn(self):
+        self.is_dirty = True
+        self.is_fill_dirty = True
         self.draw_to_canvas()
         self.draw_to_inspector()
+
 
     # -------------------------------------------------------------- #
     # --- Utility functions ---------------------------------------- #
@@ -167,6 +170,7 @@ class AreaAsset:
             [b] average the value of surrounding pixels since getpixel() uses an int and not a float
         '''
         if self.fill_img is None:
+            self.is_fill_dirty = True
             self.__draw_fill()
 
         if coord_id is CoordMode.pixel:
@@ -263,8 +267,8 @@ class AreaAsset:
                 pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.settings['color'].path)
                 self.canvasIDs.append(pointID)
 
-    def __draw_fill(self, render_image=True):
-        print("redrawing")
+    def __draw_fill(self):
+        # print("redrawing")
         polygon_points = []
         for pt in self.stroke_data:
             pixel_pt = self.util.norm_pt_to_pixel_space(pt)
@@ -290,7 +294,8 @@ class AreaAsset:
         )
 
         if len(polygon_points) > 2:
-            if render_image is True or self._fill_img_filepath.is_file() is False:
+            if self.is_fill_dirty is True:
+                print("rendering fill for {}".format(self.name))
                 fill = ImageColor.getcolor(self.settings['color'].fill, 'RGB')
                 alpha = int(self.settings['fill_alpha'] * 255)
                 
@@ -300,11 +305,12 @@ class AreaAsset:
 
                 self.fill_img.save(self._fill_img_filepath)
                 self.fill_img = self.fill_img
+                self.is_fill_dirty = False
             
             self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
-            if self.canvasID_fill is None:
-                self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
-            # imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            # if self.canvasID_fill is None:
+            #     self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
 
     def draw_last_point_to_cursor(self, cursor_pos:tuple):
@@ -391,6 +397,7 @@ class AreaAsset:
 
         def sync_fill_alpha(self:AreaAsset, tkVar:DoubleVar, *args, **kwargs):
             self.settings['fill_alpha'] = tkVar.get()
+            self.is_fill_dirty = True
             self.draw_to_canvas()
 
         valueVar = DoubleVar()
