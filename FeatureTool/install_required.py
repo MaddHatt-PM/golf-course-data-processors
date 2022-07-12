@@ -14,14 +14,19 @@ def try_to_install(import_name:str, pip_name:str = None):
     if pip_name is None:
         pip_name = import_name
 
-    if import_util.find_spec(import_name) is None:
+    # print("Checked {}".format(import_name))
+    # if import_util.find_spec(import_name) is None:
+    try:
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', pip_name])
+    except:
+        pass
 
 packages = [
     "numpy",
     "scipy",
     "pandas",
     "plotly",
+    "requests",
     "openpyxl",
     "ttkthemes",
     "pyautogui",

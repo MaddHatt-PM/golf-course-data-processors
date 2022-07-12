@@ -1,3 +1,5 @@
+from ast import arg
+from functools import partial
 import tkinter as tk
 from tkinter import BooleanVar, Button, DoubleVar, Frame, StringVar, Tk
 from tkinter import ttk
@@ -93,35 +95,68 @@ class inspector_drawers:
         self.items.append(subframe)
 
         label = tk.Label(subframe, text=label_text, padx=6)
-        label.grid(row=0, column=0)
+        subframe.grid_columnconfigure(0, weight=1)
+        label.grid(row=0, column=0, sticky='w')
         self.items.append(label)
 
-        slider = ttk.Scale(subframe, orient='horizontal', length=194, from_=from_, to=to, variable=tkVar)
+        slider = ttk.Scale(subframe, orient='horizontal', length=145, from_=from_, to=to, variable=tkVar)
         slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
         self.items.append(slider)
 
         return slider
 
-    def empty_space(self):
+    def empty_space(self) -> tk.Label:
         space = tk.Label(self.frame, text="")
         space.pack(fill='x')
 
         self.items.append(space)
         return space
 
-    def vertical_divider(self):
+    def vertical_divider(self) -> tk.Label:
         space = tk.Label(self.frame, text="")
         space.pack(fill='x', expand=True)
 
         self.items.append(space)
         return space
 
-    def seperator(self):
+    def seperator(self) -> ttk.Separator:
         seperator = ttk.Separator(self.frame, orient="horizontal")
         seperator.pack(fill='x', pady=5)
 
         self.items.append(seperator)
         return seperator
 
-    def labeled_dropdown(self):
-        pass
+    def labeled_dropdown(self, current_var, value_data:list, value_names:list, default_index:int, label_text:str, change_commands=None) -> ttk.Combobox:
+        subframe = Frame(self.frame, padx=0, pady=0)
+        subframe.pack(fill='x')
+        self.items.append(subframe)
+
+        label = tk.Label(subframe, text=label_text, padx=6)
+        label.grid(row=0, column=0, sticky='w')
+        subframe.grid_columnconfigure(0, weight=1)
+        self.items.append(label)
+
+        dropdown = ttk.Combobox(subframe)
+        dropdown['values'] = value_names
+        dropdown['state'] = 'readonly'
+        index = 0
+        for i in range(len(value_data)):
+            if value_data[i] == current_var:
+                index = i
+                break
+
+        dropdown.current(index)
+        dropdown.grid(row=0, column=1)
+
+        def on_change(output_var, *args, **kwargs):
+            output_var = value_data[dropdown.current()]
+
+            if change_commands is not None:
+                change_commands(output_var)
+
+        closure = partial(on_change, current_var)
+
+        dropdown.bind('<<ComboboxSelected>>', closure)
+
+        self.items.append(dropdown)
+        return dropdown

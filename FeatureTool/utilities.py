@@ -10,6 +10,12 @@ class ColorSet:
         self.path = path
         self.fill = fill
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ColorSet):
+            return NotImplemented
+            
+        return self.path == other.path and self.fill == other.fill
+
 class UIColors:
     # Colors: https://materialui.co/colors/
     canvas_col:str = "#212121"
@@ -25,6 +31,32 @@ class UIColors:
     green = ColorSet(path="#7CB342", fill="#66BB6A")
     orange = ColorSet(path="#FFA726", fill="#FF6F00")
     brown = ColorSet(path="#A1887F", fill="#4E342E")
+
+    colors = [
+        red,
+        pink,
+        purple,
+        indigo,
+        blue,
+        cyan,
+        teal,
+        green,
+        orange,
+        brown
+    ]
+
+    names = [
+        "red",
+        "pink",
+        "purple",
+        "indigo",
+        "blue",
+        "cyan",
+        "teal",
+        "green",
+        "orange",
+        "brown"
+    ]
 
 class CoordMode(Enum):
     normalized = 0,

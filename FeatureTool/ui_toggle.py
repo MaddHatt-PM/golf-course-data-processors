@@ -10,7 +10,7 @@ class Toggle:
         else:
             graphic = Toggle.off
 
-        self.button = ttk.Button(master, command=self.invert, text=graphic, width=3)
+        self.button = ttk.Button(master, command=self.invert, text=graphic, width=5)
         self.boolVar = boolVar
         self.subcommand = command
 

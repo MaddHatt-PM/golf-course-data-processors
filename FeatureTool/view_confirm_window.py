@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import Label, Entry, Button
+from tkinter import ttk
 
 class CreateConfirmView:
     def show(self, text:str, command, isMainWindow:bool=False):
@@ -11,20 +12,22 @@ class CreateConfirmView:
             popup.focus_force()
         
         popup.resizable(False, False)
+        popup.geometry("300x120")
+        popup.title("Confirmation")
 
-        Label(popup, text="Area Name").grid(row=0, columnspan=2, pady=10)
+        if text == "":
+            text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam non."
 
-        self.error_text = tk.StringVar()
-        Label(popup, textvariable=self.error_text).grid(row=1, columnspan=2)
+        Label(popup, text=text, justify='center', wraplength=280).grid(row=0, columnspan=2, pady=10)
 
-        self.new_area_name = tk.StringVar()
-        Entry(popup, textvariable=self.new_area_name).grid(row=2, columnspan=2)
+        enter_btn = ttk.Button(popup, text="  OK  ", command=command)
+        enter_btn.grid(row=2, column=0, pady=10, padx=10, sticky='ew')
 
-        enter_btn = Button(popup, text="Enter", command=command)
-        enter_btn.grid(row=3, column=0, pady=10, padx=10)
+        cancel_btn = ttk.Button(popup, text="Cancel", command=popup.destroy)
+        cancel_btn.grid(row=2, column=1, pady=10, padx=10, sticky='ew')
 
-        cancel_btn = Button(popup, text="Cancel", command=popup.destroy)
-        cancel_btn.grid(row=3, column=1, pady=10, padx=10)
+        popup.grid_columnconfigure((0,1,2), weight=1)
+        popup.grid_rowconfigure(0, weight=1)
 
         if isMainWindow is True:
             popup.mainloop()
@@ -33,4 +36,4 @@ if __name__ == "__main__":
     def test_print():
         print("test")
 
-    CreateConfirmView().show(text="Warning", command=test_print, isMainWindow=True)
+    CreateConfirmView().show(text="", command=test_print, isMainWindow=True)
