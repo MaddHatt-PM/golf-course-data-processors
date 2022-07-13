@@ -3,7 +3,7 @@ from tkinter import Label, Entry, Button
 from tkinter import ttk
 
 class CreateConfirmView:
-    def show(self, text:str, command, isMainWindow:bool=False):
+    def __init__(self, text:str, command, isMainWindow:bool=False):
         if isMainWindow == True:
             popup = tk.Tk()
         else:
@@ -12,13 +12,13 @@ class CreateConfirmView:
             popup.focus_force()
         
         popup.resizable(False, False)
-        popup.geometry("300x120")
+        # popup.geometry("330x120")
         popup.title("Confirmation")
 
         if text == "":
             text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam non."
 
-        Label(popup, text=text, justify='center', wraplength=280).grid(row=0, columnspan=2, pady=10)
+        Label(popup, text=text, justify='center', wraplength=280).grid(row=0, columnspan=2, pady=10, padx=20)
 
         enter_btn = ttk.Button(popup, text="  OK  ", command=command)
         enter_btn.grid(row=2, column=0, pady=10, padx=10, sticky='ew')
@@ -36,4 +36,4 @@ if __name__ == "__main__":
     def test_print():
         print("test")
 
-    CreateConfirmView().show(text="", command=test_print, isMainWindow=True)
+    CreateConfirmView(text="", command=test_print, isMainWindow=True)

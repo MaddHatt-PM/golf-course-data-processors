@@ -2,7 +2,7 @@ from functools import partial
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import BooleanVar, Canvas, DoubleVar, Frame, Label, StringVar
+from tkinter import BooleanVar, Canvas, DoubleVar, Frame, IntVar, Label, StringVar
 from tkinter import ttk
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
@@ -14,6 +14,8 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
+from view_confirm_window import CreateConfirmView
+
 class Settings:
     '''
     TODO: Move all settings variables and save/load methods to here,
@@ -23,6 +25,7 @@ class Settings:
     stroke_width = "stroke_width"
     do_draw_points = "do_draw_points"
     do_draw_fill = "do_draw_fill"
+    overfill_amt = "overfill_amt"
     color = "color"
 
     _color_path = "color_path"
@@ -37,13 +40,14 @@ class AreaAsset:
         self.canvas = None
         self.drawer = None
         self.util = None
+        self.is_active_area = False
 
         self.possible_line = None
         self.is_fully_init = False
         self.fill_img:Image.Image = None
         self.canvasID_fill = None
 
-        basepath = "SavedAreas/" + target.savename + "/" 
+        basepath = "SavedAreas/" + target.savename + "/"
 
 
         self._settings_path = Path(basepath + name + "_settings.txt")
@@ -59,9 +63,10 @@ class AreaAsset:
                 self.settings[Settings.color] = ColorSet(path, fill)
         else:
             self.settings = {}
-            self.settings[Settings.fill_alpha] = 0.25
+            self.settings[Settings.fill_alpha] = 0.5
             self.settings[Settings.stroke_width] = 3.0
             self.settings[Settings.color] = UIColors.indigo
+            self.settings[Settings.overfill_amt] = 0
             self._save_settings()
 
         # self.fill_alpha = 0.25
@@ -123,6 +128,20 @@ class AreaAsset:
         self.util = util
         self.img_size = img_size
 
+    def delete(self):
+        def complete_delete(self):
+            print("Goodbye world")
+
+        closure = partial(complete_delete, self)
+
+        delete_msg = "Warning\n\n"
+        delete_msg += "Deleting this area will send associated files to trash\n"
+        delete_msg += "To undo, manually readd the files back to the project and restart\n"
+
+        CreateConfirmView(
+            text=delete_msg,
+            command=closure
+        )
 
     # -------------------------------------------------------------- #
     # --- Wrappers for stroke_data --------------------------------- #
@@ -244,14 +263,37 @@ class AreaAsset:
         img_size = self.img_size
         util = self.util
 
-        # Draw lines
         if len(data) >= 2:
+            '''Draw drop shadow if the area is selected'''
+            if (self.is_active_area):
+                offset_x, offset_y = 2, 3
+                path_color = ImageColor.getcolor(self.settings['color'].path, 'RGB')
+                mult_color = ImageColor.getcolor('#37474F', 'RGB')
+                drop_color = (
+                    int ((path_color[0] / 255.0) * (mult_color[0] / 255.0) * 255),
+                    int ((path_color[1] / 255.0) * (mult_color[1] / 255.0) * 255),
+                    int ((path_color[2] / 255.0) * (mult_color[2] / 255.0) * 255)
+                )
+                drop_color = '#' + '%02x%02x%02x' % drop_color
+
+                for id in range(0, len(data) - 1):
+                    pt_a = data[id+0][0] * img_size[0] + offset_x / 2, data[id+0][1] * img_size[1] + offset_y
+                    pt_b = data[id+1][0] * img_size[0] + offset_x / 2, data[id+1][1] * img_size[1] + offset_y
+                    lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=drop_color)
+                    self.canvasIDs.append(lineID)
+
+                pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
+                pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
+
+                lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill='#424242', dash=(6,4))
+                self.canvasIDs.append(lineID)
+
+            '''Draw unselected lines'''
             for id in range(0, len(data) - 1):
                 pt_a = data[id+0][0] * img_size[0], data[id+0][1] * img_size[1]
                 pt_b = data[id+1][0] * img_size[0], data[id+1][1] * img_size[1]
                 lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path)
                 self.canvasIDs.append(lineID)
-
 
             pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
             pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
@@ -259,8 +301,20 @@ class AreaAsset:
             lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path, dash=(6,4))
             self.canvasIDs.append(lineID)
 
-        # Draw points
-        if self.settings['do_draw_points']:
+            for id in range(0, len(data) - 1):
+                pt_a = data[id+0][0] * img_size[0], data[id+0][1] * img_size[1]
+                pt_b = data[id+1][0] * img_size[0], data[id+1][1] * img_size[1]
+                lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path)
+                self.canvasIDs.append(lineID)
+
+            pt_a = data[0][0] * img_size[0], data[0][1] * img_size[1]
+            pt_b = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
+
+            lineID = self.canvas.create_line(*pt_a, *pt_b, width=self.stroke_width, fill=self.settings['color'].path, dash=(6,4))
+            self.canvasIDs.append(lineID)
+
+        '''Draw points'''
+        if self.settings['do_draw_points'] and self.is_active_area:
             circle_size = 8
             for point in self.stroke_data:
                 pt_a = point[0] * img_size[0], point[1] * img_size[1]
@@ -295,22 +349,44 @@ class AreaAsset:
 
         if len(polygon_points) > 2:
             if self.is_fill_dirty is True:
-                print("rendering fill for {}".format(self.name))
                 fill = ImageColor.getcolor(self.settings['color'].fill, 'RGB')
                 alpha = int(self.settings['fill_alpha'] * 255)
                 
                 self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
                 drawer = ImageDraw.Draw(self.fill_img)
-                drawer.polygon(polygon_points, fill=(*fill, alpha))
+                color = (*fill, alpha)
+                drawer.polygon(polygon_points, fill=color)
+                
+                if self.settings.get(Settings.overfill_amt, 0) > 0:
+                    '''Overfill - Outline'''
+                    width = self.settings.get(Settings.overfill_amt, 0)
+                    outline = polygon_points.copy()
+                    outline.append(polygon_points[0])
+                    outline.append(polygon_points[1])
+                    drawer.line(outline, fill=color, width=width, joint="curve")
 
+                    ''' Overfill - Endcaps '''
+                    def circle(drawer: ImageDraw.ImageDraw, center, radius, fill):
+                        drawer.ellipse(
+                            (
+                                center[0] - radius + 1, center[1] - radius + 1,
+                                center[0] + radius - 1, center[1] + radius - 1
+                            ),
+                            fill=fill, outline=None
+                        )
+
+                    circle(drawer, (polygon_points[0], polygon_points[1]), width/2, color)
+                
                 self.fill_img.save(self._fill_img_filepath)
                 self.fill_img = self.fill_img
                 self.is_fill_dirty = False
             
             self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
-            # if self.canvasID_fill is None:
-            #     self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
-            imageid = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+            self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+
+        elif self.canvasID_fill is not None:
+            self.canvas.delete(self.canvasID_fill)
+            self.canvasID_fill = None
 
 
     def draw_last_point_to_cursor(self, cursor_pos:tuple):
@@ -323,18 +399,19 @@ class AreaAsset:
         if len(data) > 0:
             pt_a = data[-1][0] * img_size[0], data[-1][1] * img_size[1]
             pt_b = cursor_pos[0] + self.canvas.canvasx(0), cursor_pos[1] + self.canvas.canvasy(0)
-            lineID = self.canvas.create_line(*pt_a, *pt_b, width=2, fill='white', dash=(6,4))
-            self.possible_line = lineID
+            self.possible_line = self.canvas.create_line(*pt_a, *pt_b, width=2, fill='white', dash=(6,4))
 
     def destroy_possible_line(self, *args, **kwargs):
         if self.possible_line != None:
             self.canvas.delete(self.possible_line)
             self.possible_line = None
 
-    def on_select(self):
-        pass
+    def select(self):
+        self.is_active_area = True
 
-    def on_deselect(self):
+    def deselect(self):
+        self.is_active_area = False
+        self.draw_to_canvas()
         self.destroy_possible_line()
 
     def clear_canvasIDs(self):
@@ -348,6 +425,7 @@ class AreaAsset:
 
     def set_color(self, color:ColorSet, *args, **kwargs):
         self.settings['color'] = color
+        self.is_fill_dirty = True
         self.draw_to_canvas()
         self._save_settings()
 
@@ -359,6 +437,7 @@ class AreaAsset:
             self.image_pi = None
 
         self.draw_to_canvas()
+        self.draw_to_inspector()
 
     def toggle_points(self):
         self.settings['do_draw_points'] = not self.settings['do_draw_points']
@@ -395,16 +474,28 @@ class AreaAsset:
         do_fill = BooleanVar(value=self.settings['do_draw_fill'])
         self.drawer.labeled_toggle(label_text="Toggle fill", command=self.toggle_fill, boolVar=do_fill)
 
-        def sync_fill_alpha(self:AreaAsset, tkVar:DoubleVar, *args, **kwargs):
-            self.settings['fill_alpha'] = tkVar.get()
+        def sync_variable(self:AreaAsset, var_name:str, tkVar, *args, **kwargs):
+            self.settings[var_name] = tkVar.get()
             self.is_fill_dirty = True
             self.draw_to_canvas()
 
-        valueVar = DoubleVar()
-        valueVar.set(self.settings['fill_alpha']) 
-        closure = partial(sync_fill_alpha, self, valueVar)
-        valueVar.trace_add('write', closure)
-        self.drawer.labeled_slider("Fill Opacity", tkVar=valueVar)
+        fill_state = [] if do_fill.get() == True else ['disabled']
+
+        fill_alpha_var = DoubleVar()
+        fill_alpha_var.set(self.settings.get(Settings.fill_alpha, 0.2)) 
+        fill_alpha_closure = partial(sync_variable, self, Settings.fill_alpha, fill_alpha_var)
+        fill_alpha_var.trace_add('write', fill_alpha_closure)
+        fill_alpha_ui = self.drawer.labeled_slider("Fill Opacity", tkVar=fill_alpha_var)
+        fill_alpha_ui.state(fill_state)
+
+        OVERFILL_MAX = 500
+        overfill_var = IntVar()
+        overfill_var.set(self.settings.get(Settings.overfill_amt, 0))
+        overfill_closure = partial(sync_variable, self, Settings.overfill_amt, overfill_var)
+        overfill_var.trace_add('write', overfill_closure)
+        overfill_ui = self.drawer.labeled_slider("Overfill", tkVar=overfill_var, from_=0, to=OVERFILL_MAX)
+        overfill_ui.state(fill_state)
+
         self.drawer.seperator()
 
         area_info = self.compute_info()
@@ -425,23 +516,23 @@ class AreaAsset:
         self.drawer.button(text="Sample Elevation")
         self.drawer.button(text="Save", command=self.save_data_to_files)
         self.drawer.button(text="Clear Points", command=self.clear_points)
-        self.drawer.button(text="Delete area", command=self.draw_delete_popup)
+        self.drawer.button(text="Delete area", command=self.delete)
 
-    def draw_delete_popup(self):
-        popup = tk.Toplevel()
-        popup.grab_set()
-        popup.focus_force()
-        popup.title("Warning")
-        popup.resizable(False, False)
+    # def draw_delete_popup(self):
+    #     popup = tk.Toplevel()
+    #     popup.grab_set()
+    #     popup.focus_force()
+    #     popup.title("Warning")
+    #     popup.resizable(False, False)
 
-        warning = Label(popup, text="This action cannot be undone!\nAre you sure you want to delete:\n\n{}".format(self.name), padx=60, pady=20)
-        warning.grid(row=0, column=0, columnspan=2)
+    #     warning = Label(popup, text="This action cannot be undone!\nAre you sure you want to delete:\n\n{}".format(self.name), padx=60, pady=20)
+    #     warning.grid(row=0, column=0, columnspan=2)
 
-        cancel = ttk.Button(popup, text="Cancel", command=popup.destroy)
-        cancel.grid(row=1, column=0, sticky='ew', padx=10)
+    #     cancel = ttk.Button(popup, text="Cancel", command=popup.destroy)
+    #     cancel.grid(row=1, column=0, sticky='ew', padx=10)
 
-        delete = ttk.Button(popup, text="Delete", command=self.destroy())
-        delete.grid(row=1, column=1, sticky='ew', padx=10)
+    #     delete = ttk.Button(popup, text="Delete", command=self.destroy())
+    #     delete.grid(row=1, column=1, sticky='ew', padx=10)
 
-        deadspace = Label(popup, text="")
-        deadspace.grid(row=2)
+    #     deadspace = Label(popup, text="")
+    #     deadspace.grid(row=2)
