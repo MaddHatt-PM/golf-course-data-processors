@@ -31,6 +31,8 @@ class Settings:
     _color_path = "color_path"
     _color_fill = "color_fill"
 
+HEADER = "latitude,longitude,elevation,resolution\n"
+
 class AreaAsset:
     def __init__(self, name:str, target:ProjectAsset) -> None:
         self.name = name
@@ -54,9 +56,6 @@ class AreaAsset:
         if self._settings_path.is_file():
             with self._settings_path.open('r') as file:
                 self.settings:dict = json.loads(file.read())
-                # print('init', self.settings)
-                # self.settings['do_draw_fill'] = False
-                # self.settings['do_draw_points'] = True
                 
                 path = self.settings.pop(Settings._color_path)
                 fill = self.settings.pop(Settings._color_fill)
@@ -67,6 +66,8 @@ class AreaAsset:
             self.settings[Settings.stroke_width] = 3.0
             self.settings[Settings.color] = UIColors.indigo
             self.settings[Settings.overfill_amt] = 0
+            self.settings[Settings.do_draw_fill] = True
+            self.settings[Settings.do_draw_points] = True
             self._save_settings()
 
         # self.fill_alpha = 0.25
@@ -142,6 +143,9 @@ class AreaAsset:
             text=delete_msg,
             command=closure
         )
+
+    def import_data(self):
+        pass
 
     # -------------------------------------------------------------- #
     # --- Wrappers for stroke_data --------------------------------- #
@@ -517,6 +521,14 @@ class AreaAsset:
         self.drawer.button(text="Save", command=self.save_data_to_files)
         self.drawer.button(text="Clear Points", command=self.clear_points)
         self.drawer.button(text="Delete area", command=self.delete)
+
+
+def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:
+    filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
+    with filepath.open('w') as file:
+        file.write(data)
+
+    return AreaAsset(name, target)
 
     # def draw_delete_popup(self):
     #     popup = tk.Toplevel()

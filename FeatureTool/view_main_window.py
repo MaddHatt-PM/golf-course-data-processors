@@ -14,13 +14,14 @@ from functools import partial
 import os
 import random
 import string
+import time
 import tkinter as tk
 from tkinter import ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
 
-from asset_area import AreaAsset
+from asset_area import AreaAsset, create_area_file_with_data
 from asset_project import ProjectAsset
 from asset_trees import TreeCollectionAsset
 from utilities import SpaceTransformer, ToolMode
@@ -29,6 +30,7 @@ from data_downloader import services, download_imagery
 from utilities import CoordMode, UIColors, restart_with_new_target
 from view_create_area import CreateAreaView
 from view_create_location import CreateLocationView
+from view_import_prompt import CreateImportWindow
 
 class MainWindow:
     def __init__(self, target:ProjectAsset):
@@ -135,20 +137,28 @@ class MainWindow:
         os.system("py run.py " + area_name)
 
     def create_new_area(self, name:str="", *args, **kwargs):
-        '''Rename this to something else'''
+        if(kwargs.get('name', None) is not None):
+            name = kwargs.get('name')
+
         if name == "":
             name = "NewArea_"
             for i in range(5):
                 name += random.choice(string.ascii_letters)
 
-        area = AreaAsset(name, target=self.target)
+        if (kwargs.get('data', None) is not None):
+            area = create_area_file_with_data(name, self.target, kwargs.get('data'))
+        else:
+            area = AreaAsset(name, self.target)
+
         area.save_data_to_files()
         area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
 
         self.areas.append(area)
         self.area_names.append(name)
-        self.select_area(area)
+        
+        self.select_area(area.name)
         self.setup_inspector()
+        self.redraw_viewport()
         
 
     # -------------------------------------------------------------- #
@@ -262,6 +272,9 @@ class MainWindow:
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
+        
+        closure = partial(CreateImportWindow, self)
+        filemenu.add_command(label="Create import window", command=closure)
         menubar.add_cascade(label="File", menu=filemenu)
 
         helpmenu = Menu(menubar, tearoff=0)
