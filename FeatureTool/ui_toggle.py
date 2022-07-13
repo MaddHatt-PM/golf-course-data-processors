@@ -15,9 +15,6 @@ class Toggle:
         self.subcommand = command
 
     def invert(self):
-        if self.subcommand is not None:
-            self.subcommand()
-
         self.boolVar.set(not self.boolVar.get())
 
         if self.boolVar.get() is True:
@@ -26,3 +23,6 @@ class Toggle:
             graphic = Toggle.off
 
         self.button.config(text=graphic)
+
+        if self.subcommand is not None:
+            self.subcommand()

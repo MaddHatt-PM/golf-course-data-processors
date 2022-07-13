@@ -60,6 +60,7 @@ class MainWindow:
         self.area_names:list[str] = [x.name for x in self.areas]
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
+            self.active_area.select()
 
         self.tree_manager = TreeCollectionAsset(self.target)
 
@@ -361,23 +362,62 @@ class MainWindow:
 
     def select_area(self, choice):
         self.inspector_util.clear_inspector()
-        self.active_area.on_deselect()
+        self.active_area.deselect()
 
         for area in self.areas:
             if area.name == choice:
                 self.active_area = area
                 break
 
+        self.active_area.select()
+        self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.active_area.draw_to_inspector(self.inspector_util)
         self.active_area.draw_to_canvas()
         
+        
 
     def setup_statusbar(self):
-        statusbar = Frame(self.root, bg=UIColors.ui_bgm_col)
-        statusbar.grid(row=2, column= 0, sticky="nswe")
-        status = tk.Label(statusbar, textvariable=self.status_text, bg=UIColors.ui_bgm_col, fg="white")
-        status.pack(anchor="w")
+        frame = Frame(self.root, bg=UIColors.ui_bgm_col)
+        frame.grid(row=2, column= 0, sticky="nswe")
+
+        # Coordinates
+        status = tk.Label(frame, textvariable=self.status_text, bg=UIColors.ui_bgm_col, fg="white")
+        status.pack(anchor="w", side=tk.LEFT)
+
+        spacer = tk.Label(frame, text='', bg=UIColors.ui_bgm_col)
+        spacer.pack(anchor='w', expand=True, side=tk.LEFT)
+
+        # Zoom
+        zoom_out = tk.Button(frame, text="-", bg=UIColors.ui_bgm_col, fg="white", width=2)
+        zoom_in = tk.Button(frame, text="+", bg=UIColors.ui_bgm_col, fg="white", width=2)
+        zoom_percentage = tk.Label(frame, text='100%', bg=UIColors.ui_bgm_col, fg="white", width=8)
+
+        zoom_out.pack(side=tk.LEFT, padx=4)
+        zoom_percentage.pack(side=tk.LEFT)
+        zoom_in.pack(side=tk.LEFT, padx=4)
+
+        seperator = tk.Frame(frame, bg='#424242', width=1, bd=0)
+        seperator.pack(anchor='w', side=tk.LEFT, fill='y')
+
+        # View mode selector
+        view_modes = {}
+        view_modes['Google Satelite'] = None
+        view_modes['Google Elevation'] = None
+
+        view_mode_dropdown = ttk.Combobox(frame)
+        view_mode_dropdown['values'] = list(view_modes.keys())
+        view_mode_dropdown['state'] = 'readonly'
+        view_mode_dropdown.current(0)
+        view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
+
+
+        # view_mode = tk.Label(frame, text='Google Satelite', bg=UIColors.ui_bgm_col, fg='white')
+        # view_mode.pack(anchor='w')
+
+
+        
+        
 
     def setup_blanks(self):
         Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
