@@ -314,22 +314,25 @@ class MainWindow:
             tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
             area_selector = tk.StringVar(self.root)
-            area_selector.set(self.area_names[0])
-            dropdown = ttk.OptionMenu(area_selector_frame, area_selector, self.active_area.name, *self.area_names, command=self.select_area)
-            # dropdown.config(width=24)
+            available_areas = len(self.area_names) != 0
+            
+            area_selector.set(self.area_names[0] if available_areas is True else "No areas")
+            dropdown_selected = self.active_area.name if available_areas is True else "No areas"
+            dropdown = ttk.OptionMenu(area_selector_frame, area_selector, dropdown_selected, *self.area_names, command=self.select_area)
             dropdown.grid(row=0, column=1, sticky='ew')
             area_selector_frame.grid_columnconfigure(1, weight=5)
             self.area_selector = dropdown
 
-            closure = partial(CreateAreaView().show, self, self.areas)
-            add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
-            add_area.grid(row=0, column=3)
-            
-            area_selector_frame.pack(fill="x", anchor="n", expand=False)
-            ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+            if available_areas:
+                closure = partial(CreateAreaView().show, self, self.areas)
+                add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
+                add_area.grid(row=0, column=3)
+                
+                area_selector_frame.pack(fill="x", anchor="n", expand=False)
+                ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
-            if self.active_area is not None:
-                self.active_area.draw_to_inspector(self.inspector_util)
+                if self.active_area is not None:
+                    self.active_area.draw_to_inspector(self.inspector_util)
 
         '''Tree UI'''
         if (self.toolmode == ToolMode.tree):
@@ -362,7 +365,9 @@ class MainWindow:
         self.canvas.bind("<Button-2>", self.start_pan)
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
-        self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
+
+        if self.active_area is not None:
+            self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
         self.img_size = self.image_raw.width, self.image_raw.height
 

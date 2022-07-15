@@ -37,6 +37,10 @@ def __load_storage(path=None) -> dict[str, int]:
 
             archive_path = Path(archive_str)
             archive_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if archive_path.is_file():
+                archive_path.unlink()
+
             storage_path.rename(archive_path)
             
 
