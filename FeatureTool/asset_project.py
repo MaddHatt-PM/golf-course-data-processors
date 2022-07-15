@@ -11,7 +11,7 @@ class ProjectAsset:
         self.basePath.mkdir(parents=True, exist_ok=True)
 
         self.loadFile_path:Path = Path(basePath + savename + ".area")
-        self.sateliteImg_path:Path = Path(basePath + "Satelite.tif")
+        self.sateliteImg_path:Path = Path(basePath + "Satelite.png")
         self.__coordinates:Path = Path(basePath + "Coordinates.csv")
         self.elevationImg_path:Path = Path(basePath + "Elevation.tif")
         self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")

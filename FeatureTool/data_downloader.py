@@ -42,12 +42,12 @@ def __via_google_satelite(target:ProjectAsset, p0:Tuple[float, float], p1:Tuple[
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
     
     resultCv = pil_to_cv(result)
-    cv2.imwrite(filename=str(target.sateliteImg_path()), img=resultCv)
+    cv2.imwrite(filename=str(target.sateliteImg_path), img=resultCv)
 
     api_usage_tracker.add_api_count(services.google_satelite, image_ct)
     print("{} Images downloaded".format(image_ct))
 
-    return target.sateliteImg_path()
+    return target.sateliteImg_path
 
 def download_imagery(target:ProjectAsset, service:str) -> Path:
     '''Pull data from specified service'''
