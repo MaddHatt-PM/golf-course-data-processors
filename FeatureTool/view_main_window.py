@@ -16,7 +16,7 @@ import random
 import string
 import time
 import tkinter as tk
-from tkinter import ttk
+from tkinter import StringVar, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
 from PIL import Image, ImageTk
@@ -41,7 +41,7 @@ class MainWindow:
 
         self.root = tk.Tk()
         self.prefsPath = Path("AppAssets/prefs.windowprefs")
-        self.z_scale = 1.0 # unused for now, implement later
+        self.zoom = 1.0 # unused for now, implement later
         self.mouse_pos = (-100, -100)
         self.status_text = tk.StringVar()
         self.status_text.set("")
@@ -169,6 +169,7 @@ class MainWindow:
 
     def handle_click(self, event):
         if self.active_area is not None:
+            pt = event.x, event.y
             self.active_area.append_point((event.x, event.y), CoordMode.pixel)
 
         self.redraw_viewport()
@@ -339,26 +340,57 @@ class MainWindow:
             self.tree_manager.draw_to_inspector(inspector, self.inspector_util)
             ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
+    def resize_viewport(self, zoom_dir:int):
+        zoom_increment = 0.25
+        zoom_limits = (0.25, 2.50)
 
+        if zoom_dir == 0:
+            self.zoom = 1.0
+        elif zoom_dir > 0:
+            self.zoom += zoom_increment
+            self.zoom = min(self.zoom, zoom_limits[1])
+        elif zoom_dir < 0:
+            self.zoom -= zoom_increment
+            self.zoom = max(self.zoom, zoom_limits[0])
+        self.zoom_percentage_var.set('{}%'.format(round(self.zoom * 100)))
+
+        width, height = self.zoom * self.image_raw.width, self.zoom * self.image_raw.height
+        width, height = int(width), int(height)
+        self.img_size = width, height
+
+        self.image_resized = self.image_raw.resize((width, height), resample=Image.BICUBIC)
+        self.canvasUtil.image_resized = self.image_resized
+
+        self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
+        self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
+
+        for area in self.areas:
+            area.img_size = self.img_size
+            area.draw_to_canvas()
 
     def setup_viewport(self):
         viewport = Frame(self.root, bg=UIColors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
         
         satelite_raw = Image.open(self.target.sateliteImg_path)
-        satelite_pi = ImageTk.PhotoImage(image=satelite_raw)
+        width, height = self.zoom * satelite_raw.width, self.zoom * satelite_raw.height
+        width, height = int(width), int(height)
+        image_resized = satelite_raw.resize((width, height), resample=Image.BICUBIC)
+        image_pi = ImageTk.PhotoImage(image=image_resized)
 
         # Keep image references to avoid Garbage Collector
         self.image_raw = satelite_raw
-        self.image_pi = satelite_pi
+        self.image_resized = image_resized
+        self.image_pi = image_pi
+        self.img_size = width, height
 
         self.canvas = Canvas(viewport)
-        self.canvasUtil = SpaceTransformer(self.canvas, target=self.target, image_raw=self.image_raw)
+        self.canvasUtil = SpaceTransformer(self.canvas, self.target, self.image_resized)
         self.canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        imageid = self.canvas.create_image(satelite_pi.width()/2, satelite_pi.height()/2, anchor=tk.CENTER, image=satelite_pi)
-        self.canvas.lower(imageid)
+        self.image_canvasID = self.canvas.create_image(image_pi.width()/2, image_pi.height()/2, anchor=tk.CENTER, image=image_pi)
+        self.canvas.lower(self.image_canvasID)
 
         self.canvas.bind("<Button-1>", self.handle_click)
         self.canvas.bind("<MouseWheel>", self.print_test)
@@ -369,7 +401,6 @@ class MainWindow:
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
-        self.img_size = self.image_raw.width, self.image_raw.height
 
         self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
         self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True), fill="blue")
@@ -407,9 +438,12 @@ class MainWindow:
         spacer.pack(anchor='w', expand=True, side=tk.LEFT)
 
         # Zoom
-        zoom_out = tk.Button(frame, text="-", bg=UIColors.ui_bgm_col, fg="white", width=2)
-        zoom_in = tk.Button(frame, text="+", bg=UIColors.ui_bgm_col, fg="white", width=2)
-        zoom_percentage = tk.Label(frame, text='100%', bg=UIColors.ui_bgm_col, fg="white", width=8)
+        zoom_out_closure = partial(self.resize_viewport, -1.0)
+        zoom_out = tk.Button(frame, text="-", bg=UIColors.ui_bgm_col, fg="white", width=2, command=zoom_out_closure)
+        zoom_in_closure = partial(self.resize_viewport, 1.0)
+        zoom_in = tk.Button(frame, text="+", bg=UIColors.ui_bgm_col, fg="white", width=2, command=zoom_in_closure)
+        self.zoom_percentage_var = StringVar(value='{}%'.format(round(self.zoom * 100)))
+        zoom_percentage = tk.Label(frame, textvariable=self.zoom_percentage_var, bg=UIColors.ui_bgm_col, fg="white", width=8)
 
         zoom_out.pack(side=tk.LEFT, padx=4)
         zoom_percentage.pack(side=tk.LEFT)
