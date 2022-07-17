@@ -385,7 +385,8 @@ class AreaAsset:
                 self.fill_img = self.fill_img
                 self.is_fill_dirty = False
             
-            self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath))
+            self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath).resize(self.img_size))
+            # self.image_resized = self.image_pi.resize
             self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
         elif self.canvasID_fill is not None:
@@ -529,22 +530,3 @@ def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaA
         file.write(data)
 
     return AreaAsset(name, target)
-
-    # def draw_delete_popup(self):
-    #     popup = tk.Toplevel()
-    #     popup.grab_set()
-    #     popup.focus_force()
-    #     popup.title("Warning")
-    #     popup.resizable(False, False)
-
-    #     warning = Label(popup, text="This action cannot be undone!\nAre you sure you want to delete:\n\n{}".format(self.name), padx=60, pady=20)
-    #     warning.grid(row=0, column=0, columnspan=2)
-
-    #     cancel = ttk.Button(popup, text="Cancel", command=popup.destroy)
-    #     cancel.grid(row=1, column=0, sticky='ew', padx=10)
-
-    #     delete = ttk.Button(popup, text="Delete", command=self.destroy())
-    #     delete.grid(row=1, column=1, sticky='ew', padx=10)
-
-    #     deadspace = Label(popup, text="")
-    #     deadspace.grid(row=2)

@@ -68,10 +68,10 @@ class ToolMode(Enum):
     tree = 1
 
 class SpaceTransformer:
-    def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_raw:Image):
+    def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_resized:Image):
         self.canvasRef = canvasRef
         self.target = target
-        self.image_raw = image_raw
+        self.image_resized = image_resized
         self.geo_util:Geodesic = Geodesic.WGS84
 
     def point_to_size_coords(self, pt:tuple[float,float], size=8, addOffset=False) -> tuple:
@@ -118,9 +118,9 @@ class SpaceTransformer:
 
     def pixel_pt_to_norm_space(self, pt:tuple[float,float]) -> tuple:
         min_x = self.canvasRef.canvasx(0)
-        max_x = self.image_raw.width
+        max_x = self.image_resized.width
         min_y = self.canvasRef.canvasy(0)
-        max_y = self.image_raw.height
+        max_y = self.image_resized.height
 
         norm_x = (pt[0] + min_x) / (max_x)
         norm_y = (pt[1] + min_y) / (max_y)
@@ -129,8 +129,8 @@ class SpaceTransformer:
 
 
     def norm_pt_to_pixel_space(self, pt:tuple[float,float], to_int=False) -> tuple:
-        x = pt[0] * self.image_raw.width
-        y = pt[1] * self.image_raw.height
+        x = pt[0] * self.image_resized.width
+        y = pt[1] * self.image_resized.height
         
         if to_int is True:
             x = int(x)
