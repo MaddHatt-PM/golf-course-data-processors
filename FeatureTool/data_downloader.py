@@ -4,6 +4,7 @@ Ideas:
 '''
 
 import json
+import math
 import cv2
 import numpy as np
 import requests
@@ -11,10 +12,14 @@ import api_usage_tracker
 import api_keys as keys
 from typing import Tuple
 from pathlib import Path
-from asset_area import AreaAsset
+# from asset_area import AreaAsset
 from asset_project import ProjectAsset
 
 from google_maps_api import SatelliteInterface as gmap_si
+from geographiclib.geodesic import Geodesic
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+
 
 class service:
     def __init__(self, name:str, sku_cost:float, key:str) -> None:
@@ -62,7 +67,7 @@ def download_imagery(target:ProjectAsset, service:str) -> Path:
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def __via_google_elevation(target:ProjectAsset, area:AreaAsset) -> Path:
+def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
     '''
     - Google Documentation: https://developers.google.com/maps/documentation/elevation/start#maps_http_elevation_locations-py
     - Submit a single request using https://stackoverflow.com/questions/29418423/how-to-use-an-array-of-coordinates-with-google-elevation-api
@@ -133,10 +138,43 @@ def __via_google_elevation(target:ProjectAsset, area:AreaAsset) -> Path:
     api_usage_tracker.add_api_count(services.google_elevation, len(points))
     return target.elevationCSV_path
 
-def download_elevation(target:ProjectAsset, area:AreaAsset, service:services) -> Path:
+def download_elevation(target:ProjectAsset, area:"AreaAsset", service:services) -> Path:
     if service is services.google_elevation:
         return __via_google_elevation(target, area)
 
-'''
+def get_points(p0, p1, dist=5, area=None):
+    geod:Geodesic = Geodesic.WGS84
+    lat_line = geod.InverseLine( *p0, p0[0], p1[1] )
+    lat_line_pts = []
+    count = int(math.ceil(lat_line.s13 / dist))
+    for i in range(count + 1):
+        s = min(dist * i, lat_line.s13)
+        g = lat_line.Position(s, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
+        lat_line_pts.append((g['lat2'], g['lon2']))
 
-'''
+
+    polygon = None
+    if area is not None:
+        np_lat_long = np.column_stack(area.get_lat_long())
+        polygon = Polygon(np_lat_long)
+
+    output_pts = []
+    for p3 in lat_line_pts:
+        long_line = geod.InverseLine (*p3, p1[0], p3[1])
+        count = int(math.ceil(long_line.s13 / dist))
+        
+        for i in range(count + 1):
+            s = min(dist * i, long_line.s13)
+            g = long_line.Position(s, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
+            pt = (g['lat2'], g['lon2'])
+            if (polygon is None):
+                output_pts.append(pt)
+
+            else:
+                tester = Point(g['lat2'], g['lon2']) 
+                if tester.within(polygon):
+                    output_pts.append(pt)
+
+    print("Point count at a distance of {}m: {}".format(dist, len(lat_line_pts) * (count + 1) ))
+    print("Successful points inside of polygon: {}".format(len(output_pts)))
+    return output_pts

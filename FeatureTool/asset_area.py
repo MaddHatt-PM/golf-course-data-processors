@@ -6,6 +6,7 @@ from tkinter import BooleanVar, Canvas, DoubleVar, Frame, IntVar, Label, StringV
 from tkinter import ttk
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
+from data_downloader import get_points
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from asset_project import ProjectAsset
@@ -120,6 +121,7 @@ class AreaAsset:
                 if id - 1 != len(self.stroke_data):
                     file.write('\n')
         
+        self._save_settings()
         self.is_dirty = False
     
     def drawing_init(self, canvas:Canvas, util:SpaceTransformer, img_size:tuple):
@@ -146,6 +148,15 @@ class AreaAsset:
 
     def import_data(self):
         pass
+
+    def get_lat_long(self):
+        lat, long = [], []
+        for pt in self.stroke_data:
+            pt = self.util.norm_pt_to_earth_space(pt)
+            lat.append(pt[0])
+            long.append(pt[1])
+
+        return (lat, long)
 
     # -------------------------------------------------------------- #
     # --- Wrappers for stroke_data --------------------------------- #
@@ -229,6 +240,18 @@ class AreaAsset:
         Return lowest to counter user input
         '''
         return min(polygon.Compute(False, False), polygon.Compute(True, False))
+
+    def get_polygonArea(self) -> PolygonArea:
+        geo:Geodesic = Geodesic.WGS84
+        polygon = PolygonArea(geo, False)
+
+        for pt in self.stroke_data:
+            _pt = self.util.norm_pt_to_earth_space(pt)
+            # Order: LAT, Long
+            polygon.AddPoint(_pt[0], _pt[1])
+
+        return polygon
+
     
     def get_bounds(self) -> Tuple[float,float,float,float]:
         '''
@@ -522,6 +545,16 @@ class AreaAsset:
         self.drawer.button(text="Save", command=self.save_data_to_files)
         self.drawer.button(text="Clear Points", command=self.clear_points)
         self.drawer.button(text="Delete area", command=self.delete)
+
+        self.drawer.seperator()
+        
+        def print_height_data(self:AreaAsset, *args, **kwargs):
+            p0 = (35.64240864470986, -82.55868647748001)
+            p1 = (35.640106795695836, -82.5543520277965)
+            print(get_points(p0, p1, dist=2.5, area=self))
+
+        cl = partial(print_height_data, self)
+        self.drawer.button(text="Print height data", command=cl)
 
 
 def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:

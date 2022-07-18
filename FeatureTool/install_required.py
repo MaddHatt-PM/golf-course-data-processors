@@ -26,6 +26,7 @@ packages = [
     "scipy",
     "pandas",
     "plotly",
+    "Shapely",
     "requests",
     "openpyxl",
     "ttkthemes",
