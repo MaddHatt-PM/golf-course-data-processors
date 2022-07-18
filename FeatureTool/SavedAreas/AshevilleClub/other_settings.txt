@@ -1,1 +1,0 @@
-{"do_draw_fill": false, "do_draw_points": true, "fill_alpha": 0.25, "stroke_width": 3.0, "color_path": "#42A5F5", "color_fill": "#0D47A1"}
