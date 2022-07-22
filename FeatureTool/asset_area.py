@@ -6,7 +6,7 @@ from tkinter import BooleanVar, Canvas, DoubleVar, Frame, IntVar, Label, StringV
 from tkinter import ttk
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
-from data_downloader import get_points
+from data_downloader import download_elevation, get_points, services
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from asset_project import ProjectAsset
@@ -16,6 +16,7 @@ from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
 from view_confirm_window import CreateConfirmView
+import data_downloader
 
 class Settings:
     '''
@@ -49,6 +50,7 @@ class AreaAsset:
         self.is_fully_init = False
         self.fill_img:Image.Image = None
         self.canvasID_fill = None
+        self.target = target
 
         basepath = "SavedAreas/" + target.savename + "/"
 
@@ -108,9 +110,6 @@ class AreaAsset:
             file.write(settings_str)
         
     def save_data_to_files(self):
-        # if self.is_dirty == False:
-        #     return
-
         with open(str(self._stroke_filepath), 'w') as file:
             csv_header = "latitude,longitude,elevation,resolution\n"
             file.write(csv_header)
@@ -541,20 +540,21 @@ class AreaAsset:
         self.drawer.vertical_divider()
         self.drawer.seperator()
         self.drawer.header(text="Actions")
-        self.drawer.button(text="Sample Elevation")
-        self.drawer.button(text="Save", command=self.save_data_to_files)
+        save_button = self.drawer.button(text="Save", command=self.save_data_to_files)
+        save_button['state'] = 'normal' if self.is_dirty else 'disabled' 
         self.drawer.button(text="Clear Points", command=self.clear_points)
         self.drawer.button(text="Delete area", command=self.delete)
 
         self.drawer.seperator()
         
+        self.target.coordinates
         def print_height_data(self:AreaAsset, *args, **kwargs):
-            p0 = (35.64240864470986, -82.55868647748001)
-            p1 = (35.640106795695836, -82.5543520277965)
-            print(get_points(p0, p1, dist=2.5, area=self))
+            p0 = self.target.coordinates()[0]
+            p1 = self.target.coordinates()[1]
+            download_elevation(self.target, self, services.google_elevation)
 
         cl = partial(print_height_data, self)
-        self.drawer.button(text="Print height data", command=cl)
+        self.drawer.button(text="Sample height data", command=cl)
 
 
 def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:

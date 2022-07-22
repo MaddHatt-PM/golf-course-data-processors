@@ -42,7 +42,7 @@ def pil_to_cv(pil_image):
 # -------------------------------------------------------------- #
 # --- Imagery functions ---------------------------------------- #
 def __via_google_satelite(target:ProjectAsset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
-    grabber = gmap_si(keys.google_maps)
+    grabber = gmap_si(keys.google_maps())
     result = grabber.get_maps_image(p0, p1, zoom=19)
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
     
@@ -91,12 +91,15 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
 
     # new untested version
     # points = area.get_points()
-    points = [(35.61246415128191, -82.57430064075014), (35.61230888486478, -82.5697221504971)]
+    # points = [(35.61246415128191, -82.57430064075014), (35.61230888486478, -82.5697221504971)]
+    p0 = (35.64240864470986, -82.55868647748001)
+    p1 = (35.640106795695836, -82.5543520277965)
+    points = get_points(p0, p1, dist=5, area=area)
 
     prefix = "https://maps.googleapis.com/maps/api/elevation/json?locations="
     location = "{}%2C{}"
     sep = "%7C"
-    suffix = "&key={}".format(keys.google_maps)
+    suffix = "&key={}".format(keys.google_maps())
     request_location_limit = 500
 
     url = prefix
@@ -132,6 +135,7 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
                 item["resolution"])
 
     output = output.removesuffix('\n')
+    print(output)
     with target.elevationCSV_path.open(mode='w') as outfile:
         outfile.write(output)
 
@@ -175,6 +179,4 @@ def get_points(p0, p1, dist=5, area=None):
                 if tester.within(polygon):
                     output_pts.append(pt)
 
-    print("Point count at a distance of {}m: {}".format(dist, len(lat_line_pts) * (count + 1) ))
-    print("Successful points inside of polygon: {}".format(len(output_pts)))
     return output_pts

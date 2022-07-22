@@ -52,6 +52,7 @@ class MainWindow:
         self.image_raw:Image = None
         self.image_pi:PhotoImage = None
         self.active_area = None
+        self.is_dirty = False
 
         filenames = os.listdir(target.basePath)
         self.areas:list[AreaAsset] = []
@@ -65,11 +66,6 @@ class MainWindow:
             self.active_area.select()
 
         self.tree_manager = TreeCollectionAsset(self.target)
-
-        # try:
-        #     self.selected_area = area_asset("example", target)
-        # except:
-        #     print("self.selected_area... Clean this up by getting the area_asset later")
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -169,9 +165,10 @@ class MainWindow:
 
     def handle_click(self, event):
         if self.active_area is not None:
-            pt = event.x, event.y
+            pt = event.x, event.y        
             self.active_area.append_point((event.x, event.y), CoordMode.pixel)
 
+        self.check_for_changes()
         self.redraw_viewport()
         
         if self.active_area is not None:
@@ -201,6 +198,31 @@ class MainWindow:
         
         self.status_text.set(text)
         
+    def check_for_changes(self):
+        if self.is_dirty:
+            return
+
+        for area in self.areas:
+            if area.is_dirty:
+                self.is_dirty = True
+                break
+
+        ## Tree manager cannot be dirty for now
+        # if self.tree_manager
+        
+        if self.is_dirty:
+            self.root.title('*' + self.target.savename + ' - Terrain Viewer')
+        else:
+           self.root.title(self.target.savename + ' - Terrain Viewer')
+
+    def save_all(self):
+        for area in self.areas:
+            area.save_data_to_files()
+            area._save_settings()
+        
+        self.is_dirty = False
+        self.check_for_changes()
+
     def on_close(self):
         '''Write window geometry before exiting'''
         with open(str(self.prefsPath), 'w') as prefs:
@@ -240,9 +262,6 @@ class MainWindow:
         if scroll_bbox[1] == canvas_box[1] and scroll_bbox[3] == canvas_box[3]:
             scroll_bbox[1] = img_box[1]
             scroll_bbox[3] = img_box[3]
-
-        # for area in self.areas:
-        #     area.draw_to_canvas()
         
         if self.active_area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
@@ -293,6 +312,8 @@ class MainWindow:
         self.setup_inspector()
 
     def setup_inspector(self):
+        self.check_for_changes()
+        
         inspector = Frame(self.root, padx=4, pady=0)
         inspector.grid(row=0, column=2, sticky="nswe")
         # inspector.configure(width=45)
