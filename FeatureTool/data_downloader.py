@@ -139,7 +139,7 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
     with target.elevationCSV_path.open(mode='w') as outfile:
         outfile.write(output)
 
-    api_usage_tracker.add_api_count(services.google_elevation, len(points))
+    api_usage_tracker.add_api_count(services.google_elevation, len(urls))
     return target.elevationCSV_path
 
 def download_elevation(target:ProjectAsset, area:"AreaAsset", service:services) -> Path:
