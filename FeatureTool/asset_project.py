@@ -3,12 +3,15 @@ from typing import List, Tuple
 
 class ProjectAsset:
 
-    def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None):
+    def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None, apis=None):
         self.savename:str = savename
 
         basePath = "SavedAreas/" + savename + "/" 
         self.basePath:Path = Path(basePath)
         self.basePath.mkdir(parents=True, exist_ok=True)
+
+        self.env = Path('.env')
+        self.apis = apis
 
         self.loadFile_path:Path = Path(basePath + savename + ".area")
         self.sateliteImg_path:Path = Path(basePath + "Satelite.png")
