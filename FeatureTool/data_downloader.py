@@ -3,8 +3,10 @@ Ideas:
     Concurrently download: https://youtu.be/GpqAQxH1Afc
 '''
 
+from copy import copy
 import json
 import math
+from time import sleep
 import cv2
 import numpy as np
 import requests
@@ -96,35 +98,55 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
     p1 = (35.640106795695836, -82.5543520277965)
     points = get_points(p0, p1, dist=5, area=area)
 
+
     prefix = "https://maps.googleapis.com/maps/api/elevation/json?locations="
     location = "{}%2C{}"
     sep = "%7C"
     suffix = "&key={}".format(keys.google_maps())
-    request_location_limit = 500
+    request_location_limit = 250
 
     url = prefix
     urls = []
 
     # Compile the points in a batch call
-    for id, pt in enumerate(points):
-        if id == request_location_limit:
+    index = 0
+    for pt in points:
+        if index > request_location_limit:
             # Store url
             url = url.removesuffix(sep)
             url += suffix
-            urls.append(url)
+            urls.append(copy(url))
 
             # Reset url for next iteration
             url = prefix
+            index -= request_location_limit
 
         url += location.format(pt[0], pt[1])
         url += sep
+        index += 1
 
     url = url.removesuffix(sep) + suffix
     urls.append(url)
 
+    if (input("{} requests for {} points will be used. Type 'y' to confirm: ".format(len(urls), len(points))) != 'y'):
+        print("request denied")
+        return
+
     output = "latitude,longitude,elevation,resolution\n"
+
+    if target.elevationCSV_path.exists():
+        with target.elevationCSV_path.open('r') as file:
+            # Assume a perfect situation where only the program has touched the data
+            file_input = file.read()
+            output += file_input.removeprefix(output)
+            output += '\n'
+            print("Joining files")
+
+    count = 0
     for url in urls:
         response = requests.request("GET", url)
+        print('[{}] Retrieved results: {}'.format(count, response))
+        print(url)
         data = json.loads(response.text)["results"]
 
         for item in data:
@@ -133,9 +155,13 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
                 item["location"]['lng'],
                 item["elevation"],
                 item["resolution"])
+        
+        print('sleeping')
+        sleep(1)
+        count += 1
+
 
     output = output.removesuffix('\n')
-    print(output)
     with target.elevationCSV_path.open(mode='w') as outfile:
         outfile.write(output)
 
