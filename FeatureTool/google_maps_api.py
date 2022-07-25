@@ -54,7 +54,7 @@ class SatelliteInterface:
     def __init__(self, key=None):
         self.key = key
 
-    def latlon2pixels(self, lat, lon, zoom):
+    def latlon2pixels(self, lat, lon, zoom=18):
         mx = lon
         my = log(tan((lat + tau / 4) / 2))
         res = 2 ** (zoom + ZOOM_OFFSET) / tau
@@ -62,7 +62,7 @@ class SatelliteInterface:
         py = my * res
         return px, py
 
-    def pixels2latlon(self, px, py, zoom):
+    def pixels2latlon(self, px, py, zoom=18):
         res = 2 ** (zoom + ZOOM_OFFSET) / tau
         mx = px / res
         my = py / res
