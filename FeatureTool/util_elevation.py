@@ -1,11 +1,12 @@
 from math import pi
 from pathlib import Path
 import sys
+from time import sleep
+from PIL import Image, ImageOps
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
 import matplotlib
-import google_maps_api
 import api_keys as keys
 
 coordpath = Path('SavedAreas\AshevilleClub\Coordinates.csv')
@@ -14,8 +15,6 @@ with coordpath.open('r') as file:
     headers = lines.pop(0).split(',')
     NW = eval(lines[0])
     SE = eval(lines[1])
-
-print(NW, SE)
 
 datapath =  Path('SavedAreas\AshevilleClub\Elevation.csv')
 with datapath.open('r') as file:
@@ -43,42 +42,56 @@ z = np.array(z)
 range_x = [NW[1], SE[1]]
 range_y = [NW[0], SE[0]]
 
-xi = np.linspace(max(range_x), min(range_x))
-yi = np.linspace(min(range_y), max(range_y))
 grid_x,grid_y = np.mgrid[
-    max(range_x):min(range_x):500j,
-    min(range_y): max(range_y):500j
+    min(range_x):max(range_x):1000j,
+    min(range_y): max(range_y):1000j
 ]
 
-height_data = griddata(xy, z, (grid_x, grid_y), method='nearest')
-# ullat, ullon = [i * (pi * 2 / 180) for i in NW]
-# lrlat, lrlon = [i * (pi * 2 / 180) for i in SE]
+height_data = griddata(xy, z, (grid_x, grid_y), method='linear')
 
-# # convert all these coordinates to pixels
-# si = google_maps_api.SatelliteInterface(keys.google_maps())
-# ulx, uly = si.latlon2pixels(lat=ullat, lon=ullon)
-# lrx, lry = si.latlon2pixels(lat=lrlat, lon=lrlon)
-
-# # calculate total pixel dimensions of final image
-# dx, dy = lrx - ulx, uly - lry
-
-# print(dx,dy)
-
-height = pNW[0] - pSE[0]
-width = pSE[1] - pNW[1]
+height = NW[0] - SE[0]
+width = SE[1] - NW[1]
 aspect = width / height
 multiplier = 8000
 plt.figure(figsize= (width * multiplier, height * multiplier))
+print((width * multiplier, height * multiplier))
 
 plt.plot(x, y, 'k.', ms=1)
-LEVELS = 18
-plt.tricontour(x, y, z, cmap=matplotlib.cm.plasma, levels=LEVELS)
+
+LEVELS = 50
+plt.tricontour(x, y, z, levels=LEVELS, cmap='inferno')
+
+contour_path = Path('contour_buffer.png')
+plt.axis('off')
+plt.savefig(contour_path, bbox_inches='tight', pad_inches=0, transparent=True)
+plt.clf()
+
 plt.imshow(
     height_data,
     extent=(SE[1], NW[1], SE[0], NW[0]),
     origin='lower',
-    cmap=matplotlib.cm.gray)
+    cmap='cubehelix')
 
 # plt.show()
+height_path = Path('example.png')
 plt.axis('off')
-plt.savefig('example.png', bbox_inches='tight', pad_inches=0)
+plt.savefig(height_path, bbox_inches='tight', pad_inches=0, transparent=True)
+
+con_fig = Image.open(contour_path)
+# con_fig = con_fig.rotate(180)
+# con_fig.
+con_fig.save(contour_path)
+
+fig_img = Image.open(height_path)
+fig_img = fig_img.rotate(90, expand = True)
+fig_img = fig_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+fig_img = fig_img.resize((fig_img.size[1], fig_img.size[0]))
+print(fig_img.size)
+
+ref_img = Image.open(Path('SavedAreas\AshevilleClub\Satelite.png'))
+print(ref_img.size)
+
+fig_img.paste(con_fig, (0,0), con_fig)
+
+fig_img = fig_img.resize(ref_img.size)
+fig_img.save(height_path)
