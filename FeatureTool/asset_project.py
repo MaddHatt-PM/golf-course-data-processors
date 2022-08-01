@@ -15,21 +15,25 @@ class ProjectAsset:
 
         self.loadFile_path:Path = Path(basePath + savename + ".area")
         self.sateliteImg_path:Path = Path(basePath + "Satelite.png")
-        self.__coordinates:Path = Path(basePath + "Coordinates.csv")
-        self.elevationImg_path:Path = Path(basePath + "Elevation.tif")
+        self.coordinates_path:Path = Path(basePath + "Coordinates.csv")
+        self.elevationImg_nearest_path:Path = Path(basePath + "Elevation_Nearest.png")
+        self.elevationImg_linear_path:Path = Path(basePath + "Elevation_Linear.png")
+        self.elevationImg_cubic_path:Path = Path(basePath + "Elevation_Cubic.png")
+        self.datapointImg_path:Path = Path(basePath + "Datapoints.png")
+        self.contourImg_path:Path = Path(basePath + "Contour.png")
         self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
         self.treesCSV_path:Path = Path(basePath + "Trees.csv")
 
         # If provided, save out coordinates data
         if p0 != None and p1 != None:
-            with open(self.__coordinates, 'w') as f:
+            with open(self.coordinates_path, 'w') as f:
                 f.write("latitude,longitude\n")
                 f.write(str(p0) + '\n')
                 f.write(str(p1) + '\n')
 
     def coordinates(self) -> List[tuple[float, float]]:
-        if self.__coordinates.exists():
-            with open(self.__coordinates, "r") as f:
+        if self.coordinates_path.exists():
+            with open(self.coordinates_path, "r") as f:
                 lines = f.read().splitlines()
                 p0 = eval(lines[1])
                 p1 = eval(lines[2])
