@@ -2,6 +2,8 @@ from datetime import datetime
 import json
 from pathlib import Path
 
+MONTHLY_CAP = 200.0
+
 # ------------------------------------------------------------ #
 # --- File IO ------------------------------------------------ #
 storage_str = "AppAssets/api_tracker.json"
@@ -69,6 +71,19 @@ def add_api_count(name:str, add:int, path=None) -> int:
     __save_storage(storage, path)
 
     return storage[name]
+
+def compute_cost(data:dict[str,int]=None) -> float:
+    costs = {
+        "google_satelite": 0.002,
+        "google_elevation": 0.005,
+    }
+    output = 0.0
+
+    entries = __load_storage() if data is None else data
+    for key in entries.keys():
+        output += entries[key] * costs[key]
+    
+    return output
 
 # ------------------------------------------------------------ #
 # --- Testing ------------------------------------------------ #

@@ -20,8 +20,8 @@ import data_downloader
 
 class Settings:
     '''
-    TODO: Move all settings variables and save/load methods to here,
-          and have the variables be loaded as a keyword dict from self
+    TODO: Think of a nicer way to handle settings
+            - Maybe a data class?
     '''
     fill_alpha = "fill_alpha"
     stroke_width = "stroke_width"

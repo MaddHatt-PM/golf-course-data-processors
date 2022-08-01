@@ -18,7 +18,6 @@ class ProjectAsset:
         self.coordinates_path:Path = Path(basePath + "Coordinates.csv")
         self.elevationImg_nearest_path:Path = Path(basePath + "Elevation_Nearest.png")
         self.elevationImg_linear_path:Path = Path(basePath + "Elevation_Linear.png")
-        self.elevationImg_cubic_path:Path = Path(basePath + "Elevation_Cubic.png")
         self.datapointImg_path:Path = Path(basePath + "Datapoints.png")
         self.contourImg_path:Path = Path(basePath + "Contour.png")
         self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
