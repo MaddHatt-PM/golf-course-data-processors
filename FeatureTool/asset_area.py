@@ -15,7 +15,7 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
-from view_confirm_window import CreateConfirmView
+from view_confirm_window import create_confirm_window
 import data_downloader
 
 class Settings:
@@ -141,7 +141,7 @@ class AreaAsset:
         delete_msg += "Deleting this area will send associated files to trash\n"
         delete_msg += "To undo, manually readd the files back to the project and restart\n"
 
-        CreateConfirmView(
+        create_confirm_window(
             text=delete_msg,
             command=closure
         )
@@ -149,7 +149,7 @@ class AreaAsset:
     def import_data(self):
         pass
 
-    def get_lat_long(self):
+    def get_lat_long(self) -> tuple[list[float], list[float]]:
         lat, long = [], []
         for pt in self.stroke_data:
             pt = self.util.norm_pt_to_earth_space(pt)
@@ -563,7 +563,7 @@ class AreaAsset:
         def print_height_data(self:AreaAsset, *args, **kwargs):
             p0 = self.target.coordinates()[0]
             p1 = self.target.coordinates()[1]
-            download_elevation(self.target, self, services.google_elevation)
+            download_elevation(self.target, self.get_lat_long(), services.google_elevation)
 
         cl = partial(print_height_data, self)
         self.drawer.button(text="Sample height data", command=cl)
