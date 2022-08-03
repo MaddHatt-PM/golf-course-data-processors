@@ -16,7 +16,6 @@ class CreateImportWindow:
 
         filepath = filedialog.askopenfilename(filetypes=filetypes)
         if filepath == '' or '.csv' not in filepath:
-            print("Exit or invalid filepath")
             return
 
         filepath = Path(filepath)
@@ -51,7 +50,6 @@ class CreateImportWindow:
         popup.geometry("350x200")
         popup.grid_columnconfigure(0, weight=1)
         popup.grid_columnconfigure(1, weight=1)
-
 
         area_label = Label(popup, text="New Area Name")
         area_label.grid(row=0, column=0)
