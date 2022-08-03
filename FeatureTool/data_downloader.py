@@ -6,6 +6,7 @@ Ideas:
 from copy import copy
 import json
 import math
+import sys
 from time import sleep
 import cv2
 import numpy as np
@@ -69,7 +70,15 @@ def download_imagery(target:ProjectAsset, service:str) -> Path:
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
+def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float]], service:services, output_path:Path=None, sample_inside_polygon=True) -> Path:
+    if sample_inside_polygon is True:
+        coords = target.coordinates()
+        points = get_points(*coords, dist=5, boundry_pts=points)
+
+    if service is services.google_elevation:
+        return __via_google_elevation(target, points, output_path)
+
+def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Path:
     '''
     - Google Documentation: https://developers.google.com/maps/documentation/elevation/start#maps_http_elevation_locations-py
     - Submit a single request using https://stackoverflow.com/questions/29418423/how-to-use-an-array-of-coordinates-with-google-elevation-api
@@ -85,28 +94,14 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
     }
     '''
 
-    # old working version
-    # pt = (35.61747385057783, -82.56616442192929)
-    # url_single = "https://maps.googleapis.com/maps/api/elevation/json?locations={}%2C{}&key={}"
-    # url_single = url_single.format(pt[0], pt[1], keys.google_maps)
-    # response = requests.request("GET", url_single)
-
-    # new untested version
-    # points = area.get_points()
-    # points = [(35.61246415128191, -82.57430064075014), (35.61230888486478, -82.5697221504971)]
-    p0 = (35.64240864470986, -82.55868647748001)
-    p1 = (35.640106795695836, -82.5543520277965)
-    points = get_points(p0, p1, dist=5, area=area)
-
-
     prefix = "https://maps.googleapis.com/maps/api/elevation/json?locations="
     location = "{}%2C{}"
     sep = "%7C"
     suffix = "&key={}".format(keys.google_maps())
     request_location_limit = 250
-
     url = prefix
     urls = []
+    print(points)
 
     # Compile the points in a batch call
     index = 0
@@ -124,7 +119,6 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
         url += location.format(pt[0], pt[1])
         url += sep
         index += 1
-
     url = url.removesuffix(sep) + suffix
     urls.append(url)
 
@@ -133,9 +127,11 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
         return
 
     output = "latitude,longitude,elevation,resolution\n"
+    if target is not None:
+        output_path = target.elevationCSV_path 
 
-    if target.elevationCSV_path.exists():
-        with target.elevationCSV_path.open('r') as file:
+    if output_path.exists():
+        with output_path.open('r') as file:
             # Assume a perfect situation where only the program has touched the data
             file_input = file.read()
             output += file_input.removeprefix(output)
@@ -146,7 +142,6 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
     for url in urls:
         response = requests.request("GET", url)
         print('[{}] Retrieved results: {}'.format(count, response))
-        print(url)
         data = json.loads(response.text)["results"]
 
         for item in data:
@@ -156,23 +151,19 @@ def __via_google_elevation(target:ProjectAsset, area:"AreaAsset") -> Path:
                 item["elevation"],
                 item["resolution"])
         
-        print('sleeping')
-        sleep(1)
+        print('Sleeping...')
+        sleep(0.75)
         count += 1
 
-
+    print('Completed elevation requests')
     output = output.removesuffix('\n')
-    with target.elevationCSV_path.open(mode='w') as outfile:
+    with output_path.open(mode='w') as outfile:
         outfile.write(output)
 
     api_usage_tracker.add_api_count(services.google_elevation, len(urls))
-    return target.elevationCSV_path
+    return output_path
 
-def download_elevation(target:ProjectAsset, area:"AreaAsset", service:services) -> Path:
-    if service is services.google_elevation:
-        return __via_google_elevation(target, area)
-
-def get_points(p0, p1, dist=5, area=None):
+def get_points(p0, p1, dist=5, boundry_pts=None):
     geod:Geodesic = Geodesic.WGS84
     lat_line = geod.InverseLine( *p0, p0[0], p1[1] )
     lat_line_pts = []
@@ -184,8 +175,8 @@ def get_points(p0, p1, dist=5, area=None):
 
 
     polygon = None
-    if area is not None:
-        np_lat_long = np.column_stack(area.get_lat_long())
+    if boundry_pts is not None:
+        np_lat_long = np.column_stack(boundry_pts)
         polygon = Polygon(np_lat_long)
 
     output_pts = []
