@@ -94,6 +94,7 @@ class AreaAsset:
 
         self.fill_img:Image = None
         self._fill_img_filepath = Path(basepath + name + "_fill.png")
+        self._mask_img_filepath = Path(basepath + name + '_mask.png')
         if self._fill_img_filepath.is_file():
             self.fill_img = Image.open(self._fill_img_filepath)
 
@@ -280,7 +281,9 @@ class AreaAsset:
             
         self.__draw_perimeter()
     
-    
+    def make_masks(self):
+        self.__draw_fill(asMask=True)
+
     def __draw_perimeter(self):
         if self.is_fully_init is False:
             raise Exception("{} is not fully initiated, call drawing_init()")
@@ -347,8 +350,7 @@ class AreaAsset:
                 pointID = self.canvas.create_oval(util.point_to_size_coords((pt_a), circle_size), fill=self.settings['color'].path)
                 self.canvasIDs.append(pointID)
 
-    def __draw_fill(self):
-        # print("redrawing")
+    def __draw_fill(self, asMask=False):
         polygon_points = []
         for pt in self.stroke_data:
             pixel_pt = self.util.norm_pt_to_pixel_space(pt)
@@ -374,13 +376,22 @@ class AreaAsset:
         )
 
         if len(polygon_points) > 2:
-            if self.is_fill_dirty is True:
+            if self.is_fill_dirty is True or asMask is True:
+
                 fill = ImageColor.getcolor(self.settings['color'].fill, 'RGB')
                 alpha = int(self.settings['fill_alpha'] * 255)
-                
-                self.fill_img = Image.new("RGBA", img_size, (255, 255, 255, 1))
-                drawer = ImageDraw.Draw(self.fill_img)
                 color = (*fill, alpha)
+                background = (255,255,255, 0)
+                savePath = self._fill_img_filepath
+                
+                if asMask is True:
+                    color = (255,255,255,255) # white
+                    background = (0,0,0,255) # black
+                    savePath = self._mask_img_filepath
+
+                fill_img = Image.new("RGBA", img_size, background)
+                drawer = ImageDraw.Draw(fill_img)
+
                 drawer.polygon(polygon_points, fill=color)
                 
                 if self.settings.get(Settings.overfill_amt, 0) > 0:
@@ -403,12 +414,13 @@ class AreaAsset:
 
                     circle(drawer, (polygon_points[0], polygon_points[1]), width/2, color)
                 
-                self.fill_img.save(self._fill_img_filepath)
-                self.fill_img = self.fill_img
+                fill_img.save(savePath)
+                if asMask: return
+
+                self.fill_img = fill_img
                 self.is_fill_dirty = False
             
             self.image_pi = ImageTk.PhotoImage(Image.open(self._fill_img_filepath).resize(self.img_size))
-            # self.image_resized = self.image_pi.resize
             self.canvasID_fill = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
         elif self.canvasID_fill is not None:

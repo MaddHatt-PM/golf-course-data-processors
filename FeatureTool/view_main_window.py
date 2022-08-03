@@ -24,10 +24,12 @@ from PIL import Image, ImageTk
 from asset_area import AreaAsset, create_area_file_with_data
 from asset_project import ProjectAsset
 from asset_trees import TreeCollectionAsset
+from util_export import export_data
 from utilities import SpaceTransformer, ToolMode
 from ui_inspector_drawer import inspector_drawers
 from data_downloader import services, download_imagery
 from utilities import CoordMode, UIColors, restart_with_new_target
+from view_api_usage_window import create_api_usage_window
 from view_create_area import CreateAreaView
 from view_create_location import CreateLocationView
 from view_import_prompt import CreateImportWindow
@@ -285,11 +287,22 @@ class MainWindow:
         for dir in directories:
             closure = partial(restart_with_new_target, self.root, dir)
             open_menu.add_command(label=dir, command=closure)
+
+        def prep_export():
+            for area in self.areas:
+                area.make_masks()
+            
+            export_data(self.target)
+            
+
         
         filemenu.add_cascade(label="Open", menu=open_menu)
 
-        filemenu.add_command(label="Save", command=self.print_test, state=tk.DISABLED)
+        filemenu.add_command(label="Save", command=self.save_all)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
+        filemenu.add_separator()
+        filemenu.add_command(label="Export", command=prep_export)
+        filemenu.add_command(label="Check API Usage", command=create_api_usage_window)
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
         
