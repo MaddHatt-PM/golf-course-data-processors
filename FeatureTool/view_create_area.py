@@ -24,31 +24,31 @@ class CreateAreaView:
         self.new_area_name = tk.StringVar()
         Entry(self.popup, textvariable=self.new_area_name).grid(row=2, columnspan=2)
 
-        enter_btn = Button(self.popup, text="Enter", command=self.validate_and_send)
+        def validate_and_send() -> bool:
+            if self.new_area_name.get() == "":
+                self.error_text.set("No input")
+                return
+
+            invalid_char = list("#%&{}\\<>*?/$!\'\":@+`|=")
+            for character in invalid_char:
+                if character in self.new_area_name.get():
+                    self.error_text.set("Invalid character: [{}]".format(character))
+                    return
+
+            for area in self.areas:
+                if area.name == self.new_area_name.get():
+                    self.error_text.set("Name taken")
+                    return
+
+            self.popup.destroy()
+            self.caller.create_new_area(name=self.new_area_name.get())
+                    
+        enter_btn = Button(self.popup, text="Enter", command=validate_and_send)
         enter_btn.grid(row=3, column=0, pady=10, padx=10)
 
         cancel_btn = Button(self.popup, text="Cancel", command=self.popup.destroy)
         cancel_btn.grid(row=3, column=1, pady=10, padx=10)
 
-    def validate_and_send(self) -> bool:
-        if self.new_area_name.get() == "":
-            self.error_text.set("No input")
-            return
-
-        invalid_char = list("#%&{}\\<>*?/$!\'\":@+`|=")
-        for character in invalid_char:
-            if character in self.new_area_name.get():
-                self.error_text.set("Invalid character: [{}]".format(character))
-                return
-
-        for area in self.areas:
-            if area.name == self.new_area_name.get():
-                self.error_text.set("Name taken")
-                return
-
-        
-        self.popup.destroy()
-        self.caller.create_new_area(name=self.new_area_name.get())
             
 
 if __name__ == "__main__":
