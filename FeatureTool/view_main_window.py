@@ -32,7 +32,7 @@ from utilities import CoordMode, UIColors, restart_with_new_target
 from view_api_usage_window import create_api_usage_window
 from view_create_area import CreateAreaView
 from view_create_location import CreateLocationView
-from view_import_prompt import CreateImportWindow
+from view_import_prompt import create_import_window
 
 class MainWindow:
     def __init__(self, target:ProjectAsset):
@@ -306,7 +306,7 @@ class MainWindow:
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
         
-        closure = partial(CreateImportWindow, self)
+        closure = partial(create_import_window, self)
         filemenu.add_command(label="Create import window", command=closure)
         menubar.add_cascade(label="File", menu=filemenu)
 
