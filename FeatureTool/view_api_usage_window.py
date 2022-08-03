@@ -6,7 +6,7 @@ from api_usage_tracker import MONTHLY_CAP, add_api_count, compute_cost
 from asset_project import ProjectAsset
 from datetime import datetime
 
-def show_api_usage_window(requestCost:dict[str, int]=None, command=None, isMainWindow=False):
+def create_api_usage_window(requestCost:dict[str, int]=None, command=None, isMainWindow=False):
     if isMainWindow:
         popup = tk.Tk()
     else:
@@ -41,18 +41,22 @@ def show_api_usage_window(requestCost:dict[str, int]=None, command=None, isMainW
     progbar['value'] = int(100 * (current_cost + request_cost) / MONTHLY_CAP)
     progbar.grid(sticky='w', row=1, column=0, columnspan=2, padx=5, pady=(5, 15))
 
+    if requestCost is None:
+        close_btn = Button(popup, text='Close', command=popup.destroy)
+        close_btn.grid(row=2, column=0, columnspan=2, sticky='nswe', padx=5, pady=10)
 
-    cancel_btn = Button(popup, text='Cancel', command=popup.destroy)
-    cancel_btn.grid(row=2, column=0, sticky='nswe', padx=5, pady=10)
+    else:
+        cancel_btn = Button(popup, text='Cancel', command=popup.destroy)
+        cancel_btn.grid(row=2, column=0, sticky='nswe', padx=5, pady=10)
 
-    def execute():
-        for item in requestCost:
-            add_api_count(item, requestCost[item])
-        command()
-        popup.destroy
+        def execute():
+            for item in requestCost:
+                add_api_count(item, requestCost[item])
+            command()
+            popup.destroy
 
-    enter_btn = Button(popup, text='Confirm', command=execute)
-    enter_btn.grid(row=2, column=1, sticky='nswe', padx=5, pady=10)
+        enter_btn = Button(popup, text='Confirm', command=execute)
+        enter_btn.grid(row=2, column=1, sticky='nswe', padx=5, pady=10)
         
     if isMainWindow:
         popup.mainloop()
@@ -66,7 +70,7 @@ if __name__ == '__main__':
         for key in budget_amt.keys():
             add_api_count(key, budget_amt[key] * -1)
 
-    show_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
+    create_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
 
     '''Underbudget example'''
     budget_amt = { "google_elevation": 1 }
@@ -76,7 +80,7 @@ if __name__ == '__main__':
         for key in budget_amt.keys():
             add_api_count(key, budget_amt[key] * -1)
 
-    show_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
+    create_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
 
     '''Current status example'''
-    show_api_usage_window(isMainWindow=True)
+    create_api_usage_window(isMainWindow=True)
