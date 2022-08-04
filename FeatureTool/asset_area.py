@@ -16,8 +16,6 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
-# from view_main_window import MainWindow
-
 class Settings:
     '''
     TODO: Think of a nicer way to handle settings
@@ -45,7 +43,6 @@ class AreaAsset:
         self.drawer = None
         self.util = None
         self.is_active_area = False
-        self.was_deleted = False
 
         self.possible_line = None
         self.is_fully_init = False
@@ -585,9 +582,9 @@ class AreaAsset:
         self.drawer.button(text="Sample height data", command=cl)
 
 
-def create_area_file_with_data(name:str, target:ProjectAsset, data:str, main_win:'MainWindow') -> AreaAsset:
+def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:
     filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
     with filepath.open('w') as file:
         file.write(data)
 
-    return AreaAsset(name, target, main_win)
+    return AreaAsset(name, target)
