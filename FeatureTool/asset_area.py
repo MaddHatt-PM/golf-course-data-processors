@@ -43,6 +43,7 @@ class AreaAsset:
         self.drawer = None
         self.util = None
         self.is_active_area = False
+        self.was_deleted = False
 
         self.possible_line = None
         self.is_fully_init = False
