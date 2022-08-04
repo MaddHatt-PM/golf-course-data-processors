@@ -5,6 +5,7 @@ VisualizerTool/Logs
 VisualizerTool/obj/Debug
 
 *.pyc
+.ipynb_checkpoints
 FeatureTool/__pycache__/GoogleMapsAPI.cpython-39.pyc
 FeatureTool/AppAssets/prefs.windowprefs
 
