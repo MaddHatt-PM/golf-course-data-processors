@@ -291,10 +291,7 @@ class MainWindow:
         def prep_export():
             for area in self.areas:
                 area.make_masks()
-            
             export_data(self.target)
-            
-
         
         filemenu.add_cascade(label="Open", menu=open_menu)
 
