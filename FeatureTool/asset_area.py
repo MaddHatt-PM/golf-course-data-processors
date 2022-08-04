@@ -4,6 +4,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import BooleanVar, Canvas, DoubleVar, Frame, IntVar, Label, StringVar
 from tkinter import ttk
+from tkinter.messagebox import askyesno
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
 from data_downloader import download_elevation, get_points, services
@@ -15,13 +16,10 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
-from view_confirm_window import create_confirm_window
-import data_downloader
-
 class Settings:
     '''
     TODO: Think of a nicer way to handle settings
-            - Maybe a data class?
+            - Data class paired with a store to handle fileio?
     '''
     fill_alpha = "fill_alpha"
     stroke_width = "stroke_width"
@@ -132,19 +130,11 @@ class AreaAsset:
         self.img_size = img_size
 
     def delete(self):
-        def complete_delete(self):
+        delete_msg = "Deleting this area will send associated files to trash.\n"
+        delete_msg += "To undo, restore the files back to the project and restart."
+
+        if askyesno(title="Delete area?", message=delete_msg):
             print("Goodbye world")
-
-        closure = partial(complete_delete, self)
-
-        delete_msg = "Warning\n\n"
-        delete_msg += "Deleting this area will send associated files to trash\n"
-        delete_msg += "To undo, manually readd the files back to the project and restart\n"
-
-        create_confirm_window(
-            text=delete_msg,
-            command=closure
-        )
 
     def import_data(self):
         pass
