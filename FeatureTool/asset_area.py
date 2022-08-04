@@ -16,6 +16,8 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
+# from view_main_window import MainWindow
+
 class Settings:
     '''
     TODO: Think of a nicer way to handle settings
@@ -43,6 +45,7 @@ class AreaAsset:
         self.drawer = None
         self.util = None
         self.is_active_area = False
+        self.is_deleted = False
 
         self.possible_line = None
         self.is_fully_init = False
@@ -129,12 +132,21 @@ class AreaAsset:
         self.util = util
         self.img_size = img_size
 
-    def delete(self):
+    def mark_as_deleted(self):
         delete_msg = "Deleting this area will send associated files to trash.\n"
         delete_msg += "To undo, restore the files back to the project and restart."
 
         if askyesno(title="Delete area?", message=delete_msg):
-            print("Goodbye world")
+            print('Goodbye World')
+            self.is_deleted = True
+            self.finish_delete()
+            self.mark_area_to_be_redrawn()
+
+    def finish_delete(self):
+        self._stroke_filepath.unlink(missing_ok=True)
+        self._settings_path.unlink(missing_ok=True)
+        self._fill_img_filepath.unlink(missing_ok=True)
+        self._mask_img_filepath.unlink(missing_ok=True)
 
     def import_data(self):
         pass
@@ -265,6 +277,12 @@ class AreaAsset:
     # --- Canvas functions ----------------------------------------- #
     def draw_to_canvas(self):
         self.clear_canvasIDs()
+
+        if self.is_deleted:
+            if self.canvasID_fill is not None:
+                self.canvas.delete(self.canvasID_fill)
+                self.canvasID_fill = None
+            return
 
         if self.settings.get('do_draw_fill', False) is True:
             self.__draw_fill()
@@ -423,6 +441,9 @@ class AreaAsset:
         img_size = self.img_size
 
         self.destroy_possible_line()
+        
+        if self.is_deleted:
+            return
 
         # Draw dotted line to cursor
         if len(data) > 0:
@@ -484,9 +505,14 @@ class AreaAsset:
             raise Exception("Trying to draw inspector without being fully initialized")
 
         self.drawer.clear_inspector()
+
+        if self.is_deleted:
+            self.drawer.header("Area Deleted - Select new area")
+            return
+
         self.drawer.header(text="Settings")
 
-        color_dropdown = self.drawer.labeled_dropdown(
+        self.drawer.labeled_dropdown(
             self.settings['color'],
             value_data=UIColors.colors,
             value_names=UIColors.names,
@@ -545,7 +571,7 @@ class AreaAsset:
         save_button = self.drawer.button(text="Save", command=self.save_data_to_files)
         save_button['state'] = 'normal' if self.is_dirty else 'disabled' 
         self.drawer.button(text="Clear Points", command=self.clear_points)
-        self.drawer.button(text="Delete area", command=self.delete)
+        self.drawer.button(text="Delete area", command=self.mark_as_deleted)
 
         self.drawer.seperator()
         
@@ -559,9 +585,9 @@ class AreaAsset:
         self.drawer.button(text="Sample height data", command=cl)
 
 
-def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:
+def create_area_file_with_data(name:str, target:ProjectAsset, data:str, main_win:'MainWindow') -> AreaAsset:
     filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
     with filepath.open('w') as file:
         file.write(data)
 
-    return AreaAsset(name, target)
+    return AreaAsset(name, target, main_win)
