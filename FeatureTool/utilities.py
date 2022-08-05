@@ -65,7 +65,8 @@ class CoordMode(Enum):
 
 class ToolMode(Enum):
     area = 0,
-    tree = 1
+    tree = 1,
+    overlays = 2
 
 class SpaceTransformer:
     def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_resized:Image):

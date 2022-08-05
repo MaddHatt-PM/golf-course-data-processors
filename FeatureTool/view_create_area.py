@@ -1,55 +1,31 @@
 
+from email import message
 import tkinter as tk
+from tkinter import simpledialog
+from tkinter.messagebox import showerror, showwarning
 from tkinter.ttk import Button, Entry, Label
 from asset_area import AreaAsset
 
-class CreateAreaView:
-    def show(self, caller, areas:list[AreaAsset], isMainWindow:bool=False) -> None:
-        if isMainWindow == True:
-            self.popup = tk.Tk()
-        else:
-            self.popup=tk.Toplevel()
-            self.popup.grab_set()
-            self.popup.focus_force()
+def create_area_view(caller, areas:list[AreaAsset], isMainWindow:bool=False, parent=None) -> None:
+    spacer = '                    '
+    new_area_name = simpledialog.askstring(
+        title='New area name',
+        prompt= spacer + 'Enter a name for the new area' + spacer,
+        parent=parent
+    )
 
-        self.areas = areas
-        self.caller = caller
-        self.popup.resizable(False,False)
+    if new_area_name is None or new_area_name == "":
+        return
 
-        Label(self.popup, text="Area Name").grid(row=0, columnspan=2, pady=10)
+    invalid_char = list("#%&{\\}<>*?/$!\'\":@+`|=")
+    for c in invalid_char:
+        if c in new_area_name:
+            showerror(title='error', message='Invalid character: {}'.format(c))
+            return
 
-        self.error_text = tk.StringVar()
-        Label(self.popup, textvariable=self.error_text).grid(row=1, columnspan=2)
+    for area in areas:
+        if area.name == new_area_name:
+            showerror(title='error', message='Name is already assigned')
+            return
 
-        self.new_area_name = tk.StringVar()
-        Entry(self.popup, textvariable=self.new_area_name).grid(row=2, columnspan=2)
-
-        def validate_and_send() -> bool:
-            if self.new_area_name.get() == "":
-                self.error_text.set("No input")
-                return
-
-            invalid_char = list("#%&{}\\<>*?/$!\'\":@+`|=")
-            for character in invalid_char:
-                if character in self.new_area_name.get():
-                    self.error_text.set("Invalid character: [{}]".format(character))
-                    return
-
-            for area in self.areas:
-                if area.name == self.new_area_name.get():
-                    self.error_text.set("Name taken")
-                    return
-
-            self.popup.destroy()
-            self.caller.create_new_area(name=self.new_area_name.get())
-                    
-        enter_btn = Button(self.popup, text="Enter", command=validate_and_send)
-        enter_btn.grid(row=3, column=0, pady=10, padx=10)
-
-        cancel_btn = Button(self.popup, text="Cancel", command=self.popup.destroy)
-        cancel_btn.grid(row=3, column=1, pady=10, padx=10)
-
-            
-
-if __name__ == "__main__":
-    CreateAreaView(None, isMainWindow=True)
+    caller.create_new_area(name=new_area_name)
