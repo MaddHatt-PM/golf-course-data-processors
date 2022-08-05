@@ -46,7 +46,6 @@ class ConfigAPIsWindow:
 
         def onChangeAPI(*args, **kwargs):
             self.apis['google_maps'] = api_var.get()
-            print(self.apis)
 
         api_var.trace_add('write', onChangeAPI)
         area_entry = Entry(window, textvariable=api_var)
