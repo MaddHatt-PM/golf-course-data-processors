@@ -64,13 +64,13 @@ class MainWindow:
 
         self.canvas:Canvas = None
         self.container = None
-        self.image_raw:Image = None
+        self.image_raw:Image = Image.open(self.target.sateliteImg_path)
         self.image_pi:PhotoImage = None
 
-        self.height_raw:Image = None
+        self.height_raw:Image = Image.open(target.elevationImg_linear_path)
         self.height_pi:Image = None
 
-        self.contour_raw:Image = None
+        self.contour_raw:Image = Image.open(target.contourImg_path)
         self.contour_pi:Image = None
 
         self.active_area = None
@@ -198,7 +198,7 @@ class MainWindow:
         '''Dummy function for quick testing'''
         print("test")
 
-    def handle_click(self, event):
+    def handle_left_click(self, event:tk.Event):
         if self.active_area is not None:
             pt = event.x, event.y        
             self.active_area.append_point((event.x, event.y), CoordMode.pixel)
@@ -208,6 +208,10 @@ class MainWindow:
         
         if self.active_area is not None:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
+
+    def handle_right_click(self, event:tk.Event):
+        if self.active_area is not None:
+            self.active_area.remove_point()
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
@@ -253,7 +257,6 @@ class MainWindow:
             area._save_settings()
         
         self.is_dirty = False
-        self.check_for_changes()
 
     def on_close(self):
         if self.is_dirty:
@@ -478,30 +481,27 @@ class MainWindow:
     def setup_viewport(self):
         viewport = Frame(self.root, bg=UIColors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
+
         
-        satelite_raw = Image.open(self.target.sateliteImg_path)
-        width, height = self.zoom * satelite_raw.width, self.zoom * satelite_raw.height
-        width, height = int(width), int(height)
-        image_resized = satelite_raw.resize((width, height), resample=Image.BICUBIC)
-        image_pi = ImageTk.PhotoImage(image=image_resized)
+        width, height = self.zoom * self.image_raw.width, self.zoom * self.image_raw.height
+        self.img_size = int(width), int(height)
+
+        self.image_resized = self.image_raw.resize(self.img_size, resample=Image.BICUBIC)
+        self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
 
         # Keep image references to avoid Garbage Collector
-        self.image_raw = satelite_raw
-        self.image_resized = image_resized
-        self.image_pi = image_pi
-        self.img_size = width, height
 
         self.canvas = Canvas(viewport)
         self.canvasUtil = SpaceTransformer(self.canvas, self.target, self.image_resized)
         self.canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.image_canvasID = self.canvas.create_image(image_pi.width()/2, image_pi.height()/2, anchor=tk.CENTER, image=image_pi)
+        self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
         self.canvas.lower(self.image_canvasID)
 
-        self.canvas.bind("<Button-1>", self.handle_click)
-        self.canvas.bind("<MouseWheel>", self.print_test)
-        self.canvas.bind("<Button-2>", self.start_pan)
+        self.canvas.bind("<Button-1>", self.handle_left_click) # Left Click
+        self.canvas.bind("<Button-2>", self.start_pan) # Middle Click
+        self.canvas.bind("<Button-3>", self.handle_right_click) # Right Click
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
 

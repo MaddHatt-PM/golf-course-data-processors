@@ -56,7 +56,6 @@ class AreaAsset:
 
         basepath = "SavedAreas/" + target.savename + "/"
 
-
         self._settings_path = Path(basepath + name + "_settings.txt")
         if self._settings_path.is_file():
             with self._settings_path.open('r') as file:
@@ -148,9 +147,6 @@ class AreaAsset:
         self._fill_img_filepath.unlink(missing_ok=True)
         self._mask_img_filepath.unlink(missing_ok=True)
 
-    def import_data(self):
-        pass
-
     def get_lat_long(self) -> tuple[list[float], list[float]]:
         lat, long = [], []
         for pt in self.stroke_data:
@@ -177,7 +173,7 @@ class AreaAsset:
         self.stroke_data.append(position)
         self.mark_area_to_be_redrawn()
 
-    def remove_point(self, id:int):
+    def remove_point(self, id:int=-1):
         self.stroke_data.pop(id)
         self.mark_area_to_be_redrawn()
 
