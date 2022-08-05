@@ -568,7 +568,7 @@ class AreaAsset:
         text += "Bounds: SE: {:.5f}, {:.5f}".format(bounds[2], bounds[3])
         self.drawer.label(text)
         
-        # Lower half
+        '''Actions - Lower Half'''
         self.drawer.vertical_divider()
         self.drawer.seperator()
         self.drawer.header(text="Actions")
@@ -586,9 +586,13 @@ class AreaAsset:
         cl = partial(print_height_data, self)
         self.drawer.button(text="Sample height data", command=cl)
 
-        # Controls
+        '''Controls (Move to view_main_window later)'''
         if self.app_settings.show_controls:
+            self.drawer.seperator()
             self.drawer.header(text='Controls')
+            self.drawer.label('Left Click: Add point to area')
+            self.drawer.label('Right Click: Remove last point from area')
+            self.drawer.label('Middle Hold: Pan Location')
 
 
 def create_area_file_with_data(name:str, target:ProjectAsset, data:str, app_settings) -> AreaAsset:
