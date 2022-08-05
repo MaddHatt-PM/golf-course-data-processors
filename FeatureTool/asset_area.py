@@ -16,6 +16,8 @@ from utilities import ColorSet, CoordMode, UIColors
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
 
+# from view_main_window import ViewSettings
+
 class Settings:
     '''
     TODO: Think of a nicer way to handle settings
@@ -34,7 +36,7 @@ class Settings:
 HEADER = "latitude,longitude,elevation,resolution\n"
 
 class AreaAsset:
-    def __init__(self, name:str, target:ProjectAsset) -> None:
+    def __init__(self, name:str, target:ProjectAsset, app_settings) -> None:
         self.name = name
         self.is_dirty = False
         self.is_fill_dirty = True
@@ -44,6 +46,7 @@ class AreaAsset:
         self.util = None
         self.is_active_area = False
         self.was_deleted = False
+        self.app_settings = app_settings
 
         self.possible_line = None
         self.is_fully_init = False
@@ -135,7 +138,6 @@ class AreaAsset:
         delete_msg += "To undo, restore the files back to the project and restart."
 
         if askyesno(title="Delete area?", message=delete_msg):
-            print('Goodbye World')
             self.was_deleted = True
             self.finish_delete()
             self.mark_area_to_be_redrawn()
@@ -282,7 +284,15 @@ class AreaAsset:
                 self.canvasID_fill = None
             return
 
-        if self.settings.get('do_draw_fill', False) is True:
+        
+        if self.app_settings.fill_only_active_area.get() is True:
+            if self.is_active_area:
+                self.__draw_fill()
+            else:
+                self.fill_img = None
+                self.image_pi = None
+
+        elif self.settings.get('do_draw_fill', False) is True:
             self.__draw_fill()
             
         self.__draw_perimeter()
@@ -566,8 +576,6 @@ class AreaAsset:
         self.drawer.vertical_divider()
         self.drawer.seperator()
         self.drawer.header(text="Actions")
-        save_button = self.drawer.button(text="Save", command=self.save_data_to_files)
-        save_button['state'] = 'normal' if self.is_dirty else 'disabled' 
         self.drawer.button(text="Clear Points", command=self.clear_points)
         self.drawer.button(text="Delete area", command=self.mark_as_deleted)
 
@@ -582,10 +590,14 @@ class AreaAsset:
         cl = partial(print_height_data, self)
         self.drawer.button(text="Sample height data", command=cl)
 
+        # Controls
+        if self.app_settings.show_controls:
+            self.drawer.header(text='Controls')
 
-def create_area_file_with_data(name:str, target:ProjectAsset, data:str) -> AreaAsset:
+
+def create_area_file_with_data(name:str, target:ProjectAsset, data:str, app_settings) -> AreaAsset:
     filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
     with filepath.open('w') as file:
         file.write(data)
 
-    return AreaAsset(name, target)
+    return AreaAsset(name, target, app_settings)
