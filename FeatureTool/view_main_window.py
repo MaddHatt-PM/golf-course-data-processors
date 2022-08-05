@@ -67,10 +67,14 @@ class MainWindow:
         self.image_raw:Image = Image.open(self.target.sateliteImg_path)
         self.image_pi:PhotoImage = None
 
-        self.height_raw:Image = Image.open(target.elevationImg_linear_path)
+        self.height_raw:Image = None
+        if target.elevationImg_linear_path.exists():
+            self.height_raw = Image.open(target.elevationImg_linear_path)
         self.height_pi:Image = None
 
-        self.contour_raw:Image = Image.open(target.contourImg_path)
+        self.contour_raw:Image = None
+        if target.contourImg_path.exists():
+            self.contour_raw = Image.open(target.contourImg_path)
         self.contour_pi:Image = None
 
         self.active_area = None
@@ -412,12 +416,34 @@ class MainWindow:
 
         '''Overlays UI'''
         if (self.toolmode == ToolMode.overlays):
-            drawer.labeled_toggle(boolVar=self.app_settings.height_map_toggle, label_text='Height Map')
-            drawer.labeled_slider(tkVar=self.app_settings.height_map_opacity, label_text='Opacity')
+            if self.height_raw is None:
+                drawer.label('Height map not generated')
+
+            toggle = drawer.labeled_toggle(boolVar=self.app_settings.height_map_toggle, label_text='Height Map', command=self.setup_inspector)
+            slider = drawer.labeled_slider(tkVar=self.app_settings.height_map_opacity, label_text='Opacity')
+
+            if self.height_raw is None:
+                toggle['state'] = tk.DISABLED
+                slider['state'] = tk.DISABLED
+
+            if self.app_settings.height_map_toggle.get() is False:
+                slider['state'] = tk.DISABLED
+
             drawer.seperator()
 
-            drawer.labeled_toggle(boolVar=self.app_settings.contour_map_toggle, label_text='Contour Map')
-            drawer.labeled_slider(tkVar=self.app_settings.contour_map_opacity, label_text='Opacity')
+            if self.contour_raw is None:
+                drawer.label('Contour map not generated')
+
+            toggle = drawer.labeled_toggle(boolVar=self.app_settings.contour_map_toggle, label_text='Contour Map', command=self.setup_inspector)
+            slider = drawer.labeled_slider(tkVar=self.app_settings.contour_map_opacity, label_text='Opacity')
+            
+            if self.contour_raw is None:
+                toggle['state'] = tk.DISABLED
+                slider['state'] = tk.DISABLED
+                
+            if self.app_settings.contour_map_toggle.get() is False:
+                slider['state'] = tk.DISABLED
+                
             drawer.seperator()
 
         '''Area UI'''
