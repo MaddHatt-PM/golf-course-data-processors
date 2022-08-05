@@ -212,6 +212,7 @@ class MainWindow:
     def handle_right_click(self, event:tk.Event):
         if self.active_area is not None:
             self.active_area.remove_point()
+            self.check_for_changes()
 
     def motion(self, event):
         self.mouse_pos = (event.x, event.y)
