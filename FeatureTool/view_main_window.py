@@ -478,6 +478,11 @@ class MainWindow:
             ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
     def rerender_base_image(self):
+        test_output = Path('Blended image')
+        output =  Image.blend(self.image_raw, self.height_raw, self.app_settings.height_map_opacity)
+        output = Image.blend(output, self.contour_raw, self.app_settings.contour_map_opacity)
+        
+
         self.resize_viewport(0)
 
     def resize_viewport(self, zoom_dir:int):
