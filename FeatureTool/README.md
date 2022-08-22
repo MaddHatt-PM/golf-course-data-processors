@@ -11,12 +11,11 @@ Progress Report 01 Changelist:
     [x] Files are now saved to their own directories to avoid overwrites
 
 Ideas:
-    [ ] Get rid of the API file and change it to json information and the service class inside of AreaAsset
+    [ ] Get rid of the API file and change it to dot file information and the service class inside of AreaAsset
     [ ] Display areas in the inspector via a drop down window
     [x] Implement api request tracking
     [x] Archive
     [x] Write area settings to json file
-    [ ] Handle API requests concurrently
     [x] Keep a single preview line and only keep 
 
 ---------------------------------------------------------------------
