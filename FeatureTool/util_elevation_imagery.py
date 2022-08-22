@@ -2,6 +2,7 @@ from math import pi
 from pathlib import Path
 import sys
 from time import sleep
+from tkinter.messagebox import showwarning
 from PIL import Image, ImageOps
 from matplotlib import pyplot as plt
 import numpy as np
@@ -20,6 +21,9 @@ def generate_imagery(target: ProjectAsset):
     with target.elevationCSV_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
+
+    if 'elevation' not in headers:
+        showwarning(title='error', message='No height data available')
 
     latID = headers.index('latitude')
     lonID = headers.index('longitude')

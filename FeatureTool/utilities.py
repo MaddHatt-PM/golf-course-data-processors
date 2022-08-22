@@ -68,6 +68,12 @@ class ToolMode(Enum):
     tree = 1,
     overlays = 2
 
+class CornerID_LatLong(Enum):
+    NW = 0,
+    NE = 1,
+    SE = 2,
+    SW = 3,
+    
 class SpaceTransformer:
     def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_resized:Image):
         self.canvasRef = canvasRef

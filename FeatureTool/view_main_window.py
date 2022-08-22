@@ -477,12 +477,20 @@ class MainWindow:
             self.tree_manager.draw_to_inspector(inspector, self.drawer)
             ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
+    def rerender_base_image(self):
+        test_output = Path('Blended image')
+        output =  Image.blend(self.image_raw, self.height_raw, self.app_settings.height_map_opacity)
+        output = Image.blend(output, self.contour_raw, self.app_settings.contour_map_opacity)
+        
+
+        self.resize_viewport(0)
+
     def resize_viewport(self, zoom_dir:int):
         zoom_increment = 0.25
         zoom_limits = (0.25, 2.50)
 
         if zoom_dir == 0:
-            self.zoom = 1.0
+            pass
         elif zoom_dir > 0:
             self.zoom += zoom_increment
             self.zoom = min(self.zoom, zoom_limits[1])
@@ -596,13 +604,6 @@ class MainWindow:
         view_mode_dropdown['state'] = 'readonly'
         view_mode_dropdown.current(0)
         view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
-
-
-        # view_mode = tk.Label(frame, text='Google Satelite', bg=UIColors.ui_bgm_col, fg='white')
-        # view_mode.pack(anchor='w')
-
-
-        
         
 
     def setup_blanks(self):
