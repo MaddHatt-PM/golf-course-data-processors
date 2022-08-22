@@ -1,17 +1,14 @@
-# Unity Directories with autogen files
-VisualizerTool/Library/
-VisualizerTool/Temp
-VisualizerTool/Logs
-VisualizerTool/obj/Debug
-
+# Python
+*/__pycache__
 *.pyc
-.ipynb_checkpoints
+*/.ipynb_checkpoints
 *-checkpoint.ipynb
-FeatureTool/__pycache__/GoogleMapsAPI.cpython-39.pyc
-FeatureTool/AppAssets/prefs.windowprefs
 
-FeatureTool/AppAssets/Archives/
+# VS Code
+*/.vscode
+
+# Terrain Grabber
 .env
+prefs.windowprefs
 *_fill.png
-.vscode
-FeatureTool/.vscode
+FeatureTool/AppAssets/Archives/
