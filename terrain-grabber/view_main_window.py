@@ -225,9 +225,6 @@ class MainWindow:
         if self.active_area is not None:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
 
-        # Move around the oval underneath the cursor
-        self.canvas.coords(self.id_mouse_oval, self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True) )
-
     def update_status_bar_text(self, event):
         spacer = '        '
 
@@ -545,7 +542,6 @@ class MainWindow:
 
 
         self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
-        self.id_mouse_oval = self.canvas.create_oval(self.canvasUtil.point_to_size_coords(self.mouse_pos, addOffset=True), fill="blue")
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
