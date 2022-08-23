@@ -20,8 +20,6 @@ from asset_project import ProjectAsset
 
 from google_maps_api import SatelliteInterface as gmap_si
 from geographiclib.geodesic import Geodesic
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
 
 
 class service:

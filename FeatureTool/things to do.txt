@@ -1,6 +1,0 @@
-units in feet
-coordinate system with distance
-output:
-    image
-    height
-    image+height
