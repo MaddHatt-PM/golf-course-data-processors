@@ -645,4 +645,4 @@ class MainWindow:
         Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
         Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
 
-        return self.root
+        self.root.mainloop()
