@@ -3,23 +3,24 @@ Ideas:
     Concurrently download: https://youtu.be/GpqAQxH1Afc
 '''
 
-from copy import copy
 import json
 import math
-import sys
-from time import sleep
 import cv2
 import numpy as np
 import requests
 import api_usage_tracker
 import api_keys as keys
-from typing import Tuple
+from copy import copy
+from time import sleep
 from pathlib import Path
-# from asset_area import AreaAsset
 from asset_project import ProjectAsset
+# from asset_area import AreaAsset
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 from google_maps_api import SatelliteInterface as gmap_si
 from geographiclib.geodesic import Geodesic
+from util_elevation_imagery import generate_imagery
 
 
 class service:
@@ -42,7 +43,7 @@ def pil_to_cv(pil_image):
 
 # -------------------------------------------------------------- #
 # --- Imagery functions ---------------------------------------- #
-def __via_google_satelite(target:ProjectAsset, p0:Tuple[float, float], p1:Tuple[float, float]) -> Path:
+def __via_google_satelite(target:ProjectAsset, p0:tuple[float, float], p1:tuple[float, float]) -> Path:
     grabber = gmap_si(keys.google_maps())
     result = grabber.get_maps_image(p0, p1, zoom=19)
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
@@ -68,6 +69,22 @@ def download_imagery(target:ProjectAsset, service:str) -> Path:
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
+def download_elevation_for_location(target:ProjectAsset, service:services) -> Path:
+    coords = target.coordinates()
+    NW,SE = coords[0], coords[1]
+
+    lats =  [NW[0], SE[1], SE[1], NW[0]]
+    longs = [NW[0], NW[0], SE[1], SE[1]]
+    points = get_points(*coords, dist=5, boundry_pts=None)
+    
+    return __via_google_elevation(target, points, target.elevationCSV_path)
+
+def download_elevation_for_area(target:ProjectAsset, area:"AreaAsset", service: services) -> Path:
+    pass
+
+def download_elevation_for_points(target:ProjectAsset) -> Path:
+    pass
+
 def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float]], service:services, output_path:Path=None, sample_inside_polygon=True) -> Path:
     if sample_inside_polygon is True:
         coords = target.coordinates()
@@ -120,9 +137,9 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
     url = url.removesuffix(sep) + suffix
     urls.append(url)
 
-    if (input("{} requests for {} points will be used. Type 'y' to confirm: ".format(len(urls), len(points))) != 'y'):
-        print("request denied")
-        return
+    # if (input("{} requests for {} points will be used. Type 'y' to confirm: ".format(len(urls), len(points))) != 'y'):
+    #     print("request denied")
+    #     return
 
     output = "latitude,longitude,elevation,resolution\n"
     if target is not None:
@@ -159,6 +176,8 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
         outfile.write(output)
 
     api_usage_tracker.add_api_count(services.google_elevation, len(urls))
+    generate_imagery(target)
+
     return output_path
 
 def get_points(p0, p1, dist=5, boundry_pts=None):
@@ -195,3 +214,13 @@ def get_points(p0, p1, dist=5, boundry_pts=None):
                     output_pts.append(pt)
 
     return output_pts
+
+if __name__ == '__main__':
+    target = ProjectAsset()
+
+    NW = (35.61817067008077, -82.5717237433493)
+    SE = (35.61495159300222, -82.56885232693209)
+
+    lats =  [NW[0], SE[1], SE[1], NW[0]]
+    longs = [NW[0], NW[0], SE[1], SE[1]]
+    points = get_points(*coords, dist=5, boundry_pts=(lats,longs))

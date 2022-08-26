@@ -12,6 +12,7 @@ import api_keys as keys
 from asset_area import ProjectAsset
 
 def generate_imagery(target: ProjectAsset):
+    print
     with target.coordinates_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
@@ -57,7 +58,7 @@ def generate_imagery(target: ProjectAsset):
         img.save(img_path)
 
     '''Save out data point distribution'''
-    print(Image.open(target.sateliteImg_path).info['dpi'])
+    # print(Image.open(target.sateliteImg_path).info['dpi'])
 
     height = NW[0] - SE[0]
     width = SE[1] - NW[1]

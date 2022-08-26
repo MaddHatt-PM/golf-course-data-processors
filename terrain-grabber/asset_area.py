@@ -7,7 +7,6 @@ from tkinter import ttk
 from tkinter.messagebox import askyesno
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
-from data_downloader import download_elevation, get_points, services
 from utilities import SpaceTransformer
 from ui_inspector_drawer import inspector_drawers
 from asset_project import ProjectAsset
@@ -15,8 +14,6 @@ from utilities import ColorSet, CoordMode, UIColors
 
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
-
-# from view_main_window import ViewSettings
 
 class Settings:
     '''
@@ -577,14 +574,13 @@ class AreaAsset:
 
         self.drawer.seperator()
         
-        self.target.coordinates
-        def print_height_data(self:AreaAsset, *args, **kwargs):
-            p0 = self.target.coordinates()[0]
-            p1 = self.target.coordinates()[1]
-            download_elevation(self.target, self.get_lat_long(), services.google_elevation)
+        # def print_height_data(self:AreaAsset, *args, **kwargs):
+        #     p0 = self.target.coordinates()[0]
+        #     p1 = self.target.coordinates()[1]
+        #     download_elevation(self.target, self.get_lat_long(), services.google_elevation)
 
-        cl = partial(print_height_data, self)
-        self.drawer.button(text="Sample height data", command=cl)
+        # cl = partial(print_height_data, self)
+        # self.drawer.button(text="Sample height data", command=cl)
 
         '''Controls (Move to view_main_window later)'''
         if self.app_settings.show_controls:

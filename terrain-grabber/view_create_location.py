@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter.ttk import Button, Entry, Frame, Label
 from utilities import restart_with_new_target
-from data_downloader import download_imagery, services
+from data_downloader import download_imagery, download_elevation, services, download_elevation_for_location
 
 from asset_project import ProjectAsset
 
@@ -63,15 +63,15 @@ class CreateLocationView:
             return
 
         try:
-            eval(self.p0.get())
-            eval(self.p1.get())
+            p0 = eval(self.p0.get())
+            p1 = eval(self.p1.get())
         except:
             self.error_msg.set("Error: Invalid points")
-            print
             return
 
-        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
-        print(str(newArea.coordinates()))
+        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=p0, p1=p1)
+        
         download_imagery(target=newArea, service=services.google_satelite)
+        download_elevation_for_location(newArea, services.google_elevation)
         
         restart_with_new_target(self.popup, newArea.savename)

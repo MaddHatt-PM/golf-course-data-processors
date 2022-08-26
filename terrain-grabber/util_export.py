@@ -80,8 +80,10 @@ def export_data(target:ProjectAsset, testMode=False, corner:CornerID_LatLong=SW,
     with corners_path.open('w') as file:
         file.write(corners_str)
 
+    '''Elevation raw'''
+    copyfiles.append((target.elevationCSV_path, Path( base_elev_dir / "ElevationPoints_Raw.csv")))
+
     '''Elevation conversion'''
-    elev_raw_csv = Path( base_elev_dir / "ElevationPoints_Raw.csv")
 
     '''Areas'''
     base_areas_dir = outputdir / 'Areas'

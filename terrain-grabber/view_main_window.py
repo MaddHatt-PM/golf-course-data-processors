@@ -16,6 +16,7 @@ import os
 import random
 import string
 import time
+import sys
 import tkinter as tk
 from tkinter import BooleanVar, DoubleVar, StringVar, Variable, ttk
 from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
@@ -65,29 +66,30 @@ class MainWindow:
         self.canvas:Canvas = None
         self.container = None
         self.image_raw:Image = Image.open(self.target.sateliteImg_path)
+        self.image_base:Image = self.image_raw
         self.image_pi:PhotoImage = None
 
         self.height_raw:Image = None
         if target.elevationImg_linear_path.exists():
-            self.height_raw = Image.open(target.elevationImg_linear_path)
+            self.height_raw = Image.open(target.elevationImg_linear_path).convert('RGBA')
         self.height_pi:Image = None
 
         self.contour_raw:Image = None
         if target.contourImg_path.exists():
-            self.contour_raw = Image.open(target.contourImg_path)
+            self.contour_raw = Image.open(target.contourImg_path).convert('RGBA')
         self.contour_pi:Image = None
 
         self.active_area = None
         self.is_dirty = False
 
-        self.app_settings = ViewSettings()
+        self.view_settings = ViewSettings()
 
         filenames = os.listdir(target.basePath)
         self.areas:list[AreaAsset] = []
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
-                self.areas.append(AreaAsset(area_name, self.target, self.app_settings))
+                self.areas.append(AreaAsset(area_name, self.target, self.view_settings))
         self.area_names:list[str] = [x.name for x in self.areas]
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
@@ -103,8 +105,8 @@ class MainWindow:
         def redraw_inspector_on_change(*args):
             self.active_area.draw_to_inspector
 
-        self.app_settings.fill_only_active_area.trace_add('write', redraw_canvas_on_change)
-        self.app_settings.show_controls.trace_add('write', redraw_inspector_on_change)
+        self.view_settings.fill_only_active_area.trace_add('write', redraw_canvas_on_change)
+        self.view_settings.show_controls.trace_add('write', redraw_inspector_on_change)
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -181,9 +183,9 @@ class MainWindow:
                 name += random.choice(string.ascii_letters)
 
         if (kwargs.get('data', None) is not None):
-            area = create_area_file_with_data(name, self.target, kwargs.get('data'), self.app_settings)
+            area = create_area_file_with_data(name, self.target, kwargs.get('data'), self.view_settings)
         else:
-            area = AreaAsset(name, self.target)
+            area = AreaAsset(name, self.target, self.view_settings)
 
         area.save_data_to_files()
         area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
@@ -275,6 +277,7 @@ class MainWindow:
             prefs.write(self.root.state())
 
         self.root.destroy()
+        sys.exit(0)
 
     # -------------------------------------------------------------- #
     # --- Canvas Binding ------------------------------------------- #
@@ -362,7 +365,7 @@ class MainWindow:
         '''VIEW menu'''
         viewmenu = Menu(menubar, tearoff=0)
 
-        for var in self.app_settings.__dict__.values():
+        for var in self.view_settings.__dict__.values():
             if isinstance(var, Variable):
                 viewmenu.add_checkbutton(label=var, variable=var)
 
@@ -416,14 +419,14 @@ class MainWindow:
             if self.height_raw is None:
                 drawer.label('Height map not generated')
 
-            toggle = drawer.labeled_toggle(boolVar=self.app_settings.height_map_toggle, label_text='Height Map', command=self.setup_inspector)
-            slider = drawer.labeled_slider(tkVar=self.app_settings.height_map_opacity, label_text='Opacity')
+            toggle = drawer.labeled_toggle(boolVar=self.view_settings.height_map_toggle, label_text='Height Map', command=self.setup_inspector)
+            slider = drawer.labeled_slider(tkVar=self.view_settings.height_map_opacity, label_text='Opacity', from_=0.0, to=99.0)
 
             if self.height_raw is None:
                 toggle['state'] = tk.DISABLED
                 slider['state'] = tk.DISABLED
 
-            if self.app_settings.height_map_toggle.get() is False:
+            if self.view_settings.height_map_toggle.get() is False:
                 slider['state'] = tk.DISABLED
 
             drawer.seperator()
@@ -431,43 +434,51 @@ class MainWindow:
             if self.contour_raw is None:
                 drawer.label('Contour map not generated')
 
-            toggle = drawer.labeled_toggle(boolVar=self.app_settings.contour_map_toggle, label_text='Contour Map', command=self.setup_inspector)
-            slider = drawer.labeled_slider(tkVar=self.app_settings.contour_map_opacity, label_text='Opacity')
+            toggle = drawer.labeled_toggle(boolVar=self.view_settings.contour_map_toggle, label_text='Contour Map', command=self.setup_inspector)
+            slider = drawer.labeled_slider(tkVar=self.view_settings.contour_map_opacity, label_text='Opacity', from_=0.0, to=99.0)
             
             if self.contour_raw is None:
                 toggle['state'] = tk.DISABLED
                 slider['state'] = tk.DISABLED
                 
-            if self.app_settings.contour_map_toggle.get() is False:
+            if self.view_settings.contour_map_toggle.get() is False:
                 slider['state'] = tk.DISABLED
                 
             drawer.seperator()
 
         '''Area UI'''
         if (self.toolmode == ToolMode.area):
+
             area_selector_frame = Frame(inspector, padx=0, pady=0)
-            tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
-
-            area_selector = tk.StringVar(self.root)
-            available_areas = len(self.area_names) != 0
-            
-            area_selector.set(self.area_names[0] if available_areas is True else "No areas")
-            dropdown_selected = self.active_area.name if available_areas is True else "No areas"
-            dropdown = ttk.OptionMenu(area_selector_frame, area_selector, dropdown_selected, *self.area_names, command=self.select_area)
-            dropdown.grid(row=0, column=1, sticky='ew')
-            area_selector_frame.grid_columnconfigure(1, weight=5)
-            self.area_selector = dropdown
-
-            if available_areas:
+            if len(self.areas) == 0:
                 closure = partial(create_area_view, self, self.areas, False, self.root)
-                add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
-                add_area.grid(row=0, column=3)
-                
+                add_area = ttk.Button(area_selector_frame, text='Create new area', command=closure)
+                add_area.pack()
                 area_selector_frame.pack(fill="x", anchor="n", expand=False)
-                ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+            
+            else:
+                tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
-                if self.active_area is not None:
-                    self.active_area.draw_to_inspector(self.drawer)
+                area_selector = tk.StringVar(self.root)
+                available_areas = len(self.area_names) != 0
+                
+                area_selector.set(self.area_names[0] if available_areas is True else "No areas")
+                dropdown_selected = self.active_area.name if available_areas is True else "No areas"
+                dropdown = ttk.OptionMenu(area_selector_frame, area_selector, dropdown_selected, *self.area_names, command=self.select_area)
+                dropdown.grid(row=0, column=1, sticky='ew')
+                area_selector_frame.grid_columnconfigure(1, weight=5)
+                self.area_selector = dropdown
+
+                if available_areas:
+                    closure = partial(create_area_view, self, self.areas, False, self.root)
+                    add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
+                    add_area.grid(row=0, column=3)
+                    
+                    area_selector_frame.pack(fill="x", anchor="n", expand=False)
+                    ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+
+                    if self.active_area is not None:
+                        self.active_area.draw_to_inspector(self.drawer)
 
         '''Tree UI'''
         if (self.toolmode == ToolMode.tree):
@@ -475,11 +486,13 @@ class MainWindow:
             ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
     def rerender_base_image(self):
-        test_output = Path('Blended image')
-        output =  Image.blend(self.image_raw, self.height_raw, self.app_settings.height_map_opacity)
-        output = Image.blend(output, self.contour_raw, self.app_settings.contour_map_opacity)
+        self.image_base = self.image_raw
         
-
+        if self.view_settings.height_map_toggle.get() is True:
+            self.image_base = Image.blend(self.image_base, self.height_raw, self.view_settings.height_map_opacity.get() / 100.0)
+        if self.view_settings.contour_map_toggle.get() is True:
+            self.image_base = Image.blend(self.image_base, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
+        
         self.resize_viewport(0)
 
     def resize_viewport(self, zoom_dir:int):
@@ -496,11 +509,11 @@ class MainWindow:
             self.zoom = max(self.zoom, zoom_limits[0])
         self.zoom_percentage_var.set('{}%'.format(round(self.zoom * 100)))
 
-        width, height = self.zoom * self.image_raw.width, self.zoom * self.image_raw.height
+        width, height = self.zoom * self.image_base.width, self.zoom * self.image_base.height
         width, height = int(width), int(height)
         self.img_size = width, height
 
-        self.image_resized = self.image_raw.resize((width, height), resample=Image.BICUBIC)
+        self.image_resized = self.image_base.resize((width, height), resample=Image.BICUBIC)
         self.canvasUtil.image_resized = self.image_resized
 
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
@@ -515,10 +528,10 @@ class MainWindow:
         viewport.grid(row=0, column=0, sticky="nswe")
 
         
-        width, height = self.zoom * self.image_raw.width, self.zoom * self.image_raw.height
+        width, height = self.zoom * self.image_base.width, self.zoom * self.image_base.height
         self.img_size = int(width), int(height)
 
-        self.image_resized = self.image_raw.resize(self.img_size, resample=Image.BICUBIC)
+        self.image_resized = self.image_base.resize(self.img_size, resample=Image.BICUBIC)
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
 
         # Keep image references to avoid Garbage Collector
@@ -528,6 +541,7 @@ class MainWindow:
         self.canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
+
         self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
         self.canvas.lower(self.image_canvasID)
 
@@ -536,6 +550,14 @@ class MainWindow:
         self.canvas.bind("<Button-3>", self.handle_right_click) # Right Click
         self.canvas.bind("<B2-Motion>", self.pan)
         self.canvas.bind("<Motion>", self.motion)
+
+        def tkVar_to_rerender_base(*args, **kwargs):
+                self.rerender_base_image()
+
+        self.view_settings.contour_map_opacity.trace_add('write', tkVar_to_rerender_base)
+        self.view_settings.contour_map_toggle.trace_add('write', tkVar_to_rerender_base)
+        self.view_settings.height_map_opacity.trace_add('write', tkVar_to_rerender_base)
+        self.view_settings.height_map_toggle.trace_add('write', tkVar_to_rerender_base)
 
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
@@ -549,7 +571,8 @@ class MainWindow:
 
     def select_area(self, choice):
         self.drawer.clear_inspector()
-        self.active_area.deselect()
+        if self.active_area is not None:
+            self.active_area.deselect()
 
         for area in self.areas:
             if area.name == choice:
@@ -585,21 +608,21 @@ class MainWindow:
 
         zoom_out.pack(side=tk.LEFT, padx=4)
         zoom_percentage.pack(side=tk.LEFT)
-        zoom_in.pack(side=tk.LEFT, padx=4)
+        zoom_in.pack(side=tk.LEFT, padx=0)
 
-        seperator = tk.Frame(frame, bg='#424242', width=1, bd=0)
-        seperator.pack(anchor='w', side=tk.LEFT, fill='y')
+        # seperator = tk.Frame(frame, bg='#424242', width=1, bd=0)
+        # seperator.pack(anchor='w', side=tk.LEFT, fill='y')
 
         # View mode selector
-        view_modes = {}
-        view_modes['Google Satelite'] = None
-        view_modes['Google Elevation'] = None
+        # view_modes = {}
+        # view_modes['Google Satelite'] = None
+        # view_modes['Google Elevation'] = None
 
-        view_mode_dropdown = ttk.Combobox(frame)
-        view_mode_dropdown['values'] = list(view_modes.keys())
-        view_mode_dropdown['state'] = 'readonly'
-        view_mode_dropdown.current(0)
-        view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
+        # view_mode_dropdown = ttk.Combobox(frame)
+        # view_mode_dropdown['values'] = list(view_modes.keys())
+        # view_mode_dropdown['state'] = 'readonly'
+        # view_mode_dropdown.current(0)
+        # view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
         
 
     def setup_blanks(self):
