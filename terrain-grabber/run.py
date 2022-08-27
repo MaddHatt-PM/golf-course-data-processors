@@ -22,6 +22,9 @@ from asset_project import ProjectAsset
 
 import view_welcome
 
+# '''Ensure that'''
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 '''Attempt to load dot file'''
 apis = read_env()
 if len(apis) == 0:
