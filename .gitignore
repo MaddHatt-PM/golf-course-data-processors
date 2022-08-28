@@ -11,6 +11,7 @@
 .env
 prefs.windowprefs
 *_fill.png
+*_mask.png
 api_tracker.json
 */AppAssets/Archives
 export-tests
