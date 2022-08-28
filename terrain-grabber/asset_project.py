@@ -18,10 +18,12 @@ class ProjectAsset:
         self.coordinates_path:Path = Path(basePath + "Coordinates.csv")
         self.elevationImg_nearest_path:Path = Path(basePath + "Elevation_Nearest.png")
         self.elevationImg_linear_path:Path = Path(basePath + "Elevation_Linear.png")
-        self.datapointImg_path:Path = Path(basePath + "Datapoints.png")
+        self.sampleDistributionImg_path:Path = Path(basePath + "Sample_Distribution.png")
         self.contourImg_path:Path = Path(basePath + "Contour.png")
         self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
         self.treesCSV_path:Path = Path(basePath + "Trees.csv")
+
+        self.offset_path:Path = Path(basePath + "offset.csv")
 
         # If provided, save out coordinates data
         if p0 != None and p1 != None:

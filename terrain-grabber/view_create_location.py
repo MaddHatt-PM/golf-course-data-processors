@@ -75,3 +75,4 @@ class CreateLocationView:
         download_elevation_for_location(newArea, services.google_elevation)
         
         restart_with_new_target(self.popup, newArea.savename)
+        self.popup.destroy()

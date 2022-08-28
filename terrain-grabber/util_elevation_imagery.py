@@ -11,8 +11,7 @@ import matplotlib
 import api_keys as keys
 from asset_area import ProjectAsset
 
-def generate_imagery(target: ProjectAsset):
-    print
+def generate_imagery(target: ProjectAsset, levels:int=50):
     with target.coordinates_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
@@ -57,7 +56,7 @@ def generate_imagery(target: ProjectAsset):
         img = img.resize(Image.open(target.sateliteImg_path).size)
         img.save(img_path)
 
-    '''Save out data point distribution'''
+    '''Plot, crop, and save out sample distribution'''
     # print(Image.open(target.sateliteImg_path).info['dpi'])
 
     height = NW[0] - SE[0]
@@ -65,14 +64,24 @@ def generate_imagery(target: ProjectAsset):
     multiplier = 10000
     
     plt.figure(figsize= (width * multiplier, height * multiplier))
-    plt.plot(x, y, 'r.', ms=1)
+    plt.plot(x, y, 'r.')
     plt.axis('off')
-    plt.savefig(target.datapointImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
+    plt.savefig(target.sampleDistributionImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
     plt.clf()
 
-    resize_to_satelite(target.datapointImg_path)
+    img = Image.open(target.sampleDistributionImg_path)
+    img.crop(img.getbbox())
+    img.save(target.sampleDistributionImg_path)
+
+    resize_to_satelite(target.sampleDistributionImg_path)
+    print("Point distribution generated")
 
     '''Save out gradient maps in all three interpolation methods'''
+    grad_configs = [
+        ('nearest', target.elevationImg_nearest_path),
+        ('linear', target.elevationImg_linear_path),
+    ]
+
     def plot_gradmap(config:tuple[str, str]):
         interpolation, filepath = config
         height_data = griddata(xy, z, (grid_x, grid_y), method=interpolation)
@@ -93,24 +102,15 @@ def generate_imagery(target: ProjectAsset):
         fig_img.save(filepath)
 
         resize_to_satelite(filepath)
-
-    grad_configs = [
-        ('nearest', target.elevationImg_nearest_path),
-        ('linear', target.elevationImg_linear_path),
-    ]
+        print("{} interpolated elevation gradient map generated".format(config[0].title()))
 
     for config in grad_configs:
         plot_gradmap(config)
 
     '''Save out contour map'''
-    LEVELS = 50
     plt.clf()
-    plt.tricontour(x, y, z, levels=LEVELS, cmap='inferno')
+    plt.tricontour(x, y, z, levels=levels, cmap='inferno')
     plt.axis('off')
     plt.savefig(target.contourImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
     resize_to_satelite(target.contourImg_path)
-
-
-if __name__ == '__main__':
-    target = ProjectAsset('AshevilleClub')
-    generate_imagery(target)
+    print("Tricontour map generated")

@@ -19,6 +19,7 @@ def show_welcome():
     tk.Label(popup, text='Open a recent location', fg="#616161").pack(padx=100)
 
     directories = os.listdir('SavedAreas/')
+    
     for dir in directories:
         closure = partial(restart_with_new_target, popup, dir)
         ttk.Button(popup, text=dir, command=closure).pack(ipadx=32)

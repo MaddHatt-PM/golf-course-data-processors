@@ -43,10 +43,13 @@ class ViewSettings():
         self.fill_only_active_area = BooleanVar(value=True, name='Fill only active area')
 
         self.height_map_toggle = BooleanVar(value=False, name='Height Map Toggle')
-        self.height_map_opacity = DoubleVar(value=False, name='Contour Map Opacity')
+        self.height_map_opacity = DoubleVar(value=False, name='Height Map Opacity')
         
         self.contour_map_toggle = BooleanVar(value=False, name='Contour Map Toggle')
-        self.contour_map_opacity = DoubleVar(value=False, name='Height Map Opacity')
+        self.contour_map_opacity = DoubleVar(value=False, name='Contour Map Opacity')
+        
+        self.sampleDist_map_toggle = BooleanVar(value=False, name='Sample Dist Map Toggle')
+        self.sampleDist_map_opacity = DoubleVar(value=False, name='Sample Dist Map Opacity')
 
 class MainWindow:
     def __init__(self, target:ProjectAsset):
@@ -65,19 +68,21 @@ class MainWindow:
 
         self.canvas:Canvas = None
         self.container = None
-        self.image_raw:Image = Image.open(self.target.sateliteImg_path)
+        self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
         self.image_base:Image = self.image_raw
         self.image_pi:PhotoImage = None
 
         self.height_raw:Image = None
         if target.elevationImg_linear_path.exists():
             self.height_raw = Image.open(target.elevationImg_linear_path).convert('RGBA')
-        self.height_pi:Image = None
 
         self.contour_raw:Image = None
         if target.contourImg_path.exists():
             self.contour_raw = Image.open(target.contourImg_path).convert('RGBA')
-        self.contour_pi:Image = None
+
+        self.sample_dist_raw:Image = None
+        if target.sampleDistributionImg_path.exists():
+            self.sample_dist_raw = Image.open(target.sampleDistributionImg_path).convert('RGBA')
 
         self.active_area = None
         self.is_dirty = False
@@ -261,6 +266,7 @@ class MainWindow:
             area._save_settings()
         
         self.is_dirty = False
+        self.root.title(self.target.savename + ' - Terrain Viewer')
 
     def on_close(self):
         if self.is_dirty:
@@ -276,7 +282,10 @@ class MainWindow:
             prefs.write("\n")
             prefs.write(self.root.state())
 
+        print('root.destroy about to be called')
         self.root.destroy()
+
+        print('sys.exit about to be called')
         sys.exit(0)
 
     # -------------------------------------------------------------- #
@@ -416,6 +425,7 @@ class MainWindow:
 
         '''Overlays UI'''
         if (self.toolmode == ToolMode.overlays):
+            '''Height Controls'''
             if self.height_raw is None:
                 drawer.label('Height map not generated')
 
@@ -431,6 +441,7 @@ class MainWindow:
 
             drawer.seperator()
 
+            '''Contour Controls'''
             if self.contour_raw is None:
                 drawer.label('Contour map not generated')
 
@@ -442,6 +453,22 @@ class MainWindow:
                 slider['state'] = tk.DISABLED
                 
             if self.view_settings.contour_map_toggle.get() is False:
+                slider['state'] = tk.DISABLED
+                
+            drawer.seperator()
+
+            '''Sample Distribution Controls'''
+            if self.contour_raw is None:
+                drawer.label('Sample Distribution map not generated')
+
+            toggle = drawer.labeled_toggle(boolVar=self.view_settings.sampleDist_map_toggle, label_text='Sample Distribution Map', command=self.setup_inspector)
+            slider = drawer.labeled_slider(tkVar=self.view_settings.sampleDist_map_opacity, label_text='Opacity', from_=0.0, to=99.0)
+            
+            if self.sample_dist_raw is None:
+                toggle['state'] = tk.DISABLED
+                slider['state'] = tk.DISABLED
+                
+            if self.view_settings.sampleDist_map_toggle.get() is False:
                 slider['state'] = tk.DISABLED
                 
             drawer.seperator()
@@ -488,10 +515,12 @@ class MainWindow:
     def rerender_base_image(self):
         self.image_base = self.image_raw
         
-        if self.view_settings.height_map_toggle.get() is True:
+        if self.view_settings.height_map_toggle.get() is True and self.height_raw is not None:
             self.image_base = Image.blend(self.image_base, self.height_raw, self.view_settings.height_map_opacity.get() / 100.0)
-        if self.view_settings.contour_map_toggle.get() is True:
+        if self.view_settings.contour_map_toggle.get() is True and self.contour_raw is not None:
             self.image_base = Image.blend(self.image_base, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
+        if self.view_settings.sampleDist_map_toggle.get() is True and self.sample_dist_raw is not None:
+            self.image_base = Image.blend(self.image_base, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
         
         self.resize_viewport(0)
 
@@ -558,6 +587,8 @@ class MainWindow:
         self.view_settings.contour_map_toggle.trace_add('write', tkVar_to_rerender_base)
         self.view_settings.height_map_opacity.trace_add('write', tkVar_to_rerender_base)
         self.view_settings.height_map_toggle.trace_add('write', tkVar_to_rerender_base)
+        self.view_settings.sampleDist_map_opacity.trace_add('write', tkVar_to_rerender_base)
+        self.view_settings.sampleDist_map_toggle.trace_add('write', tkVar_to_rerender_base)
 
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)

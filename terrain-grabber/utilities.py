@@ -1,4 +1,4 @@
-import os
+import os, sys
 from enum import Enum
 from tkinter import Canvas, Image, Tk
 from geographiclib.geodesic import Geodesic
@@ -68,11 +68,17 @@ class ToolMode(Enum):
     tree = 1,
     overlays = 2
 
-class CornerID_LatLong(Enum):
+class CornerID(Enum):
     NW = 0,
     NE = 1,
     SE = 2,
     SW = 3,
+
+def CornerID_to_name(corner: CornerID):
+    if corner is CornerID.NW: return 'NW'
+    if corner is CornerID.NE: return 'NE'
+    if corner is CornerID.SE: return 'SE'
+    if corner is CornerID.SW: return 'SW'
     
 class SpaceTransformer:
     def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_resized:Image):
@@ -173,6 +179,7 @@ class SpaceTransformer:
 def restart_with_new_target(root:Tk, area_name:str):
     root.destroy()
     os.system("py run.py " + area_name)
+    sys.exit()
 
 def clamp01(value) -> float:
     return max(min(value, 1.0), 0.0)

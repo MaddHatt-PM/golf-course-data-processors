@@ -20,6 +20,7 @@ from shapely.geometry.polygon import Polygon
 
 from google_maps_api import SatelliteInterface as gmap_si
 from geographiclib.geodesic import Geodesic
+from geographiclib.geodesicline import GeodesicLine
 from util_elevation_imagery import generate_imagery
 
 
@@ -58,25 +59,21 @@ def __via_google_satelite(target:ProjectAsset, p0:tuple[float, float], p1:tuple[
 
 def download_imagery(target:ProjectAsset, service:str) -> Path:
     '''Pull data from specified service'''
-
-    # Unpack coordinates for readability
-    coords = target.coordinates()
-    p0 = coords[0]
-    p1 = coords[1]
-
     if service == services.google_satelite:
-        return __via_google_satelite(target, p0, p1)
+        return __via_google_satelite(target, *target.coordinates())
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def download_elevation_for_location(target:ProjectAsset, service:services) -> Path:
+def download_elevation_for_location(target:ProjectAsset, service:services, sample_dist=5) -> Path:
+    '''
+    Sample the entire location with points sample_dist meters apart.
+    '''
     coords = target.coordinates()
     NW,SE = coords[0], coords[1]
 
-    lats =  [NW[0], SE[1], SE[1], NW[0]]
-    longs = [NW[0], NW[0], SE[1], SE[1]]
-    points = get_points(*coords, dist=5, boundry_pts=None)
-    
+    # lats =  [NW[0], SE[1], SE[1], NW[0]]
+    # longs = [NW[0], NW[0], SE[1], SE[1]]
+    points = get_points(*coords, dist=sample_dist, boundry_pts=None)
     return __via_google_elevation(target, points, target.elevationCSV_path)
 
 def download_elevation_for_area(target:ProjectAsset, area:"AreaAsset", service: services) -> Path:
@@ -85,7 +82,12 @@ def download_elevation_for_area(target:ProjectAsset, area:"AreaAsset", service: 
 def download_elevation_for_points(target:ProjectAsset) -> Path:
     pass
 
-def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float]], service:services, output_path:Path=None, sample_inside_polygon=True) -> Path:
+def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float]], service:services, sample_dist=5, output_path:Path=None, sample_inside_polygon=True) -> Path:
+    '''
+    Remove in the future as there's starting to be too many parameters.
+    Instead use download_elevation_for_location(), download_elevation_for_area(), download_elevation_for_points()
+    as they are more specialized.
+    '''
     if sample_inside_polygon is True:
         coords = target.coordinates()
         points = get_points(*coords, dist=5, boundry_pts=points)
@@ -116,7 +118,6 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
     request_location_limit = 250
     url = prefix
     urls = []
-    print(points)
 
     # Compile the points in a batch call
     index = 0
@@ -136,12 +137,13 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
         index += 1
     url = url.removesuffix(sep) + suffix
     urls.append(url)
+    print(len(points))
 
     # if (input("{} requests for {} points will be used. Type 'y' to confirm: ".format(len(urls), len(points))) != 'y'):
     #     print("request denied")
     #     return
 
-    output = "latitude,longitude,elevation,resolution\n"
+    output = "latitude,longitude,elevation,resolution,offset-x,offset-y\n"
     if target is not None:
         output_path = target.elevationCSV_path 
 
@@ -154,20 +156,26 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
             print("Joining files")
 
     count = 0
+    pt_id = 0
     for url in urls:
         response = requests.request("GET", url)
-        print('[{}] Retrieved results: {}'.format(count, response))
+        print('[{}] Retrieved results: {}'.format(count, response), end=" ")
         data = json.loads(response.text)["results"]
+        print('{} points recieved'.format(len(data)))
 
         for item in data:
-            output += "{},{},{},{}\n".format(
+            output += "{},{},{},{},{},{}\n".format(
                 item["location"]['lat'],
                 item["location"]['lng'],
                 item["elevation"],
-                item["resolution"])
+                item["resolution"],
+                points[pt_id][-2], # Horizontal Offset
+                points[pt_id][-1], # Vertical Offset
+                )
+            pt_id += 1
         
         print('Sleeping...')
-        sleep(0.75)
+        sleep(0.5)
         count += 1
 
     print('Completed elevation requests')
@@ -175,21 +183,23 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
     with output_path.open(mode='w') as outfile:
         outfile.write(output)
 
-    api_usage_tracker.add_api_count(services.google_elevation, len(urls))
+    print("Generating imagery (may take some time)...")
     generate_imagery(target)
+    print("Completed imagery generation")
 
+    api_usage_tracker.add_api_count(services.google_elevation, len(urls))
     return output_path
 
 def get_points(p0, p1, dist=5, boundry_pts=None):
     geod:Geodesic = Geodesic.WGS84
-    lat_line = geod.InverseLine( *p0, p0[0], p1[1] )
+    lat_line:GeodesicLine = geod.InverseLine( *p0, p0[0], p1[1] )
     lat_line_pts = []
+
     count = int(math.ceil(lat_line.s13 / dist))
     for i in range(count + 1):
-        s = min(dist * i, lat_line.s13)
-        g = lat_line.Position(s, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
-        lat_line_pts.append((g['lat2'], g['lon2']))
-
+        hor_offset = min(dist * i, lat_line.s13)
+        g = lat_line.Position(hor_offset, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
+        lat_line_pts.append((g['lat2'], g['lon2'], hor_offset))
 
     polygon = None
     if boundry_pts is not None:
@@ -197,30 +207,20 @@ def get_points(p0, p1, dist=5, boundry_pts=None):
         polygon = Polygon(np_lat_long)
 
     output_pts = []
-    for p3 in lat_line_pts:
-        long_line = geod.InverseLine (*p3, p1[0], p3[1])
+    for lat_pts in lat_line_pts:
+        long_line = geod.InverseLine (lat_pts[0], lat_pts[1], p1[0], lat_pts[1])
         count = int(math.ceil(long_line.s13 / dist))
         
         for i in range(count + 1):
-            s = min(dist * i, long_line.s13)
-            g = long_line.Position(s, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
-            pt = (g['lat2'], g['lon2'])
+            ver_offset = min(dist * i, long_line.s13)
+            g = long_line.Position(ver_offset, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
+            pt = (g['lat2'], g['lon2'], lat_pts[2], ver_offset)
             if (polygon is None):
                 output_pts.append(pt)
 
             else:
-                tester = Point(g['lat2'], g['lon2']) 
-                if tester.within(polygon):
+                pt_test = Point(g['lat2'], g['lon2']) 
+                if pt_test.within(polygon):
                     output_pts.append(pt)
 
     return output_pts
-
-if __name__ == '__main__':
-    target = ProjectAsset()
-
-    NW = (35.61817067008077, -82.5717237433493)
-    SE = (35.61495159300222, -82.56885232693209)
-
-    lats =  [NW[0], SE[1], SE[1], NW[0]]
-    longs = [NW[0], NW[0], SE[1], SE[1]]
-    points = get_points(*coords, dist=5, boundry_pts=(lats,longs))
