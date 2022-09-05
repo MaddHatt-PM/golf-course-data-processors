@@ -41,7 +41,7 @@ if len(sys.argv) == 1:
 
 else:
     '''User specified a location to load'''
-    if sys.argv[1] not in os.listdir('./SavedAreas'):
+    if sys.argv[1] not in os.listdir('../SavedAreas'):
         showerror(title='Terrain Grabber - Error',message='"{}" does not exist in the SavedAreas directory.\nTerrain Grabber will now exit.'.format(sys.argv[1]))
         sys.exit()
 

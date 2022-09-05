@@ -327,7 +327,7 @@ class MainWindow:
         filemenu.add_command(label="New Location", command=show_create_location)
 
         open_menu = Menu(filemenu, tearoff=0)
-        directories = os.listdir('SavedAreas/')
+        directories = os.listdir('../SavedAreas/')
 
         # partial() is used here to 'bake' dir into a new function
         # otherwise command would always use the last value of dir

@@ -19,7 +19,7 @@ def show_welcome():
 
     tk.Label(popup, text='Open a recent location', fg="#616161").pack(padx=100)
 
-    locations = os.listdir('SavedAreas/')
+    locations = os.listdir('../SavedAreas/')
     
     for location in locations:
         closure = partial(restart_with_location, popup, location)

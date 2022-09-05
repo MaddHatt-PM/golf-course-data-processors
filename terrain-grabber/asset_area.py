@@ -51,7 +51,7 @@ class AreaAsset:
         self.canvasID_fill = None
         self.target = target
 
-        basepath = "SavedAreas/" + target.savename + "/"
+        basepath = "../SavedAreas/" + target.savename + "/"
 
         self._settings_path = Path(basepath + name + "_settings.txt")
         if self._settings_path.is_file():
@@ -592,7 +592,7 @@ class AreaAsset:
 
 
 def create_area_file_with_data(name:str, target:LocationPaths, data:str, app_settings) -> AreaAsset:
-    filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
+    filepath = Path("../SavedAreas/" + target.savename + "/" + name + "_area.csv")
     with filepath.open('w') as file:
         file.write(data)
 
