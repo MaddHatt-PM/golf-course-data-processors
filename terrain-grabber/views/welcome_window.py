@@ -2,8 +2,9 @@ from functools import partial
 import os, sys
 import tkinter as tk
 from tkinter import ttk
-from utilities import restart_with_new_target
-from view_create_location import CreateLocationView
+
+from operations import restart_with_location
+from .create_location_window import show_create_location
 
 def show_welcome():
     popup = tk.Tk()
@@ -18,18 +19,18 @@ def show_welcome():
 
     tk.Label(popup, text='Open a recent location', fg="#616161").pack(padx=100)
 
-    directories = os.listdir('SavedAreas/')
+    locations = os.listdir('SavedAreas/')
     
-    for dir in directories:
-        closure = partial(restart_with_new_target, popup, dir)
-        ttk.Button(popup, text=dir, command=closure).pack(ipadx=32)
+    for location in locations:
+        closure = partial(restart_with_location, popup, location)
+        ttk.Button(popup, text=location, command=closure).pack(ipadx=32)
 
     ttk.Separator(popup, orient='horizontal').pack(fill='x', pady=8)
 
-    def show_create_location():
+    def setup_for_create_location():
         popup.destroy()
-        CreateLocationView().show(True)
+        show_create_location()
 
-    ttk.Button(popup, text='Grab new location', command=show_create_location).pack(ipadx=32, pady=8)
+    ttk.Button(popup, text='Grab new location', command=setup_for_create_location).pack(ipadx=32, pady=8)
 
     popup.mainloop()

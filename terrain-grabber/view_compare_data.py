@@ -1,10 +1,8 @@
 from pathlib import Path
-import numpy as np
-from numpy import genfromtxt
 import matplotlib.pyplot as plt
-from data_downloader import download_elevation, services
+from operations.download_data import download_elevation, services
 
-from utilities import meter_to_feet
+from utilities.math import meter_to_feet
 
 def __generate_plot(datasets:list[list], labels:list[str]):
     title = 'Elevation Comparison between GPS App and Google Maps'

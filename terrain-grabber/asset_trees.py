@@ -4,15 +4,15 @@ Super ellipse equation: https://www.desmos.com/calculator/byif8mjgy3
 
 from functools import partial
 from pathlib import Path
-import sys
+
 import tkinter as tk
 from tkinter import Canvas, DoubleVar, Frame, StringVar
 from tkinter import ttk
-from typing import List
 
-from asset_project import ProjectAsset
-from ui_inspector_drawer import inspector_drawers
-from utilities import SpaceTransformer, clamp01
+from asset_project import LocationPaths
+from subviews import InspectorDrawer
+from utilities import SpaceTransformer
+from utilities.math import clamp01
 
 class TreeAsset:
     global taper_range; taper_minmax = 0.0, 1.0
@@ -169,7 +169,7 @@ class TreeAsset:
     def example(self, *args, **kwargs):
         print("Test")
 
-    def draw_to_inspector(self, inspector:Frame, drawer:inspector_drawers):
+    def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
         for key in self.__tkVars:
             cleaned_name = key.replace('_', ' ').capitalize()
 
@@ -181,7 +181,7 @@ class TreeAsset:
                 )
 
 class TreeCollectionAsset:
-    def __init__(self, target:ProjectAsset) -> None:
+    def __init__(self, target:LocationPaths) -> None:
         self.target = target
         self.trees:list[TreeAsset] = []
         self.load_data_from_file()
@@ -295,7 +295,7 @@ class TreeCollectionAsset:
             radius_id = canvas.create_oval(*radius_cords, fill="blue")
             self.canvas_ids.append(radius_id)
 
-    def draw_to_inspector(self, inspector:Frame, drawer:inspector_drawers):
+    def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
         '''
         Mockup:
         
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # print(tree.header())
     # print(tree.export_to_csv())
 
-    project = ProjectAsset(savename="AshevilleClub")
+    project = LocationPaths(savename="AshevilleClub")
     treeCol = TreeCollectionAsset(target=project)
     treeCol.save_presets()
 

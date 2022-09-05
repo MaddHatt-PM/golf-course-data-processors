@@ -6,7 +6,7 @@ from tkinter import ttk
 from asset_area import HEADER
 # from view_main_window import MainWindow
 
-def create_import_window(caller=None, isMainWindow=False) -> None:
+def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
     '''Prompt for CSV file'''
     filetypes = (
         ('CSV files', '*.csv'),

@@ -3,12 +3,11 @@ from functools import partial
 import tkinter as tk
 from tkinter import BooleanVar, Button, DoubleVar, Frame, StringVar, Tk
 from tkinter import ttk
-from turtle import width
 
-from ui_toggle import Toggle
+from .toggle import Toggle
 
 
-class inspector_drawers:
+class InspectorDrawer:
     '''
     Abstraction of tkinter to streamline and manage inspector drawing.
     Intended for rapid UI destroying and creation with inspector panels.

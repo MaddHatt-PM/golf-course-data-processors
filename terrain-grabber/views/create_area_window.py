@@ -1,12 +1,8 @@
-
-from email import message
-import tkinter as tk
 from tkinter import simpledialog
-from tkinter.messagebox import showerror, showwarning
-from tkinter.ttk import Button, Entry, Label
+from tkinter.messagebox import showerror
 from asset_area import AreaAsset
 
-def create_area_view(caller, areas:list[AreaAsset], isMainWindow:bool=False, parent=None) -> None:
+def show_create_area(caller, areas:list[AreaAsset], isMainWindow:bool=False, parent=None) -> None:
     spacer = '                    '
     new_area_name = simpledialog.askstring(
         title='New area name',

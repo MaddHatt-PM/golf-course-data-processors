@@ -10,12 +10,10 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
-from dataclasses import dataclass
 from functools import partial
 import os
 import random
 import string
-import time
 import sys
 import tkinter as tk
 from tkinter import BooleanVar, DoubleVar, StringVar, Variable, ttk
@@ -24,17 +22,19 @@ from pathlib import Path
 from PIL import Image, ImageTk
 
 from asset_area import AreaAsset, create_area_file_with_data
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 from asset_trees import TreeCollectionAsset
-from util_export import export_data
-from utilities import SpaceTransformer, ToolMode
-from ui_inspector_drawer import inspector_drawers
-from data_downloader import services, download_imagery
-from utilities import CoordMode, UIColors, restart_with_new_target
-from view_api_usage_window import create_api_usage_window
-from view_create_area import create_area_view
-from view_create_location import CreateLocationView
-from view_import_prompt import create_import_window
+
+from operations import export_data
+
+from subviews import InspectorDrawer
+from operations.download_data import services, download_imagery
+from utilities import SpaceTransformer, ToolMode, CoordMode
+
+from operations import restart_with_location
+from utilities.colors import UIColors
+from views import show_api_usage, show_create_area, show_create_location
+from views import show_import_path_as_area
 from tkinter.messagebox import askyesnocancel
 
 class ViewSettings():
@@ -52,8 +52,8 @@ class ViewSettings():
         self.sampleDist_map_opacity = DoubleVar(value=False, name='Sample Dist Map Opacity')
 
 class MainWindow:
-    def __init__(self, target:ProjectAsset):
-        self.target:ProjectAsset = target
+    def __init__(self, target:LocationPaths):
+        self.target:LocationPaths = target
 
         if target is None:
             return
@@ -115,68 +115,64 @@ class MainWindow:
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
-    def new_location_popup(self, isMainWindow:bool=False):
-        '''
-        UI for downloading new areas.
-        Popup is designated as the rootUI when no loaded_asset is present
-        '''
-        if isMainWindow == True:
-            popup = self.root
-        else:
-            popup=tk.Toplevel()
-            popup.grab_set()
-            popup.focus_force()
+    # def new_location_popup(self, isMainWindow:bool=False):
+    #     '''
+    #     UI for downloading new areas.
+    #     Popup is designated as the rootUI when no loaded_asset is present
+    #     '''
+    #     if isMainWindow == True:
+    #         popup = self.root
+    #     else:
+    #         popup=tk.Toplevel()
+    #         popup.grab_set()
+    #         popup.focus_force()
 
-        popup.resizable(False, False)
-        self.filename = tk.StringVar()
-        self.p0 = tk.StringVar()
-        self.p1 = tk.StringVar()
+    #     popup.resizable(False, False)
+    #     self.filename = tk.StringVar()
+    #     self.p0 = tk.StringVar()
+    #     self.p1 = tk.StringVar()
 
-        Label(popup, text="Enter two coordinates").grid(row=0)
-        Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1, padx=20)
+    #     Label(popup, text="Enter two coordinates").grid(row=0)
+    #     Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1, padx=20)
 
-        prompts_f = Frame(popup)
-        prompts_f.grid(row=2)
+    #     prompts_f = Frame(popup)
+    #     prompts_f.grid(row=2)
 
-        Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
-        Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
+    #     Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
+    #     Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
 
-        Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
-        Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
+    #     Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
+    #     Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
 
-        Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
-        Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
+    #     Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
+    #     Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
 
-        buttons_f = Frame(popup)
-        buttons_f.grid(row=3)
-        cancel_btn = Button(buttons_f, text="Cancel", command=popup.destroy, width=20)
-        cancel_btn.grid(row=0, column=0, sticky="nswe", pady=10)
+    #     buttons_f = Frame(popup)
+    #     buttons_f.grid(row=3)
+    #     cancel_btn = Button(buttons_f, text="Cancel", command=popup.destroy, width=20)
+    #     cancel_btn.grid(row=0, column=0, sticky="nswe", pady=10)
 
-        enter_btn = Button(buttons_f,
-                           text="Enter",
-                        #    state=self.validate_enter_btn(filename=filename, pt_a=pt_a, pt_b=pt_b),
-                           command=self.execute_download_btn,
-                           width=20)
+    #     enter_btn = Button(buttons_f,
+    #                        text="Enter",
+    #                     #    state=self.validate_enter_btn(filename=filename, pt_a=pt_a, pt_b=pt_b),
+    #                        command=self.execute_download_btn,
+    #                        width=20)
 
-        enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
+    #     enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
 
     
-    def execute_download_btn(self):
-        '''Setup download environment, pull data via API, then reload program'''
-        # Move to disabling the button state when I figure tkinter out callbacks
-        if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
-            print("disabled")
-            return
+    # def execute_download_btn(self):
+    #     '''Setup download environment, pull data via API, then reload program'''
+    #     # Move to disabling the button state when I figure tkinter out callbacks
+    #     if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
+    #         print("disabled")
+    #         return
 
-        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
-        print(str(newArea.coordinates()))
-        download_imagery(target=newArea, service=services.google_satelite)
+    #     newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
+    #     print(str(newArea.coordinates()))
+    #     download_imagery(target=newArea, service=services.google_satelite)
         
-        restart_with_new_target(newArea.savename)
-        
-    def restart_with_new_target(self, area_name:str):
-        self.root.destroy()
-        os.system("py run.py " + area_name)
+    #     restart_with_location(newArea.savename)
 
     def create_new_area(self, name:str="", *args, **kwargs):
         if(kwargs.get('name', None) is not None):
@@ -330,15 +326,14 @@ class MainWindow:
 
         '''FILE menu'''
         filemenu = Menu(menubar, tearoff=0)
-        closure = partial(CreateLocationView().show)
-        filemenu.add_command(label="New Location", command=CreateLocationView().show)
+        filemenu.add_command(label="New Location", command=show_create_location)
 
         open_menu = Menu(filemenu, tearoff=0)
         directories = os.listdir('SavedAreas/')
 
         # partial() is used here to 'bake' dir into a new function
         # otherwise command would always use the last value of dir
-        def open_new_location(root, dir):
+        def prompt_for_restart(root, location):
             if self.is_dirty:
                 result = askyesnocancel(title="Save changes", message='There are unsaved changes\nDo you want to save?')
                 if result is None:
@@ -346,10 +341,10 @@ class MainWindow:
                 elif result is True:
                     self.save_all()
 
-            restart_with_new_target(root, dir)
+            restart_with_location(root, location)
 
         for dir in directories:
-            closure = partial(open_new_location, self.root, dir)
+            closure = partial(prompt_for_restart, self.root, dir)
             open_menu.add_command(label=dir, command=closure)
 
         def prep_export():
@@ -363,11 +358,11 @@ class MainWindow:
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
         filemenu.add_command(label="Export", command=prep_export)
-        filemenu.add_command(label="Check API Usage", command=create_api_usage_window)
+        filemenu.add_command(label="Check API Usage", command=show_api_usage)
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
         
-        closure = partial(create_import_window, self)
+        closure = partial(show_import_path_as_area, self)
         filemenu.add_command(label="Create import window", command=closure)
         menubar.add_cascade(label="File", menu=filemenu)
 
@@ -410,7 +405,8 @@ class MainWindow:
         inspector.grid(row=0, column=2, sticky="nswe")
         # inspector.configure(width=45)
 
-        drawer = self.drawer = inspector_drawers(inspector)
+        drawer = InspectorDrawer(inspector)
+        self.drawer = drawer
 
         '''Functionality Switcher'''
         mode_frame = Frame(inspector, padx=0, pady=0)
@@ -478,7 +474,7 @@ class MainWindow:
 
             area_selector_frame = Frame(inspector, padx=0, pady=0)
             if len(self.areas) == 0:
-                closure = partial(create_area_view, self, self.areas, False, self.root)
+                closure = partial(show_create_area, self, self.areas, False, self.root)
                 add_area = ttk.Button(area_selector_frame, text='Create new area', command=closure)
                 add_area.pack()
                 area_selector_frame.pack(fill="x", anchor="n", expand=False)
@@ -497,7 +493,7 @@ class MainWindow:
                 self.area_selector = dropdown
 
                 if available_areas:
-                    closure = partial(create_area_view, self, self.areas, False, self.root)
+                    closure = partial(show_create_area, self, self.areas, False, self.root)
                     add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
                     add_area.grid(row=0, column=3)
                     
@@ -593,7 +589,6 @@ class MainWindow:
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
-
         self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
 
         for area in self.areas:
@@ -615,8 +610,6 @@ class MainWindow:
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.active_area.draw_to_inspector(self.drawer)
         self.active_area.draw_to_canvas()
-        
-        
 
     def setup_statusbar(self):
         frame = Frame(self.root, bg=UIColors.ui_bgm_col)
@@ -665,7 +658,7 @@ class MainWindow:
     # --- Root-UI Drawing ------------------------------------------ #
     def show(self):
         if (self.target == None):
-            self.root = CreateLocationView().show(isMainWindow=True)
+            self.root = show_create_location(isMainWindow=True)
             self.root.title("None selected")
             return self.root
 

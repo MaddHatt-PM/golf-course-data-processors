@@ -2,15 +2,15 @@ from functools import partial
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import BooleanVar, Canvas, DoubleVar, Frame, IntVar, Label, StringVar
-from tkinter import ttk
+from tkinter import BooleanVar, Canvas, DoubleVar, IntVar
 from tkinter.messagebox import askyesno
 from typing import Tuple
 from PIL import Image, ImageDraw, ImageTk, ImageColor
 from utilities import SpaceTransformer
-from ui_inspector_drawer import inspector_drawers
-from asset_project import ProjectAsset
-from utilities import ColorSet, CoordMode, UIColors
+from subviews import InspectorDrawer
+from asset_project import LocationPaths
+from utilities import CoordMode
+from utilities.colors import ColorSet, UIColors
 
 from geographiclib.geodesic import Geodesic
 from geographiclib.polygonarea import PolygonArea
@@ -33,7 +33,7 @@ class Settings:
 HEADER = "latitude,longitude,elevation,resolution\n"
 
 class AreaAsset:
-    def __init__(self, name:str, target:ProjectAsset, app_settings) -> None:
+    def __init__(self, name:str, target:LocationPaths, app_settings) -> None:
         self.name = name
         self.is_dirty = False
         self.is_fill_dirty = True
@@ -498,7 +498,7 @@ class AreaAsset:
     # -------------------------------------------------------------- #
     # --- Inspector functions -------------------------------------- #
 
-    def draw_to_inspector(self, drawer:inspector_drawers=None):
+    def draw_to_inspector(self, drawer:InspectorDrawer=None):
         if drawer is not None:
             self.drawer = drawer
 
@@ -591,7 +591,7 @@ class AreaAsset:
             self.drawer.label('Middle Hold: Pan Location')
 
 
-def create_area_file_with_data(name:str, target:ProjectAsset, data:str, app_settings) -> AreaAsset:
+def create_area_file_with_data(name:str, target:LocationPaths, data:str, app_settings) -> AreaAsset:
     filepath = Path("SavedAreas/" + target.savename + "/" + name + "_area.csv")
     with filepath.open('w') as file:
         file.write(data)

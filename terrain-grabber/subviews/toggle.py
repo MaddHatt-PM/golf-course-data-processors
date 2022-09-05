@@ -1,14 +1,15 @@
 from tkinter import BooleanVar, Misc, ttk
 
+on = '◼'
+off = '◻'
+
 class Toggle:
-    on = '◼'
-    off = '◻'
 
     def __init__(self, master:Misc, command=None, boolVar:BooleanVar=None):
         if boolVar.get() is True:
-            graphic = Toggle.on
+            graphic = on
         else:
-            graphic = Toggle.off
+            graphic = off
 
         self.button = ttk.Button(master, command=self.invert, text=graphic, width=5)
         self.boolVar = boolVar
@@ -18,9 +19,9 @@ class Toggle:
         self.boolVar.set(not self.boolVar.get())
 
         if self.boolVar.get() is True:
-            graphic = Toggle.on
+            graphic = on
         else:
-            graphic = Toggle.off
+            graphic = off
 
         self.button.config(text=graphic)
 

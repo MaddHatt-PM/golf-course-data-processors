@@ -28,7 +28,7 @@ Changes:
 import sys
 import time
 import requests
-import api_keys as keys
+from APIs import keys
 from PIL import Image
 from io import BytesIO
 from math import log, exp, tan, atan, ceil, pi
