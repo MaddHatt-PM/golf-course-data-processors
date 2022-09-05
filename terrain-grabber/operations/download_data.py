@@ -21,7 +21,7 @@ from APIs.google_maps_api import SatelliteInterface as gmap_si
 
 from geographiclib.geodesic import Geodesic
 from geographiclib.geodesicline import GeodesicLine
-from operations import generate_imagery
+from operations.generate_imagery import generate_imagery
 
 class services:
     google_satelite = "google_satelite"
@@ -178,7 +178,7 @@ def __via_google_elevation(target:LocationPaths, points, output_path:Path) -> Pa
         outfile.write(output)
 
     print("Generating imagery (may take some time)...")
-    generate_imagery(target)
+    generate_imagery (target)
     print("Completed imagery generation")
 
     usage_tracker.add_api_count(services.google_elevation, len(urls))

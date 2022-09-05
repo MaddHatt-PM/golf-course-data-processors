@@ -29,7 +29,7 @@ def show_welcome():
 
     def setup_for_create_location():
         popup.destroy()
-        show_create_location()
+        show_create_location(isMainWindow=True)
 
     ttk.Button(popup, text='Grab new location', command=setup_for_create_location).pack(ipadx=32, pady=8)
 

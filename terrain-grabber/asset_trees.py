@@ -196,7 +196,7 @@ class TreeCollectionAsset:
             self.selected_tree = self.trees[0]
             self.selected_tree.select(self)
 
-        self.presets_path = Path("AppAssets/tree_presets.csv")
+        self.presets_path = Path("resources/tree_presets.csv")
         self.presets:list[TreeAsset] = []
 
         self.canvas_ids = []

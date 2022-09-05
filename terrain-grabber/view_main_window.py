@@ -59,7 +59,7 @@ class MainWindow:
             return
 
         self.root = tk.Tk()
-        self.prefsPath = Path("AppAssets/prefs.windowprefs")
+        self.prefsPath = Path("resources/prefs.windowprefs")
         self.zoom = 1.0
         self.mouse_pos = (-100, -100)
         self.status_text = tk.StringVar()
@@ -174,6 +174,7 @@ class MainWindow:
         
     #     restart_with_location(newArea.savename)
 
+    # Gets called but no references due to circular import
     def create_new_area(self, name:str="", *args, **kwargs):
         if(kwargs.get('name', None) is not None):
             name = kwargs.get('name')
@@ -278,10 +279,7 @@ class MainWindow:
             prefs.write("\n")
             prefs.write(self.root.state())
 
-        print('root.destroy about to be called')
         self.root.destroy()
-
-        print('sys.exit about to be called')
         sys.exit(0)
 
     # -------------------------------------------------------------- #
@@ -666,7 +664,7 @@ class MainWindow:
 
         self.root.title(self.target.savename + " - Terrain Viewer")
         self.root.minsize(width=500, height=400)
-        self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
+        self.root.iconbitmap(False, str(Path("resources/icon.ico")))
         self.root.config(bg=UIColors.canvas_col)
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=5)
