@@ -51,23 +51,24 @@ class ViewSettings():
         self.sampleDist_map_toggle = BooleanVar(value=False, name='Sample Dist Map Toggle')
         self.sampleDist_map_opacity = DoubleVar(value=False, name='Sample Dist Map Opacity')
 
+        self.status_text = tk.StringVar()
+        self.status_text.set("")
+
 class MainWindow:
     def __init__(self, target:LocationPaths):
         self.target:LocationPaths = target
-
         if target is None:
             return
 
         self.root = tk.Tk()
-        self.prefsPath = Path("resources/prefs.windowprefs")
+        self.view_settings = ViewSettings()
+
         self.zoom = 1.0
         self.mouse_pos = (-100, -100)
-        self.status_text = tk.StringVar()
-        self.status_text.set("")
         self.toolmode = ToolMode.area
+        self.is_dirty = False
 
-        self.canvas:Canvas = None
-        self.container = None
+        # Prepare image references
         self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
         self.image_base:Image = self.image_raw
         self.image_pi:PhotoImage = None
@@ -84,25 +85,59 @@ class MainWindow:
         if target.sampleDistributionImg_path.exists():
             self.sample_dist_raw = Image.open(target.sampleDistributionImg_path).convert('RGBA')
 
-        self.active_area = None
-        self.is_dirty = False
-
-        self.view_settings = ViewSettings()
-
-        filenames = os.listdir(target.basePath)
+        # Prepare references to areas
         self.areas:list[AreaAsset] = []
+        filenames = os.listdir(target.basePath)
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
                 self.areas.append(AreaAsset(area_name, self.target, self.view_settings))
+
         self.area_names:list[str] = [x.name for x in self.areas]
+        self.active_area = None
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
             self.active_area.select()
 
         self.tree_manager = TreeCollectionAsset(self.target)
 
-        
+        # Setup skeleton of UI
+        self.root.title(self.target.savename + " - Terrain Viewer")
+        self.root.minsize(width=500, height=400)
+        self.root.iconbitmap(False, str(Path("resources/icon.ico")))
+        self.root.config(bg=UIColors.canvas_col)
+        self.root.config(menu=self.setup_menubar(self.root))
+
+        INSPECTOR_WIDTH = 260
+        self.root.grid_columnconfigure(2, minsize=INSPECTOR_WIDTH)
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=5)
+
+        # UI Drawing
+        self.canvas:Canvas = None
+        self.canvas_container = None
+        self.setup_viewport()
+        self.setup_statusbar()
+        self.setup_inspector()
+
+        # Read pref file for window geometry
+        self.prefsPath = Path("resources/prefs.windowprefs")
+        if self.prefsPath.is_file():
+            with open(str(self.prefsPath), 'r') as pref_file:
+                prefs = pref_file.read().splitlines()
+
+                self.root.geometry(prefs[0])
+                self.root.state(prefs[1])
+
+        # Blanks
+        Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
+        Frame(self.root, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+
+        # Seperators for visual clarity
+        Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
+        Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
+
+        # Attach callbacks
         def redraw_canvas_on_change(*args):
             for area in self.areas:
                 area.draw_to_canvas()
@@ -112,6 +147,10 @@ class MainWindow:
 
         self.view_settings.fill_only_active_area.trace_add('write', redraw_canvas_on_change)
         self.view_settings.show_controls.trace_add('write', redraw_inspector_on_change)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+        # Launch GUI
+        self.root.mainloop()
 
     # -------------------------------------------------------------- #
     # --- New Area UI ---------------------------------------------- #
@@ -241,7 +280,7 @@ class MainWindow:
         # text += spacer
         # text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         
-        self.status_text.set(text)
+        self.view_settings.status_text.set(text)
         
     def check_for_changes(self):
         if self.is_dirty:
@@ -295,7 +334,7 @@ class MainWindow:
         self.redraw_viewport()
     
     def redraw_viewport(self):
-        img_box = self.canvas.bbox(self.container)
+        img_box = self.canvas.bbox(self.canvas_container)
         canvas_box = (self.canvas.canvasx(0), 
                       self.canvas.canvasy(0),
                       self.canvas.canvasx(self.canvas.winfo_width()),
@@ -587,7 +626,7 @@ class MainWindow:
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
-        self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
+        self.canvas_container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
@@ -614,7 +653,7 @@ class MainWindow:
         frame.grid(row=2, column= 0, sticky="nswe")
 
         # Coordinates
-        status = tk.Label(frame, textvariable=self.status_text, bg=UIColors.ui_bgm_col, fg="white")
+        status = tk.Label(frame, textvariable=self.view_settings.status_text, bg=UIColors.ui_bgm_col, fg="white")
         status.pack(anchor="w", side=tk.LEFT)
 
         spacer = tk.Label(frame, text='', bg=UIColors.ui_bgm_col)
@@ -631,63 +670,3 @@ class MainWindow:
         zoom_out.pack(side=tk.LEFT, padx=4)
         zoom_percentage.pack(side=tk.LEFT)
         zoom_in.pack(side=tk.LEFT, padx=0)
-
-        # seperator = tk.Frame(frame, bg='#424242', width=1, bd=0)
-        # seperator.pack(anchor='w', side=tk.LEFT, fill='y')
-
-        # View mode selector
-        # view_modes = {}
-        # view_modes['Google Satelite'] = None
-        # view_modes['Google Elevation'] = None
-
-        # view_mode_dropdown = ttk.Combobox(frame)
-        # view_mode_dropdown['values'] = list(view_modes.keys())
-        # view_mode_dropdown['state'] = 'readonly'
-        # view_mode_dropdown.current(0)
-        # view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
-        
-
-    def setup_blanks(self):
-        Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
-        Frame(self.root, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
-
-
-    # -------------------------------------------------------------- #
-    # --- Root-UI Drawing ------------------------------------------ #
-    def show(self):
-        if (self.target == None):
-            self.root = show_create_location(isMainWindow=True)
-            self.root.title("None selected")
-            return self.root
-
-        INSPECTOR_WIDTH = 260
-
-        self.root.title(self.target.savename + " - Terrain Viewer")
-        self.root.minsize(width=500, height=400)
-        self.root.iconbitmap(False, str(Path("resources/icon.ico")))
-        self.root.config(bg=UIColors.canvas_col)
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(0, weight=5)
-        self.root.grid_columnconfigure(2, minsize=INSPECTOR_WIDTH)
-        self.root.config(menu=self.setup_menubar(self.root))
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-
-        # Read pref file for window geometry
-        if self.prefsPath.is_file():
-            with open(str(self.prefsPath), 'r') as pref_file:
-                prefs = pref_file.read().splitlines()
-
-                self.root.geometry(prefs[0])
-                self.root.state(prefs[1])
-
-        # UI Drawing
-        self.setup_viewport()
-        self.setup_statusbar()
-        self.setup_inspector()
-        self.setup_blanks()
-
-        # Seperators for visual clarity
-        Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
-        Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
-
-        self.root.mainloop()

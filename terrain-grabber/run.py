@@ -46,4 +46,4 @@ else:
         sys.exit()
 
     target=LocationPaths(savename=sys.argv[1])
-    MainWindow(target).show()
+    MainWindow(target)
