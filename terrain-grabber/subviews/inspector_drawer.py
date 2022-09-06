@@ -1,11 +1,13 @@
 from ast import arg
 from functools import partial
 import tkinter as tk
-from tkinter import BooleanVar, Button, DoubleVar, Frame, StringVar, Tk
+from tkinter import BooleanVar, Button, Canvas, DoubleVar, Frame, StringVar, Tk
 from tkinter import ttk
 
 from .toggle import Toggle
+from utilities import UIColors
 
+TREE_PREVIEW_SIZE = 250,250*1.618
 
 class InspectorDrawer:
     '''
@@ -159,3 +161,14 @@ class InspectorDrawer:
 
         self.items.append(dropdown)
         return dropdown
+
+    def button_group(self):
+        pass
+
+    def tree_preview(self):
+        canvas = Canvas(self.frame, width=TREE_PREVIEW_SIZE[0], height=TREE_PREVIEW_SIZE[1])
+        self.items.append(canvas)
+
+        canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
+        canvas.pack()
+        return canvas

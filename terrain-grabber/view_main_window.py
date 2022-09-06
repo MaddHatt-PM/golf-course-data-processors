@@ -23,7 +23,7 @@ from tkinter import Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas,
 from tkinter.messagebox import askyesnocancel
 
 from asset_project import LocationPaths
-from asset_trees import TreeCollectionAsset
+from data_managers import TreeCollectionManager
 from asset_area import AreaAsset, create_area_file_with_data
 from operations import export_data, restart_with_location
 from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
@@ -92,7 +92,7 @@ class MainWindow:
             self.active_area = self.areas[0]
             self.active_area.select()
 
-        self.tree_manager = TreeCollectionAsset(self.target)
+        self.tree_manager = TreeCollectionManager(self.target)
 
         # Setup skeleton of UI
         self.root.title(self.target.savename + " - Terrain Viewer")
