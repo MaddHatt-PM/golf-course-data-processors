@@ -10,32 +10,25 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
-from functools import partial
 import os
+import sys
 import random
 import string
-import sys
-import tkinter as tk
-from tkinter import BooleanVar, DoubleVar, StringVar, Variable, ttk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
-from PIL import Image, ImageTk
+from functools import partial
 
-from asset_area import AreaAsset, create_area_file_with_data
+from PIL import Image, ImageTk
+import tkinter as tk
+from tkinter import Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
+from tkinter.messagebox import askyesnocancel
+
 from asset_project import LocationPaths
 from asset_trees import TreeCollectionAsset
-
-from operations import export_data
-
+from asset_area import AreaAsset, create_area_file_with_data
+from operations import export_data, restart_with_location
+from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
+from views import show_api_usage, show_create_area, show_create_location, show_import_path_as_area
 from subviews import InspectorDrawer
-from operations.download_data import services, download_imagery
-from utilities import SpaceTransformer, ToolMode, CoordMode
-
-from operations import restart_with_location
-from utilities.colors import UIColors
-from views import show_api_usage, show_create_area, show_create_location
-from views import show_import_path_as_area
-from tkinter.messagebox import askyesnocancel
 
 class ViewSettings():
     def __init__(self) -> None:
@@ -151,67 +144,13 @@ class MainWindow:
         
         # Launch GUI
         self.root.mainloop()
+        
 
     # -------------------------------------------------------------- #
-    # --- New Area UI ---------------------------------------------- #
-    # def new_location_popup(self, isMainWindow:bool=False):
-    #     '''
-    #     UI for downloading new areas.
-    #     Popup is designated as the rootUI when no loaded_asset is present
-    #     '''
-    #     if isMainWindow == True:
-    #         popup = self.root
-    #     else:
-    #         popup=tk.Toplevel()
-    #         popup.grab_set()
-    #         popup.focus_force()
-
-    #     popup.resizable(False, False)
-    #     self.filename = tk.StringVar()
-    #     self.p0 = tk.StringVar()
-    #     self.p1 = tk.StringVar()
-
-    #     Label(popup, text="Enter two coordinates").grid(row=0)
-    #     Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1, padx=20)
-
-    #     prompts_f = Frame(popup)
-    #     prompts_f.grid(row=2)
-
-    #     Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
-    #     Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
-
-    #     Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
-    #     Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
-
-    #     Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
-    #     Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
-
-    #     buttons_f = Frame(popup)
-    #     buttons_f.grid(row=3)
-    #     cancel_btn = Button(buttons_f, text="Cancel", command=popup.destroy, width=20)
-    #     cancel_btn.grid(row=0, column=0, sticky="nswe", pady=10)
-
-    #     enter_btn = Button(buttons_f,
-    #                        text="Enter",
-    #                     #    state=self.validate_enter_btn(filename=filename, pt_a=pt_a, pt_b=pt_b),
-    #                        command=self.execute_download_btn,
-    #                        width=20)
-
-    #     enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
-
-    
-    # def execute_download_btn(self):
-    #     '''Setup download environment, pull data via API, then reload program'''
-    #     # Move to disabling the button state when I figure tkinter out callbacks
-    #     if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
-    #         print("disabled")
-    #         return
-
-    #     newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
-    #     print(str(newArea.coordinates()))
-    #     download_imagery(target=newArea, service=services.google_satelite)
-        
-    #     restart_with_location(newArea.savename)
+    # --- Event Handling ------------------------------------------- #
+    def print_test(self, *args, **kwargs):
+        '''Dummy function for quick testing'''
+        print("test")
 
     # Gets called but no references due to circular import
     def create_new_area(self, name:str="", *args, **kwargs):
@@ -237,13 +176,6 @@ class MainWindow:
         self.select_area(area.name)
         self.setup_inspector()
         self.redraw_viewport()
-        
-
-    # -------------------------------------------------------------- #
-    # --- Event Handling ------------------------------------------- #
-    def print_test(self, *args, **kwargs):
-        '''Dummy function for quick testing'''
-        print("test")
 
     def handle_left_click(self, event:tk.Event):
         if self.active_area is not None:
@@ -276,9 +208,6 @@ class MainWindow:
 
         earth_coords = self.canvasUtil.pixel_pt_to_earth_space(self.mouse_pos)
         text += ("Earth Position: lat={}, lon={}").format(earth_coords[0], earth_coords[1])
-
-        # text += spacer
-        # text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         
         self.view_settings.status_text.set(text)
         
@@ -390,7 +319,6 @@ class MainWindow:
             export_data(self.target)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
-
         filemenu.add_command(label="Save", command=self.save_all)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
