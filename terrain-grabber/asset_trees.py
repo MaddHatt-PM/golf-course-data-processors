@@ -2,8 +2,8 @@
 Super ellipse equation: https://www.desmos.com/calculator/byif8mjgy3
 '''
 
-from functools import partial
 from pathlib import Path
+from functools import partial
 
 import tkinter as tk
 from tkinter import Canvas, DoubleVar, Frame, StringVar
@@ -11,7 +11,7 @@ from tkinter import ttk
 
 from asset_project import LocationPaths
 from subviews import InspectorDrawer
-from utilities import SpaceTransformer
+from utilities import SpaceTransformer, UIColors
 from utilities.math import clamp01
 
 class TreeAsset:
@@ -104,17 +104,10 @@ class TreeAsset:
         output = output.removesuffix(',')
         return output
 
-    def demo(self):
-        print(self.__dict__["trunk_radius"])
-        # variables = locals()
-        # variables.__setitem__("trunk_radius", 999.999)
-        self.__setattr__("trunk_radius", 999.999)
-
     def sample_point(self, value01):
         '''
         Input values are clamped to 01 space.
-        Input values are shifted to their corresponding
-        curve (lower or upper)
+        Input values are shifted to their corresponding curve (lower or upper)
         '''
         x = clamp01(value01)
         invert = (x <= 0.5)
@@ -144,6 +137,7 @@ class TreeAsset:
             ])
 
         profile.append([0.0, offset + height])
+        return profile
 
     def generate_trunk_profile(self) -> list[tuple[float, float]]:
         radius = self.trunk_radius
@@ -166,19 +160,27 @@ class TreeAsset:
         height = max(self.trunk_height + self.trunk_offset, self.foliage_offset + self.foliage_height)
         return max(radius, height)
 
-    def example(self, *args, **kwargs):
-        print("Test")
-
     def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
+        drawer.header('Tree Attributes')
+        drawer.button('Add new Preset')
+        drawer.button('Import from Preset')
         for key in self.__tkVars:
             cleaned_name = key.replace('_', ' ').capitalize()
 
             drawer.labeled_entry(
                 label_text=cleaned_name,
                 entry_variable=self.__tkVars[key],
-                # validate_command=self.validate_for_double,
                 pady=1
                 )
+        drawer.seperator()
+        drawer.vertical_divider()
+
+        canvas = drawer.canvas()
+        # Canvas is oriented so that 0,0 is the top left corner
+        canvas.create_oval(5, 5, 100, 100, fill= UIColors.blue.fill)
+
+        foliage = self.generate_foliage_profile()
+        print(foliage)
 
 class TreeCollectionAsset:
     def __init__(self, target:LocationPaths) -> None:
@@ -319,11 +321,12 @@ class TreeCollectionAsset:
         ttk.Button(selector_frame, text='+', width=2, command=self.add_tree).grid(row=0, column=3)
         selector_frame.grid_columnconfigure(1, weight=5)
         selector_frame.pack(fill="x", anchor="n", expand=False)
+        drawer.seperator()
 
         self.selected_tree.draw_to_inspector(inspector, drawer)
-        drawer.seperator()
-        drawer.empty_space()
-        drawer.button(text="Save all trees", command=self.save_data_to_files)
+
+        # drawer.empty_space()
+        # drawer.button(text="Save all trees", command=self.save_data_to_files)
 
 
 
@@ -333,7 +336,7 @@ if __name__ == "__main__":
     # print(tree.header())
     # print(tree.export_to_csv())
 
-    project = LocationPaths(savename="AshevilleClub")
+    project = LocationPaths(savename="DemoCourse")
     treeCol = TreeCollectionAsset(target=project)
     treeCol.save_presets()
 
