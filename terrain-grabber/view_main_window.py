@@ -219,6 +219,11 @@ class MainWindow:
             if area.is_dirty:
                 self.is_dirty = True
                 break
+
+        for tree in self.tree_manager.trees:
+            if tree.is_dirty:
+                self.is_dirty = True
+                break
         
         if self.is_dirty:
             self.root.title('*' + self.target.savename + ' - Terrain Viewer')
@@ -229,6 +234,8 @@ class MainWindow:
         for area in self.areas:
             area.save_data_to_files()
             area._save_settings()
+        
+        self.tree_manager.save_data_to_files()
         
         self.is_dirty = False
         self.root.title(self.target.savename + ' - Terrain Viewer')

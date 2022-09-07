@@ -7,7 +7,7 @@ from functools import partial
 from time import sleep
 
 import tkinter as tk
-from tkinter import Canvas, DoubleVar, Frame, StringVar
+from tkinter import Canvas, DoubleVar, Frame, IntVar, StringVar
 from tkinter import ttk
 
 from asset_project import LocationPaths
@@ -19,10 +19,12 @@ from utilities import UIColors
 
 taper_minmax = 0.0, 1.0
 curvature_range = 0.5, 15.0
+ground_offset = 50.0
 
 class TreeAsset:
-
     def __init__(self, header:str="", data:str="", position_x=0.5, position_y=0.5) -> None:
+        self.is_dirty = False
+
         self.trunk_radius = 1.0
         self.trunk_height = 2.0
         self.trunk_offset = 0.0
@@ -36,12 +38,13 @@ class TreeAsset:
         self.foliage_midpoint = 0.5
         self.foliage_upper_curv = 2.0
 
+        self.sample_count = 32
         self.position_x = position_x
         self.position_y = position_y
 
         self._name = ""
-        self.canvas:Canvas = None
-        self.canvas_items = []
+        self._canvas:Canvas = None
+        self._canvas_items = []
         self.__tkVars:dict[str, any] = {}
 
         if header != "" and data != "":
@@ -52,10 +55,14 @@ class TreeAsset:
                 else:
                     print("TreeAsset: {} not in __init__ variables".format(itemset[0]))
 
-    def sync_variable(self, key:str, tkVar:DoubleVar, *args, **kwargs):
-        self.__dict__[key] = tkVar.get()
-        if self.canvas is not None:
-            self.redraw_canvas()
+    def sync_variable(self, key:str, tkVar, *args, **kwargs):
+        try:
+            self.__dict__[key] = tkVar.get()
+        except:
+            return
+        
+        self.is_dirty = True
+        self.redraw_canvas()
         # print("{} -> {}".format(key, self.__dict__[key]))
 
 
@@ -72,6 +79,7 @@ class TreeAsset:
         sel_text = "tree at {}, {}".format(self.position_x, self.position_y)
         view_manager.selected_tree_text.set(sel_text)
 
+
         for key in self.__dict__:
             if "trunk" in key or "foliage" in key:
                 tkVar = DoubleVar()
@@ -79,6 +87,15 @@ class TreeAsset:
                 closure = partial(self.sync_variable, key, tkVar)
                 tkVar.trace_add("write", closure)
                 self.__tkVars[key] = tkVar
+
+        tkVar = IntVar()
+        tkVar.set(self.__dict__['sample_count'])
+        closure = partial(self.sync_variable, 'sample_count', tkVar)
+        tkVar.trace_add('write', closure)
+        self.__tkVars['sample_count'] = tkVar
+
+    def deselect():
+        pass
 
     def load_preset(self, tree:"TreeAsset"):
         preset = tree.__dict__
@@ -122,25 +139,22 @@ class TreeAsset:
         invert = (x <= 0.5)
         x = abs((x-0.5) * 2.0)
 
-        curvature = self.foliage_lower_curv
-        if invert:
-            self.foliage_upper_curv
-
+        curvature = self.foliage_upper_curv if invert else self.foliage_lower_curv
         y = pow((1.0 - pow(x , curvature)), 1.0 / curvature)
         if invert:
-            y = -y
+            y *= -1
         return y
 
-    def generate_foliage_profile(self, sample_count=16) -> list[tuple[float, float]]:
+    def generate_foliage_profile(self) -> list[tuple[float, float]]:
         radius = self.foliage_radius
-        height = self.foliage_height
-        offset = self.foliage_offset
+        height = self.foliage_height 
+        offset = self.foliage_offset + self.trunk_offset
 
         profile:list[tuple[float, float]] = []
-        for i in range(1, sample_count-1):
+        for i in range(1, int(self.sample_count)-1):
             profile.append([
-                radius * abs(self.sample_point((i - 1) / (sample_count - 1))),
-                height * ((i - 1) / (sample_count - 1)) + offset
+                radius * abs(self.sample_point((i - 1) / (int(self.sample_count) - 1))),
+                height * ((i - 1) / (int(self.sample_count) - 1)) + offset
             ])
 
         profile.append([0.0, offset + height])
@@ -183,7 +197,7 @@ class TreeAsset:
         drawer.seperator()
         drawer.vertical_divider()
 
-        self.canvas = drawer.tree_preview()
+        self._canvas = drawer.tree_preview()
         self.redraw_canvas()
         # Canvas is oriented so that 0,0 is the top left corner
         # self.canvas.create_oval(5, 5, 100, 100, fill= UIColors.blue.fill)
@@ -191,8 +205,8 @@ class TreeAsset:
         # print(foliage)
 
     def redraw_canvas(self):
-        for item in self.canvas_items:
-            self.canvas.delete(item)
+        for item in self._canvas_items:
+            self._canvas.delete(item)
 
         def mirror_x(pt) -> tuple[float,float]:
             return pt[0]*-1, pt[1]
@@ -202,37 +216,58 @@ class TreeAsset:
             x += TREE_PREVIEW_SIZE[0] * 0.5
             y *= -1
             y += TREE_PREVIEW_SIZE[1]
+            y -= ground_offset
             return x,y
 
         trunk_verts = self.generate_trunk_profile()
         trunk_verts += [mirror_x(v) for v in reversed(trunk_verts)]
         trunk_verts = [offset(v) for v in trunk_verts]
 
+        line_width = 1
+        antialias = 0.5
         for id in range(0, len(trunk_verts) - 1):
-            line = self.canvas.create_line(
+            self._canvas_items.append(self._canvas.create_line(
                 *trunk_verts[id],
                 *trunk_verts[id+1],
-                width=3,
+                width=line_width,
                 fill='#654321'
-            )
-            self.canvas_items.append(line)
+            ))
+            # antialias line needs color multiplication with background
+            # self.canvas_items.append(self.canvas.create_line(
+            #     *trunk_verts[id],
+            #     *trunk_verts[id+1],
+            #     width=line_width + antialias,
+            #     fill='#654321'
+            # ))
 
 
-        foliage_verts = self.generate_foliage_profile(sample_count=32)
+        foliage_verts = self.generate_foliage_profile()
         foliage_verts += [mirror_x(v) for v in reversed(foliage_verts)]
         foliage_verts = [offset(v) for v in foliage_verts]
-
         for id in range(0, len(foliage_verts) - 1):
-            line = self.canvas.create_line(
+            self._canvas_items.append(self._canvas.create_line(
                 *foliage_verts[id],
                 *foliage_verts[id+1],
-                width=3,
+                width=line_width,
                 fill=UIColors.green.path
-            )
-            self.canvas_items.append(line)
+            ))
+            # self.canvas_items.append(self.canvas.create_line(
+            #     *foliage_verts[id],
+            #     *foliage_verts[id+1],
+            #     width=line_width + antialias,
+            #     fill=UIColors.green.path
+            # ))
+
+        '''Draw flat ground plane'''
+        self._canvas_items.append(self._canvas.create_line(
+            (0.0, TREE_PREVIEW_SIZE[1] - ground_offset),
+            (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - ground_offset),
+            width=line_width,
+            fill='#000'
+        ))
 
     def on_deselect(self):
-        for item in self.canvas_items:
-            self.canvas.delete(item)
+        for item in self._canvas_items:
+            self._canvas.delete(item)
         
-        self.canvas = None
+        self._canvas = None
