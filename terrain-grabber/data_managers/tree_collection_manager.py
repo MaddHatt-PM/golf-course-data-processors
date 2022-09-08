@@ -100,7 +100,7 @@ class TreeCollectionManager:
         self.canvas_ids.clear()
 
         for tree in self.trees:
-            pos = tree.position_x, tree.position_y
+            pos = tree.transform_position_x, tree.transform_position_y
             pos = util.norm_pt_to_pixel_space(pos)
 
             half_length = 2.0 # pixels
@@ -135,7 +135,7 @@ class TreeCollectionManager:
 
         tree_pos_list = []
         for tree in self.trees:
-            result = "{}, {}".format(tree.position_x, tree.position_y)
+            result = "{}, {}".format(tree.transform_position_x, tree.transform_position_y)
             tree_pos_list.append(result)
 
         selector_frame = Frame(inspector, padx=0, pady=0)

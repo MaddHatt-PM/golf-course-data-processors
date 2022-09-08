@@ -1,6 +1,6 @@
-is_dirty,trunk_radius,trunk_height,trunk_offset,trunk_lower_taper,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_lower_curv,foliage_midpoint,foliage_upper_curv,sample_count,position_x,position_y
-True,5.0,125.0,-10.0,0.2,0.6,80.0,120.0,40.0,2.0,0.5,5.0,64,0.5,0.5
-False,1.0,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,32,0.5,0.5
-False,1.0,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,32,0.5,0.5
-False,1.0,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,32,0.5,0.5
-False,1.0,2.0,0.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,32,0.5,0.5
+is_dirty,orig_midpoint,trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_lower_curv,foliage_midpoint,foliage_upper_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
+True,90.0,8.0,125.0,-10.0,0.9,80.0,120.0,40.0,2.0,0.5,0.5,0.5,0.5,0.0,0.0,32
+False,20,1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32
+False,20,1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32
+False,20,1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32
+False,20,1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32

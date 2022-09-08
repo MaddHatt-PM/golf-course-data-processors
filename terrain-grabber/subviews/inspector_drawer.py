@@ -1,7 +1,7 @@
-from ast import arg
+from typing import Callable
 from functools import partial
 import tkinter as tk
-from tkinter import BooleanVar, Button, Canvas, DoubleVar, Frame, StringVar, Tk
+from tkinter import BooleanVar, Button, Canvas, DoubleVar, Frame, StringVar, Tk, Variable
 from tkinter import ttk
 
 from .toggle import Toggle
@@ -162,8 +162,18 @@ class InspectorDrawer:
         self.items.append(dropdown)
         return dropdown
 
-    def button_group(self):
-        pass
+    def button_group(self, str_commands:list[tuple[str, Callable]]=None):
+        subframe = Frame(self.frame, padx=0, pady=0)
+        self.items.append(subframe)
+
+        for id, combo in enumerate(str_commands):
+            (text, command) = combo
+            button = ttk.Button(subframe, text=text, command=command)
+            button.grid(row=0, column=id, sticky='EW')
+            subframe.columnconfigure(id, weight=1)
+        
+        subframe.pack(fill='x')
+        return subframe
 
     def tree_preview(self):
         canvas = Canvas(self.frame, width=TREE_PREVIEW_SIZE[0], height=TREE_PREVIEW_SIZE[1])
