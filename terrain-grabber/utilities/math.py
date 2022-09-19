@@ -1,3 +1,6 @@
+from math import cos, sin
+
+
 def clamp01(value) -> float:
     return max(min(value, 1.0), 0.0)
 
@@ -9,3 +12,19 @@ def meter_to_feet(m:float) -> float:
 
 def feet_to_meter(f:float) -> float:
     return f * 0.3048
+
+def remap(val, in_min, in_max, out_min, out_max) -> float:
+    return out_min + (val - in_min) * (out_max - out_min) / (in_max - in_min)
+
+def rotate_from_2d_point(x, y, theta) -> tuple:
+    rot_mat = [
+        [cos(theta), -sin(theta)],
+        [sin(theta), cos(theta)]
+    ]
+
+    output = (
+        x * rot_mat[0][0] + x * rot_mat[0][1],
+        y * rot_mat[1][0] + y * rot_mat[1][1],
+    )
+
+    return output
