@@ -14,7 +14,7 @@ from asset_project import LocationPaths
 from subviews import InspectorDrawer
 from subviews.inspector_drawer import TREE_PREVIEW_SIZE
 from utilities import SpaceTransformer, UIColors
-from utilities.math import clamp01
+from utilities.math import clamp01, remap
 from utilities import UIColors
 
 taper_minmax = 0.0, 1.0
@@ -24,7 +24,7 @@ ground_offset = 50.0
 class TreeAsset:
     def __init__(self, header:str="", data:str="", position_x=0.5, position_y=0.5) -> None:
         self.is_dirty = False
-        self.orig_midpoint = 20
+        self.slider_vars
 
         self.trunk_radius = 1.0
         self.trunk_height = 2.0
@@ -150,7 +150,7 @@ class TreeAsset:
         output = output.removesuffix(',')
         return output
 
-    def sample_point(self, value01):
+    def sample_foliage_point(self, value01):
         '''
         Input values are clamped to 01 space.
         Input values are shifted to their corresponding curve (lower or upper)
@@ -174,19 +174,33 @@ class TreeAsset:
         samples = self.rendering_samples * 2 + 1
         for i in range(1, int(samples)-1):
             profile.append([
-                radius * abs(self.sample_point((i - 1) / (int(samples) - 1))),
+                radius * abs(self.sample_foliage_point((i - 1) / (int(samples) - 1))),
                 height * ((i - 1) / (int(samples) - 1)) + offset
             ])
 
         profile.append([0.0, offset + height])
 
-        def remap(pt):
+        def apply_midpoint_warp(pt):
             (x,y) = pt
-            self.orig_midpoint = offset + height * 0.5
-            # print(orig_midpoint)
+            midpoint = offset + height * 0.5
+            if (y < midpoint):
+                y = remap(
+                    val=y,
+                    in_min=offset,
+                    in_max=midpoint,
+                    out_min=offset,
+                    out_max=midpoint * self.foliage_midpoint)
+            else:
+                y = remap(
+                    val=y,
+                    in_min=midpoint,
+                    in_max=offset + height,
+                    out_min=midpoint * self.foliage_midpoint,
+                    out_max=offset + height)
+                    
             return (x,y)
 
-        profile = [remap(pt) for pt in profile]
+        profile = [apply_midpoint_warp(pt) for pt in profile]
         return profile
 
     def generate_trunk_profile(self) -> list[tuple[float, float]]:
@@ -307,19 +321,19 @@ class TreeAsset:
             # ))
 
         '''Draw foliage mid line'''
-        self._canvas_items.append(self._canvas.create_line(
-            (0.0, TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
-            (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
-            width=line_width,
-            fill='#AAA'
-        ))
+        # self._canvas_items.append(self._canvas.create_line(
+        #     (0.0, TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
+        #     (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
+        #     width=line_width,
+        #     fill='#AAA'
+        # ))
 
         '''Draw flat ground plane'''
         self._canvas_items.append(self._canvas.create_line(
             (0.0, TREE_PREVIEW_SIZE[1] - ground_offset),
             (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - ground_offset),
             width=line_width,
-            fill='#000'
+            fill='#AAA'
         ))
 
     def on_deselect(self):
