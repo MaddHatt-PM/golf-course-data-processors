@@ -9,13 +9,11 @@ from time import sleep
 import tkinter as tk
 from tkinter import Canvas, DoubleVar, Frame, IntVar, StringVar
 from tkinter import ttk
-
 from asset_project import LocationPaths
 from subviews import InspectorDrawer
 from subviews.inspector_drawer import TREE_PREVIEW_SIZE
 from utilities import SpaceTransformer, UIColors
-from utilities.math import clamp01, remap
-from utilities import UIColors
+from utilities.math import clamp01, remap, rotate_from_2d_point
 
 taper_minmax = 0.0, 1.0
 curvature_range = 0.5, 15.0
@@ -24,7 +22,7 @@ ground_offset = 50.0
 class TreeAsset:
     def __init__(self, header:str="", data:str="", position_x=0.5, position_y=0.5) -> None:
         self.is_dirty = False
-        self.slider_vars
+        self.slider_vars = []
 
         self.trunk_radius = 1.0
         self.trunk_height = 2.0
@@ -281,9 +279,15 @@ class TreeAsset:
             y -= ground_offset
             return x,y
 
+        origin = (
+            TREE_PREVIEW_SIZE[0] * 0.5, # X
+            TREE_PREVIEW_SIZE[1] - ground_offset, # Y
+        )
+
         trunk_verts = self.generate_trunk_profile()
-        trunk_verts += [mirror_x(v) for v in reversed(trunk_verts)]
-        trunk_verts = [offset(v) for v in trunk_verts]
+        trunk_verts += [mirror_x(pt) for pt in reversed(trunk_verts)]
+        trunk_verts = [offset(pt) for pt in trunk_verts]
+        trunk_verts = [rotate_from_2d_point(*pt, *origin, self.transform_rotation_tilt) for pt in trunk_verts]
 
         line_width = 1
         antialias = 0.5
@@ -306,6 +310,8 @@ class TreeAsset:
         foliage_verts = self.generate_foliage_profile()
         foliage_verts += [mirror_x(v) for v in reversed(foliage_verts)]
         foliage_verts = [offset(v) for v in foliage_verts]
+        foliage_verts = [rotate_from_2d_point(*pt, *origin, self.transform_rotation_tilt) for pt in foliage_verts]
+        
         for id in range(0, len(foliage_verts) - 1):
             self._canvas_items.append(self._canvas.create_line(
                 *foliage_verts[id],
