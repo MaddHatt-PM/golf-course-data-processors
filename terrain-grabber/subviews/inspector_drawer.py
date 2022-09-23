@@ -95,14 +95,20 @@ class InspectorDrawer:
         subframe.pack(fill='x')
         self.items.append(subframe)
 
-        label = tk.Label(subframe, text=label_text, padx=6)
-        subframe.grid_columnconfigure(0, weight=1)
+        label = tk.Label(subframe, text=label_text, padx=0)
+        subframe.grid_columnconfigure(0, weight=5)
         label.grid(row=0, column=0, sticky='w')
         self.items.append(label)
 
-        slider = ttk.Scale(subframe, orient='horizontal', length=145, from_=from_, to=to, variable=tkVar)
-        slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
+        slider = ttk.Scale(subframe, orient='horizontal', length=80, from_=from_, to=to, variable=tkVar)
+        slider.grid(row=0, column=1, columnspan=1, sticky="NSEW")
+        subframe.grid_columnconfigure(1, weight=5)
         self.items.append(slider)
+
+        entry = ttk.Entry(subframe, textvariable=tkVar, validate='key')
+        entry.grid(row=0, column=2)
+        # subframe.grid_columnconfigure(2, weight=1)
+        self.items.append(entry)
 
         return slider
 

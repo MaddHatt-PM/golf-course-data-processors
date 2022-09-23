@@ -22,12 +22,10 @@ ground_offset = 50.0
 class TreeAsset:
     def __init__(self, header:str="", data:str="", position_x=0.5, position_y=0.5) -> None:
         self.is_dirty = False
-        self.slider_vars = []
 
         self.trunk_radius = 1.0
         self.trunk_height = 2.0
         self.trunk_offset = 0.0
-        # self.trunk_lower_taper = 0.0
         self.trunk_upper_taper = 0.0
 
         self.foliage_radius = 2.5
@@ -52,13 +50,26 @@ class TreeAsset:
         self.__positioningVars:dict[str, any] = {}
         self.__renderingVars:dict[str, any] = {}
 
+        
+        self.__slider_vars = {
+            # var-name: min, max
+            "trunk_upper_taper": (0.0, 1.0),
+            "foliage_lower_curv": (0.005, 5.0),
+            "foliage_midpoint": (0.0, 5.0),
+            "foliage_upper_curv": (0.005, 2.0),
+            "transform_rotation_tilt": (-90.0, 90.0),
+            "transform_rotation_spin": (0.0, 360.0),
+            # "rendering_samples": (8, 64)
+        }
+
         if header != "" and data != "":
             variables = zip(header.split(','), data.split(','))
             for itemset in variables:
                 if itemset[0] in self.__dict__:
                     self.__setattr__(itemset[0], eval(itemset[1]))
                 else:
-                    print("TreeAsset: {} not in __init__ variables".format(itemset[0]))
+                    # print("TreeAsset: {} not in __init__ variables".format(itemset[0]))
+                    pass
 
     def sync_variable(self, key:str, tkVar, *args, **kwargs):
         try:
@@ -232,11 +243,22 @@ class TreeAsset:
 
         def key_to_labeled_entry(key, dictionary):
             cleaned_name = key.replace('_', ' ').capitalize()
-            drawer.labeled_entry(
-                label_text=cleaned_name,
-                entry_variable=dictionary[key],
-                pady=1
+
+            if key in self.__slider_vars.keys():
+                
+                drawer.labeled_slider(
+                    label_text=cleaned_name,
+                    tkVar=dictionary[key],
+                    from_=self.__slider_vars[key][0],
+                    to=self.__slider_vars[key][1]
                 )
+            
+            else:
+                drawer.labeled_entry(
+                    label_text=cleaned_name,
+                    entry_variable=dictionary[key],
+                    pady=1
+                    )
 
         for key in self.__trunkVars:
             key_to_labeled_entry(key, self.__trunkVars)
