@@ -3,16 +3,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-from tkinter import filedialog, commondialog
+from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
-import numpy as np
-from asset_area import AreaAsset
-
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 from utilities import CornerID, CornerID_to_name
 
-def export_data(target:ProjectAsset, testMode=False, corner:CornerID=CornerID.SW, convert_to_feet=True) -> list[Path]:
+def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.SW, convert_to_feet=True) -> list[Path]:
     outputdir = filedialog.askdirectory(
         title='Select directory for export',
         mustexist=True,
@@ -174,7 +171,7 @@ def export_data(target:ProjectAsset, testMode=False, corner:CornerID=CornerID.SW
     return [item[1] for item in copyfiles]
 
 if __name__ == '__main__':
-    target = ProjectAsset('AshevilleClub')
+    target = LocationPaths('AshevilleClub')
     filepaths = export_data(target, testMode=True)
 
     if(input('Press \'y\' key to delete: ') == 'y'):

@@ -6,7 +6,7 @@ MONTHLY_CAP = 200.0
 
 # ------------------------------------------------------------ #
 # --- File IO ------------------------------------------------ #
-storage_str = "AppAssets/api_tracker.json"
+storage_str = "resources/api_tracker.json"
 storage_path = Path(storage_str)
 
 def __load_storage(path=None) -> dict[str, int]:
@@ -30,7 +30,7 @@ def __load_storage(path=None) -> dict[str, int]:
             creation_timestamp = storage_path.stat().st_ctime
             creation_date = datetime.fromtimestamp(creation_timestamp)
             archive_str = storage_str
-            archive_str = archive_str.replace("AppAssets", "AppAssets/Archives")
+            archive_str = archive_str.replace("resources", "resources/Archives")
 
             month = str(creation_date.month).zfill(2)
             year = str(creation_date.year)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     storage:dict[str, int] = dict([a, int(x)] for a,x in storage_raw.items())
 
-    test_path = Path("AppAssets/api_tracker_test.json")
+    test_path = Path("resources/api_tracker_test.json")
     __save_storage(storage, path=test_path)
 
     print("[1] Fake_serv_0: {}".format(get_api_count("fake_serv_0", test_path)))

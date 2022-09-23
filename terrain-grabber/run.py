@@ -15,12 +15,11 @@ import sys
 import tkinter as tk
 from tkinter.messagebox import showerror 
 
-from api_keys import read_env
-from view_config_apis_window import ConfigAPIsWindow
+from APIs.keys import read_env
 from view_main_window import MainWindow
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 
-import view_welcome
+from views import show_welcome, show_api_config
 
 # '''Ensure that'''
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -28,23 +27,23 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 '''Attempt to load dot file'''
 apis = read_env()
 if len(apis) == 0:
-    ConfigAPIsWindow(isMainWindow=True)
+    show_api_config(isMainWindow=True)
 
     '''Give the user another chance for API'''
     apis = read_env()
     if (len(apis) == 0):
-        print('No APIS Given. Terminating program.')
+        print('No APIs Given. Terminating program.')
         sys.exit()
 
 if len(sys.argv) == 1:
     target=None
-    view_welcome.show_welcome()
+    show_welcome()
 
 else:
     '''User specified a location to load'''
-    if sys.argv[1] not in os.listdir('./SavedAreas'):
+    if sys.argv[1] not in os.listdir('../SavedAreas'):
         showerror(title='Terrain Grabber - Error',message='"{}" does not exist in the SavedAreas directory.\nTerrain Grabber will now exit.'.format(sys.argv[1]))
         sys.exit()
 
-    target=ProjectAsset(savename=sys.argv[1])
-    MainWindow(target).show()
+    target=LocationPaths(savename=sys.argv[1])
+    MainWindow(target)

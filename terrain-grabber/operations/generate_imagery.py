@@ -1,17 +1,12 @@
-from math import pi
 from pathlib import Path
-import sys
-from time import sleep
 from tkinter.messagebox import showwarning
-from PIL import Image, ImageOps
+from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
-import matplotlib
-import api_keys as keys
-from asset_area import ProjectAsset
+from asset_area import LocationPaths
 
-def generate_imagery(target: ProjectAsset, levels:int=50):
+def generate_imagery(target: LocationPaths, levels:int=50):
     with target.coordinates_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')

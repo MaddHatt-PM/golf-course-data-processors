@@ -1,14 +1,15 @@
-from ast import arg
+from typing import Callable
 from functools import partial
 import tkinter as tk
-from tkinter import BooleanVar, Button, DoubleVar, Frame, StringVar, Tk
+from tkinter import BooleanVar, Button, Canvas, DoubleVar, Frame, StringVar, Tk, Variable
 from tkinter import ttk
-from turtle import width
 
-from ui_toggle import Toggle
+from .toggle import Toggle
+from utilities import UIColors
 
+TREE_PREVIEW_SIZE = 250,250*1.618
 
-class inspector_drawers:
+class InspectorDrawer:
     '''
     Abstraction of tkinter to streamline and manage inspector drawing.
     Intended for rapid UI destroying and creation with inspector panels.
@@ -94,14 +95,20 @@ class inspector_drawers:
         subframe.pack(fill='x')
         self.items.append(subframe)
 
-        label = tk.Label(subframe, text=label_text, padx=6)
-        subframe.grid_columnconfigure(0, weight=1)
+        label = tk.Label(subframe, text=label_text, padx=0)
+        subframe.grid_columnconfigure(0, weight=5)
         label.grid(row=0, column=0, sticky='w')
         self.items.append(label)
 
-        slider = ttk.Scale(subframe, orient='horizontal', length=145, from_=from_, to=to, variable=tkVar)
-        slider.grid(row=0, column=1, columnspan=2, sticky="NSEW")
+        slider = ttk.Scale(subframe, orient='horizontal', length=80, from_=from_, to=to, variable=tkVar)
+        slider.grid(row=0, column=1, columnspan=1, sticky="NSEW")
+        subframe.grid_columnconfigure(1, weight=5)
         self.items.append(slider)
+
+        entry = ttk.Entry(subframe, textvariable=tkVar, validate='key')
+        entry.grid(row=0, column=2)
+        # subframe.grid_columnconfigure(2, weight=1)
+        self.items.append(entry)
 
         return slider
 
@@ -160,3 +167,24 @@ class inspector_drawers:
 
         self.items.append(dropdown)
         return dropdown
+
+    def button_group(self, str_commands:list[tuple[str, Callable]]=None):
+        subframe = Frame(self.frame, padx=0, pady=0)
+        self.items.append(subframe)
+
+        for id, combo in enumerate(str_commands):
+            (text, command) = combo
+            button = ttk.Button(subframe, text=text, command=command)
+            button.grid(row=0, column=id, sticky='EW')
+            subframe.columnconfigure(id, weight=1)
+        
+        subframe.pack(fill='x')
+        return subframe
+
+    def tree_preview(self):
+        canvas = Canvas(self.frame, width=TREE_PREVIEW_SIZE[0], height=TREE_PREVIEW_SIZE[1])
+        self.items.append(canvas)
+
+        canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
+        canvas.pack()
+        return canvas

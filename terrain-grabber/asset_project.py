@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import List, Tuple
 
-class ProjectAsset:
-
+class LocationPaths:
     def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None, apis=None):
         self.savename:str = savename
 
-        basePath = "SavedAreas/" + savename + "/" 
+        basePath = "../SavedAreas/" + savename + "/" 
         self.basePath:Path = Path(basePath)
         self.basePath.mkdir(parents=True, exist_ok=True)
 

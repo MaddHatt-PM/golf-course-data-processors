@@ -10,32 +10,25 @@ Tasklist:
     - [StatusBar] Figure out how to redraw a label to display info, preferably without a direct reference
 '''
 
-from dataclasses import dataclass
-from functools import partial
 import os
+import sys
 import random
 import string
-import time
-import sys
-import tkinter as tk
-from tkinter import BooleanVar, DoubleVar, StringVar, Variable, ttk
-from tkinter import Button, Canvas, Entry, Frame, Label, Menu, PhotoImage, Tk
 from pathlib import Path
-from PIL import Image, ImageTk
+from functools import partial
 
-from asset_area import AreaAsset, create_area_file_with_data
-from asset_project import ProjectAsset
-from asset_trees import TreeCollectionAsset
-from util_export import export_data
-from utilities import SpaceTransformer, ToolMode
-from ui_inspector_drawer import inspector_drawers
-from data_downloader import services, download_imagery
-from utilities import CoordMode, UIColors, restart_with_new_target
-from view_api_usage_window import create_api_usage_window
-from view_create_area import create_area_view
-from view_create_location import CreateLocationView
-from view_import_prompt import create_import_window
+from PIL import Image, ImageTk
+import tkinter as tk
+from tkinter import Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
 from tkinter.messagebox import askyesnocancel
+
+from asset_project import LocationPaths
+from data_managers import TreeCollectionManager
+from asset_area import AreaAsset, create_area_file_with_data
+from operations import export_data, restart_with_location
+from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
+from views import show_api_usage, show_create_area, show_create_location, show_import_path_as_area
+from subviews import InspectorDrawer
 
 class ViewSettings():
     def __init__(self) -> None:
@@ -51,23 +44,24 @@ class ViewSettings():
         self.sampleDist_map_toggle = BooleanVar(value=False, name='Sample Dist Map Toggle')
         self.sampleDist_map_opacity = DoubleVar(value=False, name='Sample Dist Map Opacity')
 
-class MainWindow:
-    def __init__(self, target:ProjectAsset):
-        self.target:ProjectAsset = target
+        self.status_text = tk.StringVar()
+        self.status_text.set("")
 
+class MainWindow:
+    def __init__(self, target:LocationPaths):
+        self.target:LocationPaths = target
         if target is None:
             return
 
         self.root = tk.Tk()
-        self.prefsPath = Path("AppAssets/prefs.windowprefs")
+        self.view_settings = ViewSettings()
+
         self.zoom = 1.0
         self.mouse_pos = (-100, -100)
-        self.status_text = tk.StringVar()
-        self.status_text.set("")
         self.toolmode = ToolMode.area
+        self.is_dirty = False
 
-        self.canvas:Canvas = None
-        self.container = None
+        # Prepare image references
         self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
         self.image_base:Image = self.image_raw
         self.image_pi:PhotoImage = None
@@ -84,25 +78,59 @@ class MainWindow:
         if target.sampleDistributionImg_path.exists():
             self.sample_dist_raw = Image.open(target.sampleDistributionImg_path).convert('RGBA')
 
-        self.active_area = None
-        self.is_dirty = False
-
-        self.view_settings = ViewSettings()
-
-        filenames = os.listdir(target.basePath)
+        # Prepare references to areas
         self.areas:list[AreaAsset] = []
+        filenames = os.listdir(target.basePath)
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
                 self.areas.append(AreaAsset(area_name, self.target, self.view_settings))
+
         self.area_names:list[str] = [x.name for x in self.areas]
+        self.active_area = None
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
             self.active_area.select()
 
-        self.tree_manager = TreeCollectionAsset(self.target)
+        self.tree_manager = TreeCollectionManager(self.target)
 
-        
+        # Setup skeleton of UI
+        self.root.title(self.target.savename + " - Terrain Viewer")
+        self.root.minsize(width=500, height=400)
+        self.root.iconbitmap(False, str(Path("resources/icon.ico")))
+        self.root.config(bg=UIColors.canvas_col)
+        self.root.config(menu=self.setup_menubar(self.root))
+
+        INSPECTOR_WIDTH = 260
+        self.root.grid_columnconfigure(2, minsize=INSPECTOR_WIDTH)
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=5)
+
+        # UI Drawing
+        self.canvas:Canvas = None
+        self.canvas_container = None
+        self.setup_viewport()
+        self.setup_statusbar()
+        self.setup_inspector()
+
+        # Read pref file for window geometry
+        self.prefsPath = Path("resources/prefs.windowprefs")
+        if self.prefsPath.is_file():
+            with open(str(self.prefsPath), 'r') as pref_file:
+                prefs = pref_file.read().splitlines()
+
+                self.root.geometry(prefs[0])
+                self.root.state(prefs[1])
+
+        # Blanks
+        Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
+        Frame(self.root, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
+
+        # Seperators for visual clarity
+        Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
+        Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
+
+        # Attach callbacks
         def redraw_canvas_on_change(*args):
             for area in self.areas:
                 area.draw_to_canvas()
@@ -112,72 +140,19 @@ class MainWindow:
 
         self.view_settings.fill_only_active_area.trace_add('write', redraw_canvas_on_change)
         self.view_settings.show_controls.trace_add('write', redraw_inspector_on_change)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+        # Launch GUI
+        self.root.mainloop()
+        
 
     # -------------------------------------------------------------- #
-    # --- New Area UI ---------------------------------------------- #
-    def new_location_popup(self, isMainWindow:bool=False):
-        '''
-        UI for downloading new areas.
-        Popup is designated as the rootUI when no loaded_asset is present
-        '''
-        if isMainWindow == True:
-            popup = self.root
-        else:
-            popup=tk.Toplevel()
-            popup.grab_set()
-            popup.focus_force()
+    # --- Event Handling ------------------------------------------- #
+    def print_test(self, *args, **kwargs):
+        '''Dummy function for quick testing'''
+        print("test")
 
-        popup.resizable(False, False)
-        self.filename = tk.StringVar()
-        self.p0 = tk.StringVar()
-        self.p1 = tk.StringVar()
-
-        Label(popup, text="Enter two coordinates").grid(row=0)
-        Label(popup, text="Via Google Maps, right click on a map to copy coordinates").grid(row=1, padx=20)
-
-        prompts_f = Frame(popup)
-        prompts_f.grid(row=2)
-
-        Label(prompts_f, text="Area Name").grid(sticky='w', row=0, column=0)
-        Entry(prompts_f, textvariable=self.filename).grid(row=0, column=1)
-
-        Label(prompts_f, text="Coordinate NW").grid(sticky='w', row=1, column=0)
-        Entry(prompts_f, textvariable=self.p0).grid(row=1, column=1)
-
-        Label(prompts_f, text="Coordinate SE").grid(sticky='w', row=2, column=0)
-        Entry(prompts_f, textvariable=self.p1, ).grid(row=2, column=1)
-
-        buttons_f = Frame(popup)
-        buttons_f.grid(row=3)
-        cancel_btn = Button(buttons_f, text="Cancel", command=popup.destroy, width=20)
-        cancel_btn.grid(row=0, column=0, sticky="nswe", pady=10)
-
-        enter_btn = Button(buttons_f,
-                           text="Enter",
-                        #    state=self.validate_enter_btn(filename=filename, pt_a=pt_a, pt_b=pt_b),
-                           command=self.execute_download_btn,
-                           width=20)
-
-        enter_btn.grid(row=0, column=1, sticky="nswe", pady=10)
-
-    
-    def execute_download_btn(self):
-        '''Setup download environment, pull data via API, then reload program'''
-        # Move to disabling the button state when I figure tkinter out callbacks
-        if self.validate_download_btn(self.filename, self.p0, self.p1) == tk.DISABLED:
-            print("disabled")
-            return
-
-        newArea = ProjectAsset(savename=self.filename.get().strip(), p0=eval(self.p0.get()), p1=eval(self.p1.get()))
-        print(str(newArea.coordinates()))
-        download_imagery(target=newArea, service=services.google_satelite)
-        
-        restart_with_new_target(newArea.savename)
-        
-    def restart_with_new_target(self, area_name:str):
-        self.root.destroy()
-        os.system("py run.py " + area_name)
-
+    # Gets called but no references due to circular import
     def create_new_area(self, name:str="", *args, **kwargs):
         if(kwargs.get('name', None) is not None):
             name = kwargs.get('name')
@@ -201,13 +176,6 @@ class MainWindow:
         self.select_area(area.name)
         self.setup_inspector()
         self.redraw_viewport()
-        
-
-    # -------------------------------------------------------------- #
-    # --- Event Handling ------------------------------------------- #
-    def print_test(self, *args, **kwargs):
-        '''Dummy function for quick testing'''
-        print("test")
 
     def handle_left_click(self, event:tk.Event):
         if self.active_area is not None:
@@ -240,11 +208,8 @@ class MainWindow:
 
         earth_coords = self.canvasUtil.pixel_pt_to_earth_space(self.mouse_pos)
         text += ("Earth Position: lat={}, lon={}").format(earth_coords[0], earth_coords[1])
-
-        # text += spacer
-        # text += ("canvas offset: x={}, y={}").format(self.canvas.canvasx(0), self.canvas.canvasy(0))
         
-        self.status_text.set(text)
+        self.view_settings.status_text.set(text)
         
     def check_for_changes(self):
         if self.is_dirty:
@@ -252,6 +217,11 @@ class MainWindow:
 
         for area in self.areas:
             if area.is_dirty:
+                self.is_dirty = True
+                break
+
+        for tree in self.tree_manager.trees:
+            if tree.is_dirty:
                 self.is_dirty = True
                 break
         
@@ -264,6 +234,8 @@ class MainWindow:
         for area in self.areas:
             area.save_data_to_files()
             area._save_settings()
+        
+        self.tree_manager.save_data_to_files()
         
         self.is_dirty = False
         self.root.title(self.target.savename + ' - Terrain Viewer')
@@ -282,10 +254,7 @@ class MainWindow:
             prefs.write("\n")
             prefs.write(self.root.state())
 
-        print('root.destroy about to be called')
         self.root.destroy()
-
-        print('sys.exit about to be called')
         sys.exit(0)
 
     # -------------------------------------------------------------- #
@@ -301,7 +270,7 @@ class MainWindow:
         self.redraw_viewport()
     
     def redraw_viewport(self):
-        img_box = self.canvas.bbox(self.container)
+        img_box = self.canvas.bbox(self.canvas_container)
         canvas_box = (self.canvas.canvasx(0), 
                       self.canvas.canvasy(0),
                       self.canvas.canvasx(self.canvas.winfo_width()),
@@ -330,15 +299,14 @@ class MainWindow:
 
         '''FILE menu'''
         filemenu = Menu(menubar, tearoff=0)
-        closure = partial(CreateLocationView().show)
-        filemenu.add_command(label="New Location", command=CreateLocationView().show)
+        filemenu.add_command(label="New Location", command=show_create_location)
 
         open_menu = Menu(filemenu, tearoff=0)
-        directories = os.listdir('SavedAreas/')
+        directories = os.listdir('../SavedAreas/')
 
         # partial() is used here to 'bake' dir into a new function
         # otherwise command would always use the last value of dir
-        def open_new_location(root, dir):
+        def prompt_for_restart(root, location):
             if self.is_dirty:
                 result = askyesnocancel(title="Save changes", message='There are unsaved changes\nDo you want to save?')
                 if result is None:
@@ -346,10 +314,10 @@ class MainWindow:
                 elif result is True:
                     self.save_all()
 
-            restart_with_new_target(root, dir)
+            restart_with_location(root, location)
 
         for dir in directories:
-            closure = partial(open_new_location, self.root, dir)
+            closure = partial(prompt_for_restart, self.root, dir)
             open_menu.add_command(label=dir, command=closure)
 
         def prep_export():
@@ -358,16 +326,15 @@ class MainWindow:
             export_data(self.target)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
-
         filemenu.add_command(label="Save", command=self.save_all)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
         filemenu.add_command(label="Export", command=prep_export)
-        filemenu.add_command(label="Check API Usage", command=create_api_usage_window)
+        filemenu.add_command(label="Check API Usage", command=show_api_usage)
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
         
-        closure = partial(create_import_window, self)
+        closure = partial(show_import_path_as_area, self)
         filemenu.add_command(label="Create import window", command=closure)
         menubar.add_cascade(label="File", menu=filemenu)
 
@@ -410,7 +377,8 @@ class MainWindow:
         inspector.grid(row=0, column=2, sticky="nswe")
         # inspector.configure(width=45)
 
-        drawer = self.drawer = inspector_drawers(inspector)
+        drawer = InspectorDrawer(inspector)
+        self.drawer = drawer
 
         '''Functionality Switcher'''
         mode_frame = Frame(inspector, padx=0, pady=0)
@@ -478,7 +446,7 @@ class MainWindow:
 
             area_selector_frame = Frame(inspector, padx=0, pady=0)
             if len(self.areas) == 0:
-                closure = partial(create_area_view, self, self.areas, False, self.root)
+                closure = partial(show_create_area, self, self.areas, False, self.root)
                 add_area = ttk.Button(area_selector_frame, text='Create new area', command=closure)
                 add_area.pack()
                 area_selector_frame.pack(fill="x", anchor="n", expand=False)
@@ -497,7 +465,7 @@ class MainWindow:
                 self.area_selector = dropdown
 
                 if available_areas:
-                    closure = partial(create_area_view, self, self.areas, False, self.root)
+                    closure = partial(show_create_area, self, self.areas, False, self.root)
                     add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
                     add_area.grid(row=0, column=3)
                     
@@ -593,8 +561,7 @@ class MainWindow:
         if self.active_area is not None:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
-
-        self.container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
+        self.canvas_container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
@@ -615,15 +582,13 @@ class MainWindow:
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.active_area.draw_to_inspector(self.drawer)
         self.active_area.draw_to_canvas()
-        
-        
 
     def setup_statusbar(self):
         frame = Frame(self.root, bg=UIColors.ui_bgm_col)
         frame.grid(row=2, column= 0, sticky="nswe")
 
         # Coordinates
-        status = tk.Label(frame, textvariable=self.status_text, bg=UIColors.ui_bgm_col, fg="white")
+        status = tk.Label(frame, textvariable=self.view_settings.status_text, bg=UIColors.ui_bgm_col, fg="white")
         status.pack(anchor="w", side=tk.LEFT)
 
         spacer = tk.Label(frame, text='', bg=UIColors.ui_bgm_col)
@@ -640,63 +605,3 @@ class MainWindow:
         zoom_out.pack(side=tk.LEFT, padx=4)
         zoom_percentage.pack(side=tk.LEFT)
         zoom_in.pack(side=tk.LEFT, padx=0)
-
-        # seperator = tk.Frame(frame, bg='#424242', width=1, bd=0)
-        # seperator.pack(anchor='w', side=tk.LEFT, fill='y')
-
-        # View mode selector
-        # view_modes = {}
-        # view_modes['Google Satelite'] = None
-        # view_modes['Google Elevation'] = None
-
-        # view_mode_dropdown = ttk.Combobox(frame)
-        # view_mode_dropdown['values'] = list(view_modes.keys())
-        # view_mode_dropdown['state'] = 'readonly'
-        # view_mode_dropdown.current(0)
-        # view_mode_dropdown.pack(anchor='w', side=tk.LEFT, padx=4)
-        
-
-    def setup_blanks(self):
-        Frame(self.root, padx=0,pady=0).grid(row=1, column=2, sticky="nswe")
-        Frame(self.root, padx=0,pady=0).grid(row=2, column=2, sticky="nswe")
-
-
-    # -------------------------------------------------------------- #
-    # --- Root-UI Drawing ------------------------------------------ #
-    def show(self):
-        if (self.target == None):
-            self.root = CreateLocationView().show(isMainWindow=True)
-            self.root.title("None selected")
-            return self.root
-
-        INSPECTOR_WIDTH = 260
-
-        self.root.title(self.target.savename + " - Terrain Viewer")
-        self.root.minsize(width=500, height=400)
-        self.root.iconbitmap(False, str(Path("AppAssets/icon.ico")))
-        self.root.config(bg=UIColors.canvas_col)
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(0, weight=5)
-        self.root.grid_columnconfigure(2, minsize=INSPECTOR_WIDTH)
-        self.root.config(menu=self.setup_menubar(self.root))
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-
-        # Read pref file for window geometry
-        if self.prefsPath.is_file():
-            with open(str(self.prefsPath), 'r') as pref_file:
-                prefs = pref_file.read().splitlines()
-
-                self.root.geometry(prefs[0])
-                self.root.state(prefs[1])
-
-        # UI Drawing
-        self.setup_viewport()
-        self.setup_statusbar()
-        self.setup_inspector()
-        self.setup_blanks()
-
-        # Seperators for visual clarity
-        Frame(self.root, bg="grey2").grid(row=0, column=1, sticky="nswe")
-        Frame(self.root, bg="grey2").grid(row=1, column=0, sticky="nswe")
-
-        self.root.mainloop()

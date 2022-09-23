@@ -8,27 +8,20 @@ import math
 import cv2
 import numpy as np
 import requests
-import api_usage_tracker
-import api_keys as keys
 from copy import copy
 from time import sleep
 from pathlib import Path
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 # from asset_area import AreaAsset
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-from google_maps_api import SatelliteInterface as gmap_si
+from APIs import keys, usage_tracker
+from APIs.google_maps_api import SatelliteInterface as gmap_si
+
 from geographiclib.geodesic import Geodesic
 from geographiclib.geodesicline import GeodesicLine
-from util_elevation_imagery import generate_imagery
-
-
-class service:
-    def __init__(self, name:str, sku_cost:float, key:str) -> None:
-        self.name = name
-        self.sku_cost = sku_cost
-        self.key = key
+from operations.generate_imagery import generate_imagery
 
 class services:
     google_satelite = "google_satelite"
@@ -44,7 +37,7 @@ def pil_to_cv(pil_image):
 
 # -------------------------------------------------------------- #
 # --- Imagery functions ---------------------------------------- #
-def __via_google_satelite(target:ProjectAsset, p0:tuple[float, float], p1:tuple[float, float]) -> Path:
+def __via_google_satelite(target:LocationPaths, p0:tuple[float, float], p1:tuple[float, float]) -> Path:
     grabber = gmap_si(keys.google_maps())
     result = grabber.get_maps_image(p0, p1, zoom=19)
     image_ct = grabber.get_image_count(p0, p1, zoom=19)
@@ -52,19 +45,19 @@ def __via_google_satelite(target:ProjectAsset, p0:tuple[float, float], p1:tuple[
     resultCv = pil_to_cv(result)
     cv2.imwrite(filename=str(target.sateliteImg_path), img=resultCv)
 
-    api_usage_tracker.add_api_count(services.google_satelite, image_ct)
+    usage_tracker.add_api_count(services.google_satelite, image_ct)
     print("{} Images downloaded".format(image_ct))
 
     return target.sateliteImg_path
 
-def download_imagery(target:ProjectAsset, service:str) -> Path:
+def download_imagery(target:LocationPaths, service:str) -> Path:
     '''Pull data from specified service'''
     if service == services.google_satelite:
         return __via_google_satelite(target, *target.coordinates())
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
-def download_elevation_for_location(target:ProjectAsset, service:services, sample_dist=5) -> Path:
+def download_elevation_for_location(target:LocationPaths, service:services, sample_dist=5) -> Path:
     '''
     Sample the entire location with points sample_dist meters apart.
     '''
@@ -76,13 +69,14 @@ def download_elevation_for_location(target:ProjectAsset, service:services, sampl
     points = get_points(*coords, dist=sample_dist, boundry_pts=None)
     return __via_google_elevation(target, points, target.elevationCSV_path)
 
-def download_elevation_for_area(target:ProjectAsset, area:"AreaAsset", service: services) -> Path:
+
+def download_elevation_for_area(target:LocationPaths, area:"AreaAsset", service: services) -> Path: # type: ignore
     pass
 
-def download_elevation_for_points(target:ProjectAsset) -> Path:
+def download_elevation_for_points(target:LocationPaths) -> Path:
     pass
 
-def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float]], service:services, sample_dist=5, output_path:Path=None, sample_inside_polygon=True) -> Path:
+def download_elevation(target:LocationPaths, points:tuple[list[float], list[float]], service:services, sample_dist=5, output_path:Path=None, sample_inside_polygon=True) -> Path:
     '''
     Remove in the future as there's starting to be too many parameters.
     Instead use download_elevation_for_location(), download_elevation_for_area(), download_elevation_for_points()
@@ -95,7 +89,7 @@ def download_elevation(target:ProjectAsset, points:tuple[list[float], list[float
     if service is services.google_elevation:
         return __via_google_elevation(target, points, output_path)
 
-def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Path:
+def __via_google_elevation(target:LocationPaths, points, output_path:Path) -> Path:
     '''
     - Google Documentation: https://developers.google.com/maps/documentation/elevation/start#maps_http_elevation_locations-py
     - Submit a single request using https://stackoverflow.com/questions/29418423/how-to-use-an-array-of-coordinates-with-google-elevation-api
@@ -184,10 +178,10 @@ def __via_google_elevation(target:ProjectAsset, points, output_path:Path) -> Pat
         outfile.write(output)
 
     print("Generating imagery (may take some time)...")
-    generate_imagery(target)
+    generate_imagery (target)
     print("Completed imagery generation")
 
-    api_usage_tracker.add_api_count(services.google_elevation, len(urls))
+    usage_tracker.add_api_count(services.google_elevation, len(urls))
     return output_path
 
 def get_points(p0, p1, dist=5, boundry_pts=None):

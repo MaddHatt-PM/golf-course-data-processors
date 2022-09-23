@@ -1,8 +1,8 @@
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 from pathlib import Path
 import csv
 
-def convert_csv_to_area(in_path:Path, asset:ProjectAsset=None) -> Path:
+def convert_csv_to_area(in_path:Path, asset:LocationPaths=None) -> Path:
     if in_path.exists() is False and in_path.is_file() is False:
         raise Exception("Error from trying to retrieve file at: {}".format(str(in_path)))
 
@@ -64,7 +64,8 @@ def calculate_bounds_from_csv(path:Path):
 
     return (N,W,S,E)
 
-test_file = Path("ExternalData\CountryClubAsheville-WalkingData.csv")
-outpath = convert_csv_to_area(test_file)
-bounds = calculate_bounds_from_csv(outpath)
-print("\n{},{}\n{},{}".format(*bounds))
+if __name__ == '__main__':
+    test_file = Path("ExternalData\CountryClubAsheville-WalkingData.csv")
+    outpath = convert_csv_to_area(test_file)
+    bounds = calculate_bounds_from_csv(outpath)
+    print("\n{},{}\n{},{}".format(*bounds))

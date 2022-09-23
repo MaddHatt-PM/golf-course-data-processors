@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter.ttk import Button, Entry, Label, Progressbar
-from api_usage_tracker import MONTHLY_CAP, add_api_count, compute_cost
+from tkinter.ttk import Button, Label, Progressbar
+from APIs.usage_tracker import MONTHLY_CAP, add_api_count, compute_cost
 
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 from datetime import datetime
 
-def create_api_usage_window(requestCost:dict[str, int]=None, command=None, isMainWindow=False):
+def show_api_usage(requestCost:dict[str, int]=None, command=None, isMainWindow=False):
     if isMainWindow:
         popup = tk.Tk()
     else:
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         for key in budget_amt.keys():
             add_api_count(key, budget_amt[key] * -1)
 
-    create_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
+    show_api_usage(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
 
     '''Underbudget example'''
     budget_amt = { "google_elevation": 1 }
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         for key in budget_amt.keys():
             add_api_count(key, budget_amt[key] * -1)
 
-    create_api_usage_window(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
+    show_api_usage(requestCost=budget_amt, isMainWindow=True, command=onclick_overbudget)
 
     '''Current status example'''
-    create_api_usage_window(isMainWindow=True)
+    show_api_usage(isMainWindow=True)

@@ -1,87 +1,11 @@
-import os, sys
-from enum import Enum
-from tkinter import Canvas, Image, Tk
+from .enums import CoordMode
+from tkinter import Canvas, Image
 from geographiclib.geodesic import Geodesic
 
-from asset_project import ProjectAsset
+from asset_project import LocationPaths
 
-class ColorSet:
-    def __init__(self, path:str, fill:str) -> None:
-        self.path = path
-        self.fill = fill
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, ColorSet):
-            return NotImplemented
-            
-        return self.path == other.path and self.fill == other.fill
-
-class UIColors:
-    # Colors: https://materialui.co/colors/
-    canvas_col:str = "#212121"
-    ui_bgm_col:str = "#424242" 
-
-    red = ColorSet(path="#EF5350", fill="#B71C1C")
-    pink = ColorSet(path="#EC407A", fill="#880E4F")
-    purple = ColorSet(path="#AB47BC", fill="#4A148C")
-    indigo = ColorSet(path="#5C6BC0", fill="#1A237E")
-    blue = ColorSet(path="#42A5F5", fill="#0D47A1")
-    cyan = ColorSet(path="#26C6DA", fill="#006064")
-    teal = ColorSet(path="#26A69A", fill="#004D40")
-    green = ColorSet(path="#7CB342", fill="#66BB6A")
-    orange = ColorSet(path="#FFA726", fill="#FF6F00")
-    brown = ColorSet(path="#A1887F", fill="#4E342E")
-
-    colors = [
-        red,
-        pink,
-        purple,
-        indigo,
-        blue,
-        cyan,
-        teal,
-        green,
-        orange,
-        brown
-    ]
-
-    names = [
-        "red",
-        "pink",
-        "purple",
-        "indigo",
-        "blue",
-        "cyan",
-        "teal",
-        "green",
-        "orange",
-        "brown"
-    ]
-
-class CoordMode(Enum):
-    normalized = 0,
-    pixel = 1,
-    earth = 2
-
-class ToolMode(Enum):
-    area = 0,
-    tree = 1,
-    overlays = 2
-
-class CornerID(Enum):
-    NW = 0,
-    NE = 1,
-    SE = 2,
-    SW = 3,
-
-def CornerID_to_name(corner: CornerID):
-    if corner is CornerID.NW: return 'NW'
-    if corner is CornerID.NE: return 'NE'
-    if corner is CornerID.SE: return 'SE'
-    if corner is CornerID.SW: return 'SW'
-    
 class SpaceTransformer:
-    def __init__(self, canvasRef: Canvas, target:ProjectAsset, image_resized:Image):
+    def __init__(self, canvasRef: Canvas, target:LocationPaths, image_resized:Image):
         self.canvasRef = canvasRef
         self.target = target
         self.image_resized = image_resized
@@ -175,20 +99,3 @@ class SpaceTransformer:
         elif mode is CoordMode.pixel:
             pt0 = self.pixel_pt_to_earth_space(pt0)
             pt1 = self.pixel_pt_to_earth_space(pt1)
-
-def restart_with_new_target(root:Tk, area_name:str):
-    root.destroy()
-    os.system("py run.py " + area_name)
-    sys.exit()
-
-def clamp01(value) -> float:
-    return max(min(value, 1.0), 0.0)
-
-def clamp(value, min_value, max_value) -> float:
-    return max(min(value, max_value), min_value)
-
-def meter_to_feet(m:float) -> float:
-    return m / 0.3048
-
-def feet_to_meter(f:float) -> float:
-    return f * 0.3048
