@@ -1,8 +1,9 @@
 import numpy as np
 import cv2 as cv
+from cv2 import Mat
 
 
-def draw_crosshair(x, y, img):
+def crosshair(img: Mat, x, y) -> Mat:
 
     """White Outline"""
     img = cv.drawMarker(
@@ -31,3 +32,23 @@ def draw_crosshair(x, y, img):
     )
 
     return img
+
+
+def inverted_rectangle(img: Mat, x0, y0, x1, y1, color: tuple, opacity) -> Mat:
+    output = np.zeros_like(img, dtype=np.uint8)
+    output[:, :, -1] = 255
+    if x0 > x1:
+        x0, x1 = x1, x0
+
+    if y0 > y1:
+        y0, y1 = y1, y0
+
+    x0 = int(x0)
+    y0 = int(y0)
+    x1 = int(x1)
+    y1 = int(y1)
+
+    output[y0:y1, x0:x1] = img[y0:y1, x0:x1]
+    cv.addWeighted(img, opacity, output, 1 - opacity, 0, output)
+
+    return output

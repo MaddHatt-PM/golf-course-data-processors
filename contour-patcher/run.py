@@ -7,7 +7,7 @@ from controls_handler import ControlsHandler
 from utilities import process_sys_args
 from utilities.image_utils import zoom, crop
 from utilities.window_utils import does_window_exist
-from utilities.canvas_drawers import draw_crosshair
+from utilities.canvas_drawers import crosshair, inverted_rectangle
 
 selfpath = os.path.abspath(__file__)
 selfdir = os.path.dirname(selfpath)
@@ -49,7 +49,16 @@ def rerender():
     if ctrl_mode in crosshair_modes:
         for pos in click_positions:
             x, y = pos[0] * zoom_level, pos[1] * zoom_level
-            viewport_img = draw_crosshair(x, y, viewport_img)
+            viewport_img = crosshair(viewport_img, x, y)
+
+        if len(click_positions) == 2:
+            viewport_img = inverted_rectangle(
+                viewport_img,
+                *click_positions[-1],
+                *click_positions[-2],
+                (0, 0, 255),
+                0.5,
+            )
 
     cv.imshow(win_title, viewport_img)
 
@@ -64,12 +73,19 @@ def onclick(event, x, y, flags, param):
                 click_positions.pop(0)
             rerender()
 
+        right_click = 2
+        if event == right_click:
+            if len(click_positions) != 0:
+                click_positions.pop()
+                rerender()
+
 
 cv.setMouseCallback(win_title, onclick)
 controls_win = ControlsHandler(win_title)
 
 while does_window_exist(win_title):
     action = cv.waitKey(0)
+    print(action)
 
     """Reset Zoom"""
     if action == ord("0"):
@@ -114,14 +130,16 @@ while does_window_exist(win_title):
 
     if ctrl_mode == modes.M_CROP:
         """Crop"""
-        if action == ord("\n") or action == ord("c"):
+        ENTER = 13
+        if action == ENTER or action == ord("c"):
             if len(click_positions) >= 2:
-                bgr_img = crop(
-                    bgr_img,
-                    *click_positions[-1],
-                    *click_positions[-2],
-                    zoom_level,
-                )
+                for img in list(base_imgs.keys()):
+                    base_imgs[img] = crop(
+                        base_imgs[img],
+                        *click_positions[-1],
+                        *click_positions[-2],
+                        zoom_level,
+                    )
 
                 zoom_level = 1.0
                 click_positions.clear()
