@@ -60,7 +60,11 @@ class controls:
             "[-] Zoom Out",
             toggle_viewmode,
             "",
-            "[left-click] select color",
+            "[left-click] Select color",
+            "[w] Dilate selection",
+            "[s] Erode selection",
+            "[enter] Accept color",
+            "[q] Exit Color Mask Mode",
         ]
 
         s.mode_controls = {

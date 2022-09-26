@@ -1,3 +1,4 @@
 {
-    "docwriter.hotkey.windows": "Alt + ."
+    "docwriter.hotkey.windows": "Alt + .",
+    "python.formatting.provider": "black"
 }

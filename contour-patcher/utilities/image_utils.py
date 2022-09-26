@@ -21,3 +21,11 @@ def crop(img: Mat, x0, y0, x1, y1, zoom_factor) -> Mat:
     y1 = int(y1)
 
     return img[y0:y1, x0:x1]
+
+
+def apply_zoom(x, y, zoom_level) -> tuple[float, float]:
+    return x * zoom_level, y * zoom_level
+
+
+def unapply_zoom(x, y, zoom_level) -> tuple[float, float]:
+    return x / zoom_level, y / zoom_level

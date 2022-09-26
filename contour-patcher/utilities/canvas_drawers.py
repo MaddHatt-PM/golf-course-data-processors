@@ -1,3 +1,4 @@
+from utilities.image_utils import crop
 import numpy as np
 import cv2 as cv
 from cv2 import Mat
@@ -34,7 +35,7 @@ def crosshair(img: Mat, x, y) -> Mat:
     return img
 
 
-def inverted_rectangle(img: Mat, x0, y0, x1, y1, color: tuple, opacity) -> Mat:
+def inverted_rectangle(img: Mat, x0, y0, x1, y1, zoom, color: tuple, opacity) -> Mat:
     output = np.zeros_like(img, dtype=np.uint8)
     output[:, :, -1] = 255
     if x0 > x1:
@@ -51,4 +52,24 @@ def inverted_rectangle(img: Mat, x0, y0, x1, y1, color: tuple, opacity) -> Mat:
     output[y0:y1, x0:x1] = img[y0:y1, x0:x1]
     cv.addWeighted(img, opacity, output, 1 - opacity, 0, output)
 
+    return output
+
+
+def make_checker_img(img: Mat) -> Mat:
+    output = img.copy()
+    light_color = (230, 230, 230)
+    dark_color = (215, 215, 215)
+    sqr_l = 10
+    tile_l = sqr_l * 2
+
+    pattern = np.zeros((tile_l, tile_l, 3), dtype=np.uint8)
+    pattern[:, :] = light_color
+    pattern[:sqr_l:, :sqr_l:] = dark_color
+    pattern[sqr_l:tile_l:, sqr_l:tile_l:] = dark_color
+
+    w, h, channels = output.shape
+    print(w, h)
+    pattern = np.tile(pattern, ((w // tile_l) + 1, (h // tile_l) + 1, 1))
+    output = crop(pattern, 0, 0, h, w, 1.0)
+    print(output.shape)
     return output

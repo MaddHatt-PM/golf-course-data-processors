@@ -19,11 +19,11 @@ def process_sys_args() -> tuple[Path, Path]:
         print("Invalid target path")
         sys.exit(0)
 
-    if len(sys.argv) < 3:
+    if len(sys.argv) == 3:
         try:
             outpath = Path(sys.argv[2])
         except:
-            print("Invalid output path")
+            print("Invalid output path:")
             sys.exit(0)
 
     else:
