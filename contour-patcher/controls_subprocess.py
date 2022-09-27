@@ -20,6 +20,7 @@ class controls:
             "",
             "[1] Switch to Crop Mode",
             "[2] Switch to Rotate Mode",
+            "[3] Switch to Color Masker",
             "",
             "[s] Save result",
             "[q] Quit",
@@ -52,24 +53,29 @@ class controls:
             "[q] Exit Rotate Mode",
         ]
 
-        s.color_mask_ctrls = [
+        s.flood_mask_ctrls = [
             "[0] Reset Zoom",
             "[+] Zoom In",
             "[-] Zoom Out",
             "[~] Toggle views",
             "",
             "[left-click] Select color",
-            "[w] Dilate selection",
-            "[s] Erode selection",
+            "[w] Dilate selections - Bugged",
+            "[s] Erode selections - Bugged",
+            "[a] Increase sensitivity by +5",
+            "[d] Increase sensitivity by -5",
+            "[backspace] Reject color",
             "[enter] Accept color",
             "[q] Exit Color Mask Mode",
         ]
+
+        s.world_mask_ctrls = []
 
         s.mode_controls = {
             modes.M_DEFAULT: s.main_ctrls,
             modes.M_CROP: s.crop_ctrls,
             modes.M_ROTATE: s.rotate_ctrls,
-            modes.M_COLOR_MASKER: s.color_mask_ctrls,
+            modes.M_FLOOD_MASKER: s.flood_mask_ctrls,
         }
         s.ui_items = []
 
