@@ -20,18 +20,25 @@ crosshair_modes = [modes.M_CROP]
 
 bgr_img = cv.imread(str(inpath), 1)
 hsv_img = cv.cvtColor(bgr_img, cv.COLOR_BGR2HSV)
+# mask_img: cv.Mat = cv.threshold(bgr_img[:, :, 2], 0, 255, cv.THRESH_BINARY)[1]
 mask_img = bgr_img.copy()
 mask_img.fill(255)
+mask_img = cv.rectangle(mask_img, (200, 200), (500, 600), 0, -1)
 
-checker = make_checker_img(bgr_img)
+combined_img = bgr_img.copy()
+combined_dirty = True
+
 
 base_imgs = {
     modes.VIEW_BGR: bgr_img,
     modes.VIEW_HSV: hsv_img,
-    modes.VIEW_MASK: checker,
+    modes.VIEW_MASK: mask_img,
+    modes.VIEW_COMBINED: combined_img,
 }
 
-util_imgs = {}
+util_imgs = {
+    modes.UTIL_CHECKER: make_checker_img(bgr_img),
+}
 
 view_mode = modes.VIEW_BGR
 viewport_img = bgr_img.copy()
@@ -40,16 +47,21 @@ zoom_level = 1.0
 
 win_title = "Input Image"
 cv.imshow(win_title, viewport_img)
+controls_win = ControlsHandler(win_title)
 
 click_positions = []
 click_pos_restrict = 100
 
-# cv.imshow(win_title, checker)
-# cv.waitKey(0)
-# sys.exit(0)
-
 
 def rerender():
+    global combined_dirty
+    if view_mode == modes.VIEW_COMBINED and combined_dirty is True:
+        print("happened")
+        combined_dirty = False
+        mask = base_imgs[modes.VIEW_MASK]
+        checker = util_imgs[modes.UTIL_CHECKER]
+        combined_img[np.where(mask == 0)] = checker[np.where(mask == 0)]
+
     viewport_img = base_imgs[view_mode]
     viewport_img = zoom(viewport_img, zoom_level)
 
@@ -89,7 +101,6 @@ def onclick(event, x, y, flags, param):
 
 
 cv.setMouseCallback(win_title, onclick)
-controls_win = ControlsHandler(win_title)
 
 while does_window_exist(win_title):
     action = cv.waitKey(0)
@@ -118,6 +129,20 @@ while does_window_exist(win_title):
         index = keys.index(view_mode)
         index = (1 + index) % len(base_imgs)
         view_mode = keys[index]
+
+        if view_mode == modes.VIEW_COMBINED:
+            pass
+            # if np.any(base_imgs[modes.VIEW_COMBINED], axis=3, ):
+            #     keys = list(base_imgs.keys())
+            #     index = keys.index(view_mode)
+            #     index = (1 + index) % len(base_imgs)
+            #     view_mode = keys[index]
+        rerender()
+
+    """Return to default view mode"""
+    ESC = 27
+    if action == ESC:
+        view_mode = modes.VIEW_BGR
         rerender()
 
     if ctrl_mode == modes.M_DEFAULT:
@@ -133,7 +158,11 @@ while does_window_exist(win_title):
 
         """Save result"""
         if action == ord("s"):
-            cv.imwrite(str(outpath), bgr_img)
+            result = base_imgs[modes.VIEW_BGR]
+            mask = cv.split(base_imgs[modes.VIEW_MASK])[0]
+            result = np.dstack((result, mask))
+
+            cv.imwrite(str(outpath), result)
             os.startfile(str(outpath.parent))
 
     if ctrl_mode == modes.M_CROP:
@@ -146,7 +175,6 @@ while does_window_exist(win_title):
                         base_imgs[img],
                         *apply_zoom(*click_positions[-1], zoom_level),
                         *apply_zoom(*click_positions[-2], zoom_level),
-                        zoom_level,
                     )
 
                 zoom_level = 1.0
@@ -175,7 +203,7 @@ while does_window_exist(win_title):
             bgr_img = cv.rotate(bgr_img, cv.ROTATE_90_COUNTERCLOCKWISE)
             rerender()
 
-    if ctrl_mode == modes.M_COLOR_MASK:
+    if ctrl_mode == modes.M_COLOR_MASKER:
         ENTER = 13
         """Dilate selection"""
         if action == ord("w"):

@@ -7,6 +7,7 @@ class ControlsHandler:
         s.mode = modes.M_DEFAULT
         s.controls_win: subprocess.Popen = None
         s.cv2_title = cv2_title
+        print("what")
         s.switch_to(s.mode)
 
     def switch_to(s, mode: str):

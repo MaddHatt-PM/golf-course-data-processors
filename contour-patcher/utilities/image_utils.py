@@ -8,7 +8,7 @@ def zoom(img: Mat, zoom_factor=1) -> Mat:
     )
 
 
-def crop(img: Mat, x0, y0, x1, y1, zoom_factor) -> Mat:
+def crop(img: Mat, x0, y0, x1, y1) -> Mat:
     if x0 > x1:
         x0, x1 = x1, x0
 

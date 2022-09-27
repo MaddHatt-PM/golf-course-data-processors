@@ -59,7 +59,7 @@ def make_checker_img(img: Mat) -> Mat:
     output = img.copy()
     light_color = (230, 230, 230)
     dark_color = (215, 215, 215)
-    sqr_l = 10
+    sqr_l = 8
     tile_l = sqr_l * 2
 
     pattern = np.zeros((tile_l, tile_l, 3), dtype=np.uint8)
@@ -68,8 +68,6 @@ def make_checker_img(img: Mat) -> Mat:
     pattern[sqr_l:tile_l:, sqr_l:tile_l:] = dark_color
 
     w, h, channels = output.shape
-    print(w, h)
     pattern = np.tile(pattern, ((w // tile_l) + 1, (h // tile_l) + 1, 1))
-    output = crop(pattern, 0, 0, h, w, 1.0)
-    print(output.shape)
+    output = crop(pattern, 0, 0, h, w)
     return output

@@ -12,13 +12,11 @@ class controls:
         s.root.geometry("250x300+0+0")
         s.root.attributes("-topmost", True)
 
-        toggle_viewmode = "[~] Toggle bgr/hsv/mask"
-
         s.main_ctrls = [
             "[0] Reset Zoom",
             "[+] Zoom In",
             "[-] Zoom Out",
-            toggle_viewmode,
+            "[~] Toggle views",
             "",
             "[1] Switch to Crop Mode",
             "[2] Switch to Rotate Mode",
@@ -31,7 +29,7 @@ class controls:
             "[0] Reset Zoom",
             "[+] Zoom In",
             "[-] Zoom Out",
-            toggle_viewmode,
+            "[~] Toggle views",
             "",
             "[left-click] Add new point",
             "[right-click] Remove last point",
@@ -44,7 +42,7 @@ class controls:
             "[0] Reset Zoom",
             "[+] Zoom In",
             "[-] Zoom Out",
-            toggle_viewmode,
+            "[~] Toggle views",
             "",
             "[w] Flip vertically",
             "[s] Flip horizontally",
@@ -58,7 +56,7 @@ class controls:
             "[0] Reset Zoom",
             "[+] Zoom In",
             "[-] Zoom Out",
-            toggle_viewmode,
+            "[~] Toggle views",
             "",
             "[left-click] Select color",
             "[w] Dilate selection",
@@ -71,7 +69,7 @@ class controls:
             modes.M_DEFAULT: s.main_ctrls,
             modes.M_CROP: s.crop_ctrls,
             modes.M_ROTATE: s.rotate_ctrls,
-            modes.M_COLOR_MASK: s.color_mask_ctrls,
+            modes.M_COLOR_MASKER: s.color_mask_ctrls,
         }
         s.ui_items = []
 
