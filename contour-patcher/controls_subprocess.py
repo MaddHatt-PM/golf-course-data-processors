@@ -64,6 +64,8 @@ class controls:
             "[s] Erode selections - Bugged",
             "[a] Increase sensitivity by +5",
             "[d] Increase sensitivity by -5",
+            "[a] Increase sensitivity by +1",
+            "[d] Increase sensitivity by -1",
             "[backspace] Reject color",
             "[enter] Accept color",
             "[q] Exit Color Mask Mode",

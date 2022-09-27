@@ -5,6 +5,7 @@ import numpy as np
 
 import modes
 from controls_handler import ControlsHandler
+from mask_history import MaskHistory
 from utilities import process_sys_args
 from utilities.image_utils import zoom, crop, apply_zoom, unapply_zoom
 from utilities.window_utils import does_window_exist
@@ -37,17 +38,38 @@ util_imgs = {
     modes.UTIL_CHECKER: make_checker_img(bgr_img),
 }
 
+history = MaskHistory()
+
 view_mode = modes.VIEW_BGR
 viewport_img = bgr_img.copy()
 ZOOM_MULTIPLIER = 1.25
 zoom_level = 1.0
 
-win_title = "Input Image"
+base_title = "Input Image"
+win_title = base_title
 cv.imshow(win_title, viewport_img)
 controls_win = ControlsHandler(win_title)
 
 click_positions = []
 click_pos_restrict = 100
+
+
+def updateWindowName():
+    """Bugged for now"""
+    return
+    global win_title
+
+    title = " - ".join(
+        [
+            base_title,
+            view_mode.capitalize(),
+            ctrl_mode.capitalize(),
+        ]
+    )
+
+    cv.setWindowTitle(win_title, title)
+    win_title = title
+    controls_win.changeWindowName(title)
 
 
 def rerender():
@@ -77,6 +99,8 @@ def rerender():
             )
 
     cv.imshow(win_title, viewport_img)
+    updateWindowName()
+    print(win_title)
 
 
 def onclick(event, x, y, flags, param):
@@ -98,14 +122,13 @@ def onclick(event, x, y, flags, param):
 
     if ctrl_mode in color_select_modes:
         """Floodfill documentation https://docs.opencv.org/2.4/modules/imgproc/doc/miscellaneous_transformations.html?highlight=floodfill"""
-        invert = event == right_click
         if event == left_click:
+            history.pushState(mat=base_imgs[modes.VIEW_MASK].copy())
+
             w, h, channels = base_imgs[view_mode].shape
-            print(w, h)
             mask = np.zeros((w + 2, h + 2), np.uint8)  # Add border
 
             sel_mode = view_mode
-            print(sel_mode)
             if sel_mode != modes.VIEW_BGR or sel_mode != modes.VIEW_HSV:
                 sel_mode = modes.VIEW_BGR
 
@@ -136,14 +159,14 @@ def onclick(event, x, y, flags, param):
             r = np.zeros((w, h, channels), np.uint8)
             r[:, :, 2] = 255
 
-            if invert:
-                pass
-            else:
-                base_imgs[modes.VIEW_MASK][np.where(mask == 255)] = r[
-                    np.where(mask == 255)
-                ]
+            base_imgs[modes.VIEW_MASK][np.where(mask == 255)] = r[np.where(mask == 255)]
 
             rerender()
+
+        if event == right_click:
+            if history.canPopState():
+                np.copyto(src=history.popState(), dst=base_imgs[modes.VIEW_MASK])
+                rerender()
 
 
 cv.setMouseCallback(win_title, onclick)
@@ -163,10 +186,12 @@ while does_window_exist(win_title):
             ctrl_mode = modes.M_ROTATE
             controls_win.switch_to(ctrl_mode)
 
-        """--> Rotate Mode"""
+        """--> Flood Masker Mode"""
         if action == ord("3"):
             ctrl_mode = modes.M_FLOOD_MASKER
             controls_win.switch_to(ctrl_mode)
+            view_mode = modes.VIEW_COMBINED
+            rerender()
 
         """Save result"""
         if action == ord("s"):
@@ -241,29 +266,31 @@ while does_window_exist(win_title):
 
             temp = base_imgs[modes.VIEW_MASK].copy()
             b, green, r = cv.split(temp)
-            # temp = cv.bitwise_not(temp)
             green = cv.bitwise_xor(green, r)
-            # cv.imshow("red", r)
-            # cv.imshow("green", green)
 
             green = cv.erode(green, kernal, iterations=1)
             green = cv.bitwise_not(green)
             cv.imshow("green", green)
             temp = cv.merge((b, green, r))
-            # temp = cv.bitwise_not(temp)
 
             base_imgs[modes.VIEW_MASK][:, :, :] = temp
             rerender()
 
-        """Increase sensitivity by -5"""
+        """Increase sensitivity by +5"""
         if action == ord("d"):
             color_sensitivity[0] += 5
-            print(color_sensitivity[0])
 
-        """Increase sensitivity by +5"""
+        """Increase sensitivity by -5"""
         if action == ord("a"):
             color_sensitivity[0] -= 5
-            print(color_sensitivity[0])
+
+        """Increase sensitivity by +1"""
+        if action == ord("z"):
+            color_sensitivity[0] += 1
+
+        """Increase sensitivity by -1"""
+        if action == ord("c"):
+            color_sensitivity[0] -= 1
 
         """Reject from mask"""
         BACKSPACE = 8
@@ -271,11 +298,11 @@ while does_window_exist(win_title):
             _, _, r = cv.split(base_imgs[modes.VIEW_MASK])
             base_imgs[modes.VIEW_MASK] = cv.merge((r, r, r))
             rerender()
-            print("cleared")
 
         """Apply to mask"""
         ENTER = 13
         if action == ENTER:
+
             b, g, _ = cv.split(base_imgs[modes.VIEW_MASK])
             b = cv.bitwise_or(b, g)
             base_imgs[modes.VIEW_MASK] = cv.merge((b, b, b))
@@ -305,13 +332,6 @@ while does_window_exist(win_title):
         index = (1 + index) % len(base_imgs)
         view_mode = keys[index]
 
-        if view_mode == modes.VIEW_COMBINED:
-            pass
-            # if np.any(base_imgs[modes.VIEW_COMBINED], axis=3, ):
-            #     keys = list(base_imgs.keys())
-            #     index = keys.index(view_mode)
-            #     index = (1 + index) % len(base_imgs)
-            #     view_mode = keys[index]
         rerender()
 
     """Return to default view mode"""
