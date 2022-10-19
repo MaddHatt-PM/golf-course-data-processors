@@ -98,7 +98,7 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
             eles[id]
         )
 
-    elev_convert_path = Path(base_elev_dir / "ElevationPoints_From{}".format(CornerID_to_name(corner).upper()))
+    elev_convert_path = Path(base_elev_dir / "ElevationPoints_From{}.csv".format(CornerID_to_name(corner).upper()))
     with elev_convert_path.open('w') as file:
         file.write(output)
 
