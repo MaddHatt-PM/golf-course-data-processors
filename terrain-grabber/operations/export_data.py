@@ -98,18 +98,23 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
             eles[id]
         )
 
+
     elev_convert_path = Path(base_elev_dir / "ElevationPoints_From{}.csv".format(CornerID_to_name(corner).upper()))
     with elev_convert_path.open('w') as file:
         file.write(output)
 
     '''Areas'''
     masks_areas_dir = outputdir / 'Areas' / 'Masks' 
-    raw_areas_dir = outputdir / 'Areas' / 'Raw' 
-    converted_areas_dir = outputdir / 'Areas' / 'Converted' 
+    norm_areas_dir = outputdir / 'Areas' / 'Normalized' 
+    raw_areas_dir = outputdir / 'Areas' / 'Raw'
+    converted_areas_dir = outputdir / 'Areas' / 'Converted_From_{}'.format(CornerID_to_name(corner).upper())
     
     masks_areas_dir.mkdir(exist_ok=True, parents=True)
+    norm_areas_dir.mkdir(exist_ok=True, parents=True)
     raw_areas_dir.mkdir(exist_ok=True, parents=True)
     converted_areas_dir.mkdir(exist_ok=True, parents=True)
+
+    x_maxOffset, y_maxOffset = max(xOffsets), max(yOffsets)
 
     filenames = os.listdir(target.basePath)
     for name in filenames:
@@ -119,7 +124,7 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
             '''Copy over raw lat/long'''
             raw_pts_file = file_prefix + '_area.csv'
             raw_pts_src = target.basePath / raw_pts_file
-            copyfiles.append((raw_pts_src, raw_areas_dir / (file_prefix + '_vertices_raw.csv')))
+            copyfiles.append((raw_pts_src, raw_areas_dir / (file_prefix + '_vertices.csv')))
 
             '''Reorient to new origin'''
             with raw_pts_src.open('r') as file:
@@ -129,8 +134,8 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
             xOffsets, yOffsets = [], []
             for ln in lines:
                 values = ln.split(',')
-                xOffsets.append(eval(values[1])) # Longitude
-                yOffsets.append(eval(values[0])) # Latitude
+                xOffsets.append(eval(values[0]))
+                yOffsets.append(eval(values[1]))
 
             if corner is CornerID.NW:
                 pass
@@ -142,13 +147,25 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
                 xOffsets = [abs(pt - 1.0) for pt in xOffsets]
                 yOffsets = [abs(pt - 1.0) for pt in yOffsets]
 
-            reoriented_file = converted_areas_dir / (file_prefix + '_vertices.csv')
-            with reoriented_file.open('w') as file:
-                file.write('x,y')
+            norm_file = norm_areas_dir / (file_prefix + '_vertices.csv')
+            with norm_file.open('w') as file:
+                file.write('x,y\n')
                 for id in range(len(xOffsets)):
                     file.write('{},{}\n'.format(
-                        xOffsets[id] * x_maxdist * 3.28084,
-                        yOffsets[id] * y_maxdist * 3.28084,
+                        xOffsets[id],
+                        yOffsets[id],
+                    ))
+
+            xOffsets = [abs(pt * x_maxOffset) for pt in xOffsets]
+            yOffsets = [abs(pt * y_maxOffset) for pt in yOffsets]
+
+            reoriented_file = converted_areas_dir / (file_prefix + '_vertices.csv')
+            with reoriented_file.open('w') as file:
+                file.write('x,y\n')
+                for id in range(len(xOffsets)):
+                    file.write('{},{}\n'.format(
+                        xOffsets[id],
+                        yOffsets[id],
                     ))
             
             '''Copy over mask files if they exist (they should be pre-generated)'''
