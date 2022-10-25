@@ -1,4 +1,4 @@
 {
     "docwriter.hotkey.windows": "Alt + .",
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "autopep8"
 }

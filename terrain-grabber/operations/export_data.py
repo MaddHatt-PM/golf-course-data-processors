@@ -188,7 +188,7 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
     return [item[1] for item in copyfiles]
 
 if __name__ == '__main__':
-    target = LocationPaths('AshevilleClub')
+    target = LocationPaths('DemoCourse')
     filepaths = export_data(target, testMode=True)
 
     if(input('Press \'y\' key to delete: ') == 'y'):
