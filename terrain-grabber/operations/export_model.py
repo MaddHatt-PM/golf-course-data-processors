@@ -84,7 +84,37 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
         '# vn: (x,y,z) vertex normal (typically between -1.0 to +1.0)'
     ]
 
-    '''FACES'''
+    '''FACES (as tris)'''
+    def count_repeats(iter:list[float]) -> int:
+        '''Only works on aligned grids'''
+        count = 1
+        target = iter[0]
+        threshold = 0.001
+        while count < len(iter):
+            if abs(target - iter[count]) <= threshold:
+                count += 1
+            else: break
+
+        return count
+
+    def count_until_reset(iter:list[float]) -> int:
+        count = 1
+        curr = iter[0]
+        threshold = 0.001
+        while count < (len(iter) - 1):
+            if curr < iter[count]:
+                curr = iter[count]
+                count += 1
+            else: break
+        
+        return count
+
+    vertCt_in_row = count_repeats(xOffsets)
+    vertCt_in_col = count_until_reset(yOffsets)
+    print(vertCt_in_row)
+    print(vertCt_in_col)
+
+
     faces = [
         '# f: (faceIndex, vertexIndex, uvIndex) faces in quad style'
     ]
@@ -95,6 +125,10 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
         texture_path = Path(outputdir) / "Model" / texture_file
         shutil.copy(input_texture, texture_path)
     
+    with obj_path.open('w') as file:
+        for section in output:
+            file.write('\n'.join(section))
+            file.write('\n')
 
     '''
     MTL -> Material Info File
