@@ -9,7 +9,7 @@ from tkinter.messagebox import askyesno
 from asset_project import LocationPaths
 from utilities import CornerID, CornerID_to_name
 
-def export_data(target:LocationPaths, testMode=False) -> list[Paths]:
+def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, scaler=1.0) -> list[Path]:
     outputdir = filedialog.askdirectory(
         title='Select directory for export',
         mustexist=True
@@ -18,15 +18,89 @@ def export_data(target:LocationPaths, testMode=False) -> list[Paths]:
     if outputdir == '':
         return
 
-    obj_path = Path(outputdir) / "Model" / (target.savename + ".obj")
-    mtl_path = Path(outputdir) / "Model" / (target.savename + ".mtl")
-    texture_file = Path(target.savename + "_diff.png")
-    texture_path = Path(outputdir) / "Model" / texture_file
+    '''
+    OBJ -> 3D Mesh file
+    Referenced through Blender 2.93.0 OBJ output
+    File Format Spec: https://en.wikipedia.org/wiki/Wavefront_.obj_file
+    File Format Spec: https://www.loc.gov/preservation/digital/formats/fdd/fdd000507.shtml
+    '''
+    obj_path = Path(outputdir) / (target.savename + "Data") / "Model"
+    if (obj_path.exists() == False):
+        obj_path.mkdir(parents=True, exist_ok=True)
     
+    obj_path = obj_path / (target.savename + ".obj")
+    output = []
+
+    '''HEADER'''
+    header = [
+        '# Terrain Grabber OBJ File: \'\'',
+        '# https://github.com/MaddHatt-PM/golf-course-data-processors',
+        'mtllib ' + target.savename + ".mtl",
+        'o Terrain' # Mesh name
+    ]
+    output.append(header)
+
+    '''VERTS'''
+    verts = [
+        '# v: (x,y,z) Vertices',
+    ]
+
+    xOffsets,yOffsets,elevs = [],[],[]
+    with target.elevationCSV_path.open('r') as file:
+        lines = file.read().splitlines()
+        headers = lines.pop(0).split(',')
+    
+    xOffsetID = headers.index('offset-x')
+    yOffsetID = headers.index('offset-y')
+    elevID = headers.index('elevation')
+
+    for ln in lines:
+        raw = ln.split(',')
+        pt = [eval(pt) for pt in raw]
+        xOffsets.append(pt[xOffsetID])
+        yOffsets.append(pt[yOffsetID])
+        elevs.append(pt[elevID])
+
+    minHeight = min(elevs)
+    xOffsets = [pt * scaler for pt in xOffsets]
+    yOffsets = [pt * scaler for pt in yOffsets]
+    elevs = [(pt - minHeight) * scaler for pt in elevs]
+    for i in range(len(xOffsets)):
+        verts.append('v {} {} {}'.format(
+            xOffsets[i],
+            yOffsets[i],
+            elevs[i]
+        ))
+
+    output.append(verts)
+
+    '''UVS'''
+    uvs = [
+        '# vt: (u, v) texture coordinates, also called UVs'
+    ]
+
+    '''NORMALS'''
+    normals = [
+        '# vn: (x,y,z) vertex normal (typically between -1.0 to +1.0)'
+    ]
+
+    '''FACES'''
+    faces = [
+        '# f: (faceIndex, vertexIndex, uvIndex) faces in quad style'
+    ]
+
+    '''TEXTURE'''
+    if (input_texture is not None):
+        texture_file = Path(target.savename + "_diff.png")
+        texture_path = Path(outputdir) / "Model" / texture_file
+        shutil.copy(input_texture, texture_path)
+    
+
     '''
     MTL -> Material Info File
     File Format Spec: https://www.loc.gov/preservation/digital/formats/fdd/fdd000508.shtml
     '''
+    mtl_path = Path(outputdir) / (target.savename + "Data") / "Model" / (target.savename + ".mtl")
     with mtl_path.open('w') as file:
         output = [
             '# Terrain Grabber File: \'None\'',
@@ -38,9 +112,14 @@ def export_data(target:LocationPaths, testMode=False) -> list[Paths]:
             'Kd 0.8 0.8 0.8', # Diffuse Color [0.0, 1.0]
             'Ks 0.8 0.8 0.8', # Specular Color [0.0, 1.0]
             'd 1', # Transparency [0.0,1.0]
-            'illum 2', # Illumination Mode
-            'map_kd ' + texture_file, # Diffuse Texture
+            'illum 2', # Shading Model
         ]
+        
+        if (input_texture is not None):
+            output.append('map_kd ' + texture_file) # Diffuse Texture
 
         file.write('\n'.join(output))
-        
+
+if __name__ == '__main__':
+    target = LocationPaths('DemoCourse')
+    export_model(target)

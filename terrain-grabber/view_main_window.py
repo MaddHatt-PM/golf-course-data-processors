@@ -25,7 +25,7 @@ from tkinter.messagebox import askyesnocancel
 from asset_project import LocationPaths
 from data_managers import TreeCollectionManager
 from asset_area import AreaAsset, create_area_file_with_data
-from operations import export_data, restart_with_location
+from operations import export_data, export_model, restart_with_location
 from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
 from views import show_api_usage, show_create_area, show_create_location, show_import_path_as_area
 from subviews import InspectorDrawer
@@ -320,16 +320,20 @@ class MainWindow:
             closure = partial(prompt_for_restart, self.root, dir)
             open_menu.add_command(label=dir, command=closure)
 
-        def prep_export():
+        def prep_data_export():
             for area in self.areas:
                 area.make_masks()
             export_data(self.target)
+
+        def prep_3D_model_export():
+            export_model(target=self.target)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
         filemenu.add_command(label="Save", command=self.save_all)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
-        filemenu.add_command(label="Export", command=prep_export)
+        filemenu.add_command(label="Export as files", command=prep_data_export)
+        filemenu.add_command(label="Export as 3D Model", command=prep_3D_model_export)
         filemenu.add_command(label="Check API Usage", command=show_api_usage)
         filemenu.add_separator()
         filemenu.add_command(label="Quit                   ", command=self.on_close)
