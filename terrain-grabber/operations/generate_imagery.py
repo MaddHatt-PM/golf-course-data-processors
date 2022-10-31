@@ -4,6 +4,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
+from scipy import ndimage
 from asset_area import LocationPaths
 
 def generate_imagery(target: LocationPaths, levels:int=50):
@@ -23,27 +24,33 @@ def generate_imagery(target: LocationPaths, levels:int=50):
     latID = headers.index('latitude')
     lonID = headers.index('longitude')
     eleID = headers.index('elevation')
-    x,y = [],[]
-    xy, z = [], []
+    xOffsetsID = headers.index('offset-x')
+    yOffsetsID = headers.index('offset-y')
+    xLats,yLongs, zEle = [], [], []
+    xOffsets, yOffsets = [], []
+    xyLatLongs = []
+
     for ln in lines:
         raw = ln.split(',')
         pt = [eval(pt) for pt in raw]
-        x.append(pt[lonID])
-        y.append(pt[latID])
-        xy.append((pt[lonID], pt[latID]))
-        z.append(pt[eleID])
+        xLats.append(pt[lonID])
+        yLongs.append(pt[latID])
+        xyLatLongs.append((pt[lonID], pt[latID]))
+        zEle.append(pt[eleID])
+        xOffsets.append(pt[xOffsetsID])
+        yOffsets.append(pt[yOffsetsID])
 
-    x = np.array(x)
-    y = np.array(y)
-    xy = np.array(xy)
-    z = np.array(z)
+    xLats = np.array(xLats)
+    yLongs = np.array(yLongs)
+    xyLatLongs = np.array(xyLatLongs)
+    zEle = np.array(zEle)
 
     range_x = [NW[1], SE[1]]
     range_y = [NW[0], SE[0]]
 
     grid_x,grid_y = np.mgrid[
-        min(range_x):max(range_x) :5000j,
-        min(range_y): max(range_y):5000j
+        min(range_x) : max(range_x) : 5000j,
+        min(range_y) : max(range_y) : 5000j
     ]
 
     def resize_to_satelite(img_path:Path):
@@ -52,26 +59,55 @@ def generate_imagery(target: LocationPaths, levels:int=50):
         img.save(img_path)
 
     '''Plot, crop, and save out sample distribution'''
-    # print(Image.open(target.sateliteImg_path).info['dpi'])
+    width, height = Image.open(target.sateliteImg_path).size
+    pointmap_alpha:np.ndarray = np.zeros((height, width, 1), dtype=bool)
+    minXOffset, maxXOffset = min(xOffsets), max(xOffsets)
+    minYOffset, maxYOffset = min(yOffsets), max(yOffsets)
+    for i in range(len(xOffsets)):
+        x = round((xOffsets[i]-minXOffset)/(maxXOffset-minXOffset), ndigits=6) * width
+        x = min(int(width - 1), max(0, int(x)))
 
-    height = NW[0] - SE[0]
-    width = SE[1] - NW[1]
-    multiplier = 10000
+        y = round((yOffsets[i]-minYOffset)/(maxYOffset-minYOffset), ndigits=6) * height
+        y = min(int(height - 1), max(0, int(y)))
+        
+        pointmap_alpha[y][x] = True
+
+    dil_iters = 2
+    dil_ref = np.array([
+        [False, True, False],
+        [True, True, True],
+        [False, True, False],
+    ], dtype=bool)
     
-    plt.figure(figsize= (width * multiplier, height * multiplier))
-    plt.plot(x, y, 'r.')
-    plt.axis('off')
-    plt.savefig(target.sampleDistributionImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
-    plt.clf()
+    pointmap_alpha = ndimage.binary_dilation(pointmap_alpha, iterations=dil_iters).astype(np.uint8)
+    pointmap_alpha *= 255
+    dist_image = np.zeros((height, width, 3), np.uint8)
+    dist_image[::] = (255, 0, 0)
+    dist_image = np.dstack((dist_image, pointmap_alpha))
 
-    img = Image.open(target.sampleDistributionImg_path)
-    img.crop(img.getbbox())
-    img.save(target.sampleDistributionImg_path)
+    dist_image = Image.fromarray(dist_image, mode="RGBA")
+    dist_image.save(target.sampleDistributionImg_path)
 
-    resize_to_satelite(target.sampleDistributionImg_path)
-    print("Point distribution generated")
+    # dilate all the points
+    
+    # plt.figure(figsize= (width, height))
+    # plt.plot(xLats, yLongs, 'r.')
+    # plt.axis('off')
+    # plt.savefig(target.sampleDistributionImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
+    # plt.clf()
+
+    # img = Image.open(target.sampleDistributionImg_path)
+    # img.crop(img.getbbox())
+    # img.save(target.sampleDistributionImg_path)
+
+    # resize_to_satelite(target.sampleDistributionImg_path)
+    # print("Point distribution generated")
 
     '''Save out gradient maps in all three interpolation methods'''
+    multiplier = 10000
+    width = (SE[1] - NW[1]) * multiplier
+    height = (NW[0] - SE[0]) * multiplier
+
     grad_configs = [
         ('nearest', target.elevationImg_nearest_path),
         ('linear', target.elevationImg_linear_path),
@@ -79,13 +115,13 @@ def generate_imagery(target: LocationPaths, levels:int=50):
 
     def plot_gradmap(config:tuple[str, str]):
         interpolation, filepath = config
-        height_data = griddata(xy, z, (grid_x, grid_y), method=interpolation)
+        height_data = griddata(xyLatLongs, zEle, (grid_x, grid_y), method=interpolation)
 
         plt.imshow(
             height_data,
             extent=(SE[1], NW[1], SE[0], NW[0]),
             origin='lower',
-            cmap='cubehelix')
+            cmap='gray')
 
         plt.axis('off')
         plt.savefig(filepath, bbox_inches='tight', pad_inches=0, transparent=True)
@@ -104,7 +140,7 @@ def generate_imagery(target: LocationPaths, levels:int=50):
 
     '''Save out contour map'''
     plt.clf()
-    plt.tricontour(x, y, z, levels=levels, cmap='inferno')
+    plt.tricontour(xLats, yLongs, zEle, levels=levels, cmap='inferno')
     plt.axis('off')
     plt.savefig(target.contourImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
     resize_to_satelite(target.contourImg_path)
