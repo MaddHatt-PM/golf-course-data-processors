@@ -489,10 +489,19 @@ class MainWindow:
         
         if self.view_settings.height_map_toggle.get() is True and self.height_raw is not None:
             self.image_base = Image.blend(self.image_base, self.height_raw, self.view_settings.height_map_opacity.get() / 100.0)
+            
         if self.view_settings.contour_map_toggle.get() is True and self.contour_raw is not None:
-            self.image_base = Image.blend(self.image_base, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
+            # self.image_base = Image.blend(self.image_base, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
+            clear = Image.new('RGBA', self.image_base.size)
+            contour_modified = Image.blend(clear, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
+            self.image_base = Image.alpha_composite(self.image_base, contour_modified)
+
         if self.view_settings.sampleDist_map_toggle.get() is True and self.sample_dist_raw is not None:
-            self.image_base = Image.blend(self.image_base, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
+            # self.image_base = Image.blend(self.image_base, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
+            clear = Image.new('RGBA', self.image_base.size)
+            sample_dist_modified = Image.blend(clear, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
+            self.image_base = Image.alpha_composite(self.image_base, sample_dist_modified)
+
         
         self.resize_viewport(0)
 
