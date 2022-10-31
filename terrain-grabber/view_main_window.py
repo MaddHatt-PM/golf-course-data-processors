@@ -326,7 +326,7 @@ class MainWindow:
             export_data(self.target)
 
         def prep_3D_model_export():
-            export_model(target=self.target)
+            export_model(target=self.target, input_texture=self.target.sateliteImg_path)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
         filemenu.add_command(label="Save", command=self.save_all)

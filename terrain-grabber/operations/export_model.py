@@ -9,6 +9,8 @@ from tkinter.messagebox import askyesno
 from asset_project import LocationPaths
 from utilities import CornerID, CornerID_to_name
 
+TERRAIN_MAT = "TerrainMat"
+
 def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, scaler=1.0) -> list[Path]:
     outputdir = filedialog.askdirectory(
         title='Select directory for export',
@@ -68,8 +70,8 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
     for i in range(len(xOffsets)):
         verts.append('v {} {} {}'.format(
             xOffsets[i],
+            elevs[i],
             yOffsets[i],
-            elevs[i]
         ))
 
     output.append(verts)
@@ -82,10 +84,12 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
     minYOffset, maxYOffset = min(yOffsets), max(yOffsets)
     for i in range(len(xOffsets)):
         uvs.append('vt {:.6f} {:.6f}'.format(
-            round((xOffsets[i]-minXOffset)/(maxXOffset-minXOffset), ndigits=6),
-            round((yOffsets[i]-minYOffset)/(maxYOffset-minYOffset), ndigits=6)
+            round(1- (xOffsets[i]-minXOffset)/(maxXOffset-minXOffset), ndigits=6),
+            round(1- (yOffsets[i]-minYOffset)/(maxYOffset-minYOffset), ndigits=6)
         ))
     output.append(uvs)
+
+    print(len(xOffsets))
 
     '''NORMALS'''
     normals = [
@@ -117,13 +121,15 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
             else: break
         return count
 
-    vertCt_in_row = count_repeats(xOffsets)
+    # vertCt_in_row = count_repeats(xOffsets)
     vertCt_in_col = count_until_reset(yOffsets)
-    print(vertCt_in_row)
-    print(vertCt_in_col)
+    vertCt_in_row = len(xOffsets) // vertCt_in_col
+    # vertCt_in_col = len(yOffsets) // vertCt_in_row
+    print(vertCt_in_row, xOffsets[5])
+    print(vertCt_in_col, yOffsets[5])
 
     faces = [
-        'usemtl None',
+        'usemtl ' + TERRAIN_MAT,
         's 1',
         '# Counterclockwise Winding Order',
         '# Indexing starts at 1'
@@ -132,22 +138,36 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
         '# f: (vertexIndex, uvIndex, uvIndex) faces in quad style',
     ]
 
-    for rowID in range(len(yOffsets) - 1):
-        for colID in range(len(xOffsets) - 1):
-            pt_tl = '{}/{}/{}'.format(rowID + colID*vertCt_in_col, rowID + colID*vertCt_in_col, 1)
-            pt_bl = '{}/{}/{}'.format(rowID + colID*vertCt_in_col, rowID + colID*vertCt_in_col, 1)
-            pt_tr = '{}/{}/{}'.format(rowID+1 + (colID+1)*vertCt_in_col, rowID+1 + (colID+1)*vertCt_in_col, 1)
-            pt_br = '{}/{}/{}'.format(rowID+1 + (colID+1)*vertCt_in_col, rowID+1 + (colID+1)*vertCt_in_col, 1)
+    for rowID in range(1, vertCt_in_row):
+        for colID in range(1, vertCt_in_col):
+            pt_tl = '{}/{}/{}'.format(
+                colID + (rowID-1)*vertCt_in_col,
+                colID + (rowID-1)*vertCt_in_col,
+                1)
+            pt_bl = '{}/{}/{}'.format(
+                colID+1 + (rowID-1)*vertCt_in_col, 
+                colID+1 + (rowID-1)*vertCt_in_col, 
+                1)
+            pt_tr = '{}/{}/{}'.format(
+                colID + rowID*vertCt_in_col,
+                colID + rowID*vertCt_in_col,
+                1)
+            pt_br = '{}/{}/{}'.format(
+                colID+1 + rowID*vertCt_in_col,
+                colID+1 + rowID*vertCt_in_col,
+                1)
 
             faces.append('f {} {} {}'.format(pt_tl, pt_bl, pt_br))
             faces.append('f {} {} {}'.format(pt_tl, pt_br, pt_tr))
+            # break
+        # break
 
     output.append(faces)
 
     '''TEXTURE'''
     if (input_texture is not None):
         texture_file = Path(target.savename + "_diff.png")
-        texture_path = Path(outputdir) / "Model" / texture_file
+        texture_path = Path(outputdir) / (target.savename + "Data") / "Model" / str(texture_file)
         shutil.copy(input_texture, texture_path)
     
     with obj_path.open('w') as file:
@@ -165,17 +185,17 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
             '# Terrain Grabber File: \'None\'',
             '# Material Count: 1',
             '',
-            'newmtl None',
-            'Ns 500', # Specular highlights  [0, 1000]
-            'Ka 0.8 0.8 0.8', # Ambient Color [0.0, 1.0]
-            'Kd 0.8 0.8 0.8', # Diffuse Color [0.0, 1.0]
-            'Ks 0.8 0.8 0.8', # Specular Color [0.0, 1.0]
-            'd 1', # Transparency [0.0,1.0]
+            'newmtl ' + TERRAIN_MAT,
+            'Ns 225.000000 ', # Specular highlights  [0, 1000]
+            'Ka 0.800000  0.800000  0.800000 ', # Ambient Color [0.0, 1.0]
+            'Kd 0.800000  0.800000  0.800000 ', # Diffuse Color [0.0, 1.0]
+            'Ks 0.055000  0.055000  0.055000 ', # Specular Color [0.0, 1.0]
+            'd 1.000000', # Transparency [0.0,1.0]
             'illum 2', # Shading Model
         ]
         
         if (input_texture is not None):
-            output.append('map_kd ' + texture_file) # Diffuse Texture
+            output.append('map_Kd ' + str(texture_file)) # Diffuse Texture
 
         file.write('\n'.join(output))
 
