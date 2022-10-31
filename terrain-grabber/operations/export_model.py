@@ -78,11 +78,21 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
     uvs = [
         '# vt: (u, v) texture coordinates, also called UVs'
     ]
+    minXOffset, maxXOffset = min(xOffsets), max(xOffsets)
+    minYOffset, maxYOffset = min(yOffsets), max(yOffsets)
+    for i in range(len(xOffsets)):
+        uvs.append('vt {:.6f} {:.6f}'.format(
+            round((xOffsets[i]-minXOffset)/(maxXOffset-minXOffset), ndigits=6),
+            round((yOffsets[i]-minYOffset)/(maxYOffset-minYOffset), ndigits=6)
+        ))
+    output.append(uvs)
 
     '''NORMALS'''
     normals = [
-        '# vn: (x,y,z) vertex normal (typically between -1.0 to +1.0)'
+        '# vn: (x,y,z) vertex normal (typically between -1.0 to +1.0)',
+        'vn 0.0000 1.0000 0.0000'
     ]
+    output.append(normals)
 
     '''FACES (as tris)'''
     def count_repeats(iter:list[float]) -> int:
@@ -94,7 +104,6 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
             if abs(target - iter[count]) <= threshold:
                 count += 1
             else: break
-
         return count
 
     def count_until_reset(iter:list[float]) -> int:
@@ -106,7 +115,6 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
                 curr = iter[count]
                 count += 1
             else: break
-        
         return count
 
     vertCt_in_row = count_repeats(xOffsets)
@@ -114,10 +122,27 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
     print(vertCt_in_row)
     print(vertCt_in_col)
 
-
     faces = [
-        '# f: (faceIndex, vertexIndex, uvIndex) faces in quad style'
+        'usemtl None',
+        's 1',
+        '# Counterclockwise Winding Order',
+        '# Indexing starts at 1'
+        '#   TriA: top-left bottom-left bottom-right',
+        '#   TriB: top-left bottom-right top-right',
+        '# f: (vertexIndex, uvIndex, uvIndex) faces in quad style',
     ]
+
+    for rowID in range(len(yOffsets) - 1):
+        for colID in range(len(xOffsets) - 1):
+            pt_tl = '{}/{}/{}'.format(rowID + colID*vertCt_in_col, rowID + colID*vertCt_in_col, 1)
+            pt_bl = '{}/{}/{}'.format(rowID + colID*vertCt_in_col, rowID + colID*vertCt_in_col, 1)
+            pt_tr = '{}/{}/{}'.format(rowID+1 + (colID+1)*vertCt_in_col, rowID+1 + (colID+1)*vertCt_in_col, 1)
+            pt_br = '{}/{}/{}'.format(rowID+1 + (colID+1)*vertCt_in_col, rowID+1 + (colID+1)*vertCt_in_col, 1)
+
+            faces.append('f {} {} {}'.format(pt_tl, pt_bl, pt_br))
+            faces.append('f {} {} {}'.format(pt_tl, pt_br, pt_tr))
+
+    output.append(faces)
 
     '''TEXTURE'''
     if (input_texture is not None):
