@@ -45,6 +45,7 @@ class TreeAsset:
         self._name = ""
         self._canvas:Canvas = None
         self._canvas_items = []
+        self.__tree_manager = None
         self.__trunkVars:dict[str, any] = {}
         self.__foliageVars:dict[str, any] = {}
         self.__positioningVars:dict[str, any] = {}
@@ -53,6 +54,8 @@ class TreeAsset:
         
         self.__slider_vars = {
             # var-name: min, max
+            "transform_position_x": (-0.1, 1.1),
+            "transform_position_y": (-0.1, 1.1),
             "trunk_upper_taper": (0.0, 1.0),
             "foliage_lower_curv": (0.005, 5.0),
             "foliage_midpoint": (0.0, 5.0),
@@ -74,6 +77,7 @@ class TreeAsset:
     def sync_variable(self, key:str, tkVar, *args, **kwargs):
         try:
             self.__dict__[key] = tkVar.get()
+            self.__tree_manager.draw_to_viewport()
         except:
             return
         
@@ -94,6 +98,7 @@ class TreeAsset:
         self.__foliageVars.clear()
         self.__positioningVars.clear()
         self.__renderingVars.clear()
+        self.__tree_manager = view_manager
 
         sel_text = "tree at {}, {}".format(self.transform_position_x, self.transform_position_y)
         view_manager.selected_tree_text.set(sel_text)
@@ -123,7 +128,8 @@ class TreeAsset:
         tkVar.trace_add('write', closure)
         self.__renderingVars['rendering_samples'] = tkVar
 
-    def deselect():
+    def deselect(self):
+        self.__view_manager = None
         #Clean up canvas items
         pass
 

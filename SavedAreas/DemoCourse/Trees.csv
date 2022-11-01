@@ -1,2 +1,2 @@
-is_dirty,trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_lower_curv,foliage_midpoint,foliage_upper_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
-True,10.0,100.0,0.0,0.75,50.0,150.0,45.0,2.0,0.7,2.0,0.5,0.5,15.0,0.0,64
+is_dirty,trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_upper_curv,foliage_midpoint,foliage_lower_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
+True,10.0,100.0,0.0,0.75,50.0,150.0,45.0,2.0,0.7,2.0,0.4,0.5,15.0,245.45454545454544,64

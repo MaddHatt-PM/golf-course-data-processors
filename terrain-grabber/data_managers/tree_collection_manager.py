@@ -1,9 +1,12 @@
+from math import cos, pi, sin
 from pathlib import Path
 from functools import partial
 
 import tkinter as tk
 from tkinter import Canvas, DoubleVar, Frame, StringVar
 from tkinter import ttk
+
+from utilities.math import rotate_from_2d_point
 
 from asset_project import LocationPaths
 from subviews import InspectorDrawer
@@ -31,6 +34,8 @@ class TreeCollectionManager:
         self.presets:list[TreeAsset] = []
 
         self.canvas_ids = []
+        self.canvas:Canvas = None
+        self.util:SpaceTransformer = None
 
         if self.presets_path.is_file() is True:
             with self.presets_path.open('r') as file:
@@ -94,36 +99,90 @@ class TreeCollectionManager:
         self.save_data_to_files()
         self.draw_to_inspector()
 
-    def draw_to_viewport(self, canvas:Canvas, util:SpaceTransformer):
+    def setup_draw_to_viewport(self, canvas:Canvas, util:SpaceTransformer=None):
+        self.canvas = canvas
+        self.util = util
+
+    def draw_to_viewport(self):
         for id in self.canvas_ids:
-            canvas.delete(id)
+            self.canvas.delete(id)
         self.canvas_ids.clear()
 
         for tree in self.trees:
             pos = tree.transform_position_x, tree.transform_position_y
-            pos = util.norm_pt_to_pixel_space(pos)
+            pos = self.util.norm_pt_to_pixel_space(pos)
 
-            half_length = 2.0 # pixels
-            center_coords = tuple(
-                pos[0] - half_length,
-                pos[1] - half_length,
-                pos[0] + half_length,
-                pos[1] + half_length
-            )
-            
-            center_id = canvas.create_rectangle(*center_coords, fill="white")
+            sample_count = 32
+            def sin_lerp(start:float, end:float, val01:float):
+                return start + sin(val01 * pi) * (end - start)
+
+            radius = max(tree.trunk_radius, tree.foliage_radius)
+            foliage_straight_pts = []
+            for i in range(sample_count):
+                pt = (
+                    sin(i/sample_count * 2 * pi) * radius,
+                    cos(i/sample_count * 2 * pi) * radius,
+                )
+                # pt = self.util.norm_pt_to_pixel_space(pt)
+                pt = (
+                    pt[0] + pos[0],
+                    pt[1] + pos[1],
+                )
+                foliage_straight_pts.append(pt)
+
+            foliage_tipped_pt = foliage_straight_pts
+            # foliage_tipped_pt = []
+
+            foliage_pts = [
+                (
+                    sin_lerp(straight_pt[0], tipped_pt[0], tree.transform_rotation_tilt / 90.0),
+                    sin_lerp(straight_pt[1], tipped_pt[1], tree.transform_rotation_tilt / 90.0),
+                )
+                for straight_pt in foliage_straight_pts
+                for tipped_pt in foliage_tipped_pt
+            ]
+            foliage_pts = [rotate_from_2d_point(*pt, *pos, tree.transform_rotation_spin) for pt in foliage_pts]
+
+            # Draw Dots
+            # for pt in foliage_pts:
+            #     circle_pt = self.canvas.create_oval(self.util.point_to_size_coords(pt, 8), fill="white")
+            #     self.canvas_ids.append(circle_pt)
+
+            for i in range(len(foliage_pts) - 1):
+                lineID = self.canvas.create_line(
+                    *foliage_pts[i],
+                    *foliage_pts[i+1],
+                    width=2.5,
+                    fill='white'
+                    )
+                self.canvas_ids.append(lineID)
+
+            lineID = self.canvas.create_line(
+                *foliage_pts[-1],
+                *foliage_pts[0],
+                width=2.5,
+                fill='white'
+                )
+
+
+            # Draw radius (solid circle)
+            # radius = max(tree.trunk_radius, tree.foliage_radius)
+            # radius_cords = (
+            #     pos[0] - radius,
+            #     pos[1] - radius,
+            #     pos[0] + radius,
+            #     pos[1] + radius
+            # )
+            # radius_id = self.canvas.create_oval(*radius_cords, fill="blue")
+            # self.canvas_ids.append(radius_id)
+
+            # Draw center point
+            center_id = self.canvas.create_oval(self.util.point_to_size_coords(pos, 8), fill="white")
             self.canvas_ids.append(center_id)
 
-            # Draw radius
-            radius = max(tree.trunk_radius, tree.foliage_radius)
-            radius_cords = tuple(
-                pos[0] - radius,
-                pos[1] - radius,
-                pos[0] + radius,
-                pos[1] + radius
-            )
-            radius_id = canvas.create_oval(*radius_cords, fill="blue")
-            self.canvas_ids.append(radius_id)
+            # Draw initial radius point
+            center_id = self.canvas.create_oval(self.util.point_to_size_coords(foliage_pts[0], 8), fill="white")
+            self.canvas_ids.append(center_id)
 
     def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
         '''

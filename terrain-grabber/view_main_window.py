@@ -566,7 +566,7 @@ class MainWindow:
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
         self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
-        self.tree_manager.draw_to_viewport
+        self.tree_manager.draw_to_viewport()
 
         for area in self.areas:
             area.img_size = self.img_size
@@ -614,6 +614,9 @@ class MainWindow:
             self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
 
         self.canvas_container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
+
+        self.tree_manager.setup_draw_to_viewport(canvas=self.canvas, util=self.canvasUtil)
+        self.tree_manager.draw_to_viewport()
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
