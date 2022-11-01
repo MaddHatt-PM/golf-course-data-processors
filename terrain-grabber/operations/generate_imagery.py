@@ -90,7 +90,6 @@ def generate_imagery(target: LocationPaths, levels:int=50):
 
     # dilate all the points
     
-    # plt.figure(figsize= (width, height))
     # plt.plot(xLats, yLongs, 'r.')
     # plt.axis('off')
     # plt.savefig(target.sampleDistributionImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
@@ -107,6 +106,7 @@ def generate_imagery(target: LocationPaths, levels:int=50):
     multiplier = 10000
     width = (SE[1] - NW[1]) * multiplier
     height = (NW[0] - SE[0]) * multiplier
+    plt.figure(figsize= (width, height))
 
     grad_configs = [
         ('nearest', target.elevationImg_nearest_path),

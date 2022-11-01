@@ -19,8 +19,10 @@ from functools import partial
 
 from PIL import Image, ImageTk
 import tkinter as tk
-from tkinter import Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
+from tkinter import IntVar, Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
 from tkinter.messagebox import askyesnocancel
+
+from operations.generate_imagery import generate_imagery
 
 from asset_project import LocationPaths
 from data_managers import TreeCollectionManager
@@ -36,13 +38,15 @@ class ViewSettings():
         self.fill_only_active_area = BooleanVar(value=True, name='Fill only active area')
 
         self.height_map_toggle = BooleanVar(value=False, name='Height Map Toggle')
-        self.height_map_opacity = DoubleVar(value=False, name='Height Map Opacity')
+        self.height_map_opacity = DoubleVar(value=0, name='Height Map Opacity')
         
         self.contour_map_toggle = BooleanVar(value=False, name='Contour Map Toggle')
-        self.contour_map_opacity = DoubleVar(value=False, name='Contour Map Opacity')
+        self.contour_map_opacity = DoubleVar(value=0, name='Contour Map Opacity')
         
         self.sampleDist_map_toggle = BooleanVar(value=False, name='Sample Dist Map Toggle')
-        self.sampleDist_map_opacity = DoubleVar(value=False, name='Sample Dist Map Opacity')
+        self.sampleDist_map_opacity = DoubleVar(value=0, name='Sample Dist Map Opacity')
+
+        self.contour_levels = DoubleVar(value=58, name='Contour Levels')
 
         self.status_text = tk.StringVar()
         self.status_text.set("")
@@ -442,8 +446,34 @@ class MainWindow:
                 
             if self.view_settings.sampleDist_map_toggle.get() is False:
                 slider['state'] = tk.DISABLED
+
+            self.drawer.vertical_divider()
+
+            drawer.labeled_slider(label_text="Contour Levels", tkVar=self.view_settings.contour_levels, from_=10, to=100)
+            def regenerate_maps():
+                generate_imagery(self.target, levels=int(self.view_settings.contour_levels.get()))
+
+                # Prepare image references
+                self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
+                self.image_base:Image = self.image_raw
+                self.image_pi:PhotoImage = None
+
+                self.height_raw:Image = None
+                if self.target.elevationImg_linear_path.exists():
+                    self.height_raw = Image.open(self.target.elevationImg_linear_path).convert('RGBA')
+
+                self.contour_raw:Image = None
+                if self.target.contourImg_path.exists():
+                    self.contour_raw = Image.open(self.target.contourImg_path).convert('RGBA')
+
+                self.sample_dist_raw:Image = None
+                if self.target.sampleDistributionImg_path.exists():
+                    self.sample_dist_raw = Image.open(self.target.sampleDistributionImg_path).convert('RGBA')
+
+                self.rerender_base_image()
+
+            drawer.button(text="Regenerate Maps", command=regenerate_maps)
                 
-            drawer.seperator()
 
         '''Area UI'''
         if (self.toolmode == ToolMode.area):
