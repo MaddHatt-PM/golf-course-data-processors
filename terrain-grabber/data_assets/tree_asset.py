@@ -31,9 +31,9 @@ class TreeAsset:
         self.foliage_radius = 2.5
         self.foliage_height = 5.0
         self.foliage_offset = 0.0
-        self.foliage_lower_curv = 2.0
-        self.foliage_midpoint = 0.5
         self.foliage_upper_curv = 2.0
+        self.foliage_midpoint = 0.5
+        self.foliage_lower_curv = 2.0
 
         self.transform_position_x = position_x
         self.transform_position_y = position_y
@@ -168,7 +168,7 @@ class TreeAsset:
         invert = (x <= 0.5)
         x = abs((x-0.5) * 2.0)
 
-        curvature = self.foliage_upper_curv if invert else self.foliage_lower_curv
+        curvature = self.foliage_lower_curv if invert else self.foliage_upper_curv
         y = pow((1.0 - pow(x , curvature)), 1.0 / curvature)
         if invert:
             y *= -1
