@@ -50,6 +50,7 @@ class AreaAsset:
         self.fill_img:Image.Image = None
         self.canvasID_fill = None
         self.target = target
+        self.metadata = {}
 
         basepath = "../SavedAreas/" + target.savename + "/"
 
