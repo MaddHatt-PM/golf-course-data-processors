@@ -22,7 +22,7 @@ import tkinter as tk
 from tkinter import IntVar, Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
 from tkinter.messagebox import askyesnocancel
 
-from operations.generate_imagery import generate_imagery
+from operations.generate_imagery import generate_imagery, generate_contour_map
 
 from asset_project import LocationPaths
 from data_managers import TreeCollectionManager
@@ -454,7 +454,7 @@ class MainWindow:
             drawer.labeled_slider(label_text="Contour Thickness", tkVar=self.view_settings.contour_thickness, from_=0.5, to=5.0)
             
             def regenerate_maps():
-                generate_imagery(
+                generate_contour_map(
                     self.target,
                     contour_levels=int(self.view_settings.contour_levels.get()),
                     contour_thickness=self.view_settings.contour_thickness.get()
