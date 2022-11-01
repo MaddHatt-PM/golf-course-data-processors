@@ -182,7 +182,7 @@ class AreaAsset:
     def mark_area_to_be_redrawn(self):
         self.is_dirty = True
         self.is_fill_dirty = True
-        self.draw_to_canvas()
+        self.draw_to_viewport()
         self.draw_to_inspector()
 
 
@@ -269,7 +269,7 @@ class AreaAsset:
 
     # -------------------------------------------------------------- #
     # --- Canvas functions ----------------------------------------- #
-    def draw_to_canvas(self):
+    def draw_to_viewport(self):
         self.clear_canvasIDs()
 
         if self.was_deleted:
@@ -463,7 +463,7 @@ class AreaAsset:
 
     def deselect(self):
         self.is_active_area = False
-        self.draw_to_canvas()
+        self.draw_to_viewport()
         self.destroy_possible_line()
 
     def clear_canvasIDs(self):
@@ -478,7 +478,7 @@ class AreaAsset:
     def set_color(self, color:ColorSet, *args, **kwargs):
         self.settings['color'] = color
         self.is_fill_dirty = True
-        self.draw_to_canvas()
+        self.draw_to_viewport()
         self._save_settings()
 
     def toggle_fill(self):
@@ -488,12 +488,12 @@ class AreaAsset:
             self.fill_img = None
             self.image_pi = None
 
-        self.draw_to_canvas()
+        self.draw_to_viewport()
         self.draw_to_inspector()
 
     def toggle_points(self):
         self.settings['do_draw_points'] = not self.settings['do_draw_points']
-        self.draw_to_canvas()
+        self.draw_to_viewport()
 
 
     # -------------------------------------------------------------- #
@@ -534,7 +534,7 @@ class AreaAsset:
         def sync_variable(self:AreaAsset, var_name:str, tkVar, *args, **kwargs):
             self.settings[var_name] = tkVar.get()
             self.is_fill_dirty = True
-            self.draw_to_canvas()
+            self.draw_to_viewport()
 
         fill_state = [] if do_fill.get() == True else ['disabled']
 

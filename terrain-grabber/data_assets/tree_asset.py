@@ -78,7 +78,7 @@ class TreeAsset:
             return
         
         self.is_dirty = True
-        self.redraw_canvas()
+        self.redraw_inspector_preview()
         # print("{} -> {}".format(key, self.__dict__[key]))
 
 
@@ -124,6 +124,7 @@ class TreeAsset:
         self.__renderingVars['rendering_samples'] = tkVar
 
     def deselect():
+        #Clean up canvas items
         pass
 
     def load_preset(self, tree:"TreeAsset"):
@@ -280,13 +281,13 @@ class TreeAsset:
         drawer.vertical_divider()
 
         self._canvas = drawer.tree_preview()
-        self.redraw_canvas()
+        self.redraw_inspector_preview()
         # Canvas is oriented so that 0,0 is the top left corner
         # self.canvas.create_oval(5, 5, 100, 100, fill= UIColors.blue.fill)
         # foliage = self.generate_foliage_profile()
         # print(foliage)
 
-    def redraw_canvas(self):
+    def redraw_inspector_preview(self):
         for item in self._canvas_items:
             self._canvas.delete(item)
 

@@ -94,7 +94,7 @@ class TreeCollectionManager:
         self.save_data_to_files()
         self.draw_to_inspector()
 
-    def draw_to_canvas(self, canvas:Canvas, util:SpaceTransformer):
+    def draw_to_viewport(self, canvas:Canvas, util:SpaceTransformer):
         for id in self.canvas_ids:
             canvas.delete(id)
         self.canvas_ids.clear()

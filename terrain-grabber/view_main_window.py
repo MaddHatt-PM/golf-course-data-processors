@@ -138,7 +138,7 @@ class MainWindow:
         # Attach callbacks
         def redraw_canvas_on_change(*args):
             for area in self.areas:
-                area.draw_to_canvas()
+                area.draw_to_viewport()
             
         def redraw_inspector_on_change(*args):
             self.active_area.draw_to_inspector
@@ -566,9 +566,11 @@ class MainWindow:
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
         self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
+        self.tree_manager.draw_to_viewport
+
         for area in self.areas:
             area.img_size = self.img_size
-            area.draw_to_canvas()
+            area.draw_to_viewport()
 
     def setup_viewport(self):
         viewport = Frame(self.root, bg=UIColors.canvas_col)
@@ -615,7 +617,7 @@ class MainWindow:
 
         for area in self.areas:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-            area.draw_to_canvas()
+            area.draw_to_viewport()
 
     def select_area(self, choice):
         self.drawer.clear_inspector()
@@ -631,7 +633,7 @@ class MainWindow:
         self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.active_area.draw_to_inspector(self.drawer)
-        self.active_area.draw_to_canvas()
+        self.active_area.draw_to_viewport()
 
     def setup_statusbar(self):
         frame = Frame(self.root, bg=UIColors.ui_bgm_col)
