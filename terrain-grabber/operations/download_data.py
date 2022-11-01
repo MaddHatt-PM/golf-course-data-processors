@@ -22,6 +22,7 @@ from APIs.google_maps_api import SatelliteInterface as gmap_si
 from geographiclib.geodesic import Geodesic
 from geographiclib.geodesicline import GeodesicLine
 from operations.generate_imagery import generate_imagery
+from loading import LoadingWindowHandler
 
 class services:
     google_satelite = "google_satelite"
@@ -51,9 +52,14 @@ def __via_google_satelite(target:LocationPaths, p0:tuple[float, float], p1:tuple
     return target.sateliteImg_path
 
 def download_imagery(target:LocationPaths, service:str) -> Path:
+    loadingHandler = LoadingWindowHandler()
+    loadingHandler.show("Downloading satelite imagery...")
+
     '''Pull data from specified service'''
     if service == services.google_satelite:
-        return __via_google_satelite(target, *target.coordinates())
+        output_path = __via_google_satelite(target, *target.coordinates())
+        loadingHandler.kill()
+        return output_path
 
 # -------------------------------------------------------------- #
 # --- Elevation functions -------------------------------------- #
@@ -61,13 +67,18 @@ def download_elevation_for_location(target:LocationPaths, service:services, samp
     '''
     Sample the entire location with points sample_dist meters apart.
     '''
+    loadingHandler = LoadingWindowHandler()
+    loadingHandler.show("Downloading satelite imagery...")
+
     coords = target.coordinates()
     NW,SE = coords[0], coords[1]
 
     # lats =  [NW[0], SE[1], SE[1], NW[0]]
     # longs = [NW[0], NW[0], SE[1], SE[1]]
     points = get_points(*coords, dist=sample_dist, boundry_pts=None)
-    return __via_google_elevation(target, points, target.elevationCSV_path)
+    output = __via_google_elevation(target, points, target.elevationCSV_path)
+    loadingHandler.kill()
+    return output
 
 
 def download_elevation_for_area(target:LocationPaths, area:"AreaAsset", service: services) -> Path: # type: ignore

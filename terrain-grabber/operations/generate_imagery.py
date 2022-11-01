@@ -9,7 +9,7 @@ from scipy import ndimage
 from loading import LoadingWindowHandler
 from asset_area import LocationPaths
 
-def generate_imagery(target: LocationPaths, levels:int=50):
+def generate_imagery(target: LocationPaths, contour_levels:int=50, contour_thickness:float=1.5):
     loadingHandler = LoadingWindowHandler()
     loadingHandler.show("Generating Images... May take some time...")
 
@@ -145,7 +145,8 @@ def generate_imagery(target: LocationPaths, levels:int=50):
 
     '''Save out contour map'''
     plt.clf()
-    plt.tricontour(xLats, yLongs, zEle, levels=levels, cmap='inferno')
+    plt.rcParams["contour.linewidth"] = contour_thickness
+    plt.tricontour(xLats, yLongs, zEle, levels=contour_levels, cmap='inferno')
     plt.axis('off')
     plt.savefig(target.contourImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
     resize_to_satelite(target.contourImg_path)

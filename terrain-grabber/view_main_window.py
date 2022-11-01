@@ -47,6 +47,7 @@ class ViewSettings():
         self.sampleDist_map_opacity = DoubleVar(value=0, name='Sample Dist Map Opacity')
 
         self.contour_levels = DoubleVar(value=58, name='Contour Levels')
+        self.contour_thickness = DoubleVar(value=1.5, name='Contour Thickness')
 
         self.status_text = tk.StringVar()
         self.status_text.set("")
@@ -450,8 +451,14 @@ class MainWindow:
             self.drawer.vertical_divider()
 
             drawer.labeled_slider(label_text="Contour Levels", tkVar=self.view_settings.contour_levels, from_=10, to=100)
+            drawer.labeled_slider(label_text="Contour Thickness", tkVar=self.view_settings.contour_thickness, from_=0.5, to=5.0)
+            
             def regenerate_maps():
-                generate_imagery(self.target, levels=int(self.view_settings.contour_levels.get()))
+                generate_imagery(
+                    self.target,
+                    contour_levels=int(self.view_settings.contour_levels.get()),
+                    contour_thickness=self.view_settings.contour_thickness.get()
+                    )
 
                 # Prepare image references
                 self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
