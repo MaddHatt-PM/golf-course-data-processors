@@ -27,6 +27,7 @@ class LoadingWindow():
         self.window.destroy()
 
 if __name__ == "__main__":
+    print(sys.argv)
     if len(sys.argv) == 2:
         LoadingWindow(isMainWindow=True, loading_text=sys.argv[1])
     else:
