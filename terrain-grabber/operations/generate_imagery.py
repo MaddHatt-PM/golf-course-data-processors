@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from tkinter.messagebox import showwarning
 from PIL import Image
@@ -5,9 +6,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
 from scipy import ndimage
+from loading import LoadingWindowHandler
 from asset_area import LocationPaths
 
 def generate_imagery(target: LocationPaths, levels:int=50):
+    loadingHandler = LoadingWindowHandler()
+    loadingHandler.show("Generating Images... May take some time...")
+
     with target.coordinates_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
@@ -145,3 +150,5 @@ def generate_imagery(target: LocationPaths, levels:int=50):
     plt.savefig(target.contourImg_path, bbox_inches='tight', pad_inches=0, transparent=True)
     resize_to_satelite(target.contourImg_path)
     print("Tricontour map generated")
+
+    loadingHandler.kill()
