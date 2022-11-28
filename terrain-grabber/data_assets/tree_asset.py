@@ -21,7 +21,7 @@ ground_offset = 50.0
 
 class TreeAsset:
     def __init__(self, header:str="", data:str="", position_x=0.5, position_y=0.5) -> None:
-        self.is_dirty = False
+        self._is_dirty = False
 
         self.trunk_radius = 1.0
         self.trunk_height = 2.0
@@ -60,7 +60,7 @@ class TreeAsset:
             "foliage_lower_curv": (0.005, 5.0),
             "foliage_midpoint": (0.0, 5.0),
             "foliage_upper_curv": (0.005, 2.0),
-            "transform_rotation_tilt": (-90.0, 90.0),
+            "transform_rotation_tilt": (0, 90.0),
             "transform_rotation_spin": (0.0, 360.0),
             # "rendering_samples": (8, 64)
         }
@@ -81,7 +81,7 @@ class TreeAsset:
         except:
             return
         
-        self.is_dirty = True
+        self._is_dirty = True
         self.redraw_inspector_preview()
         # print("{} -> {}".format(key, self.__dict__[key]))
 
@@ -181,13 +181,15 @@ class TreeAsset:
             y *= -1
         return y
 
-    def generate_foliage_profile(self) -> list[tuple[float, float]]:
+    def generate_foliage_profile(self, samples=None) -> list[tuple[float, float]]:
         radius = self.foliage_radius
         height = self.foliage_height 
         offset = self.foliage_offset + self.trunk_offset
 
         profile:list[tuple[float, float]] = []
-        samples = self.rendering_samples * 2 + 1
+        if samples is None:
+            samples = self.rendering_samples * 2 + 1
+
         for i in range(1, int(samples)-1):
             profile.append([
                 radius * abs(self.sample_foliage_point((i - 1) / (int(samples) - 1))),
@@ -235,6 +237,7 @@ class TreeAsset:
         ]
 
         return profile
+
 
     def get_largest_dimension(self):
         radius = max(self.foliage_radius, self.trunk_radius) * 2
@@ -354,6 +357,14 @@ class TreeAsset:
             #     width=line_width + antialias,
             #     fill=UIColors.green.path
             # ))
+
+        self._canvas_items.append(self._canvas.create_oval(
+            foliage_verts[0][0] - 4,
+            foliage_verts[0][1] - 4,
+            foliage_verts[0][0] + 4,
+            foliage_verts[0][1] + 4,
+            fill='white'
+        ))
 
         '''Draw foliage mid line'''
         # self._canvas_items.append(self._canvas.create_line(

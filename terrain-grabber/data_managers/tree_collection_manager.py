@@ -112,12 +112,12 @@ class TreeCollectionManager:
             pos = tree.transform_position_x, tree.transform_position_y
             pos = self.util.norm_pt_to_pixel_space(pos)
 
-            sample_count = 32
+            sample_count = 64
             def sin_lerp(start:float, end:float, val01:float):
-                return start + sin(val01 * pi) * (end - start)
+                return start + sin(val01 * pi * 0.5) * (end - start)
 
             radius = max(tree.trunk_radius, tree.foliage_radius)
-            foliage_straight_pts = []
+            straight_pts = []
             for i in range(sample_count):
                 pt = (
                     sin(i/sample_count * 2 * pi) * radius,
@@ -128,19 +128,29 @@ class TreeCollectionManager:
                     pt[0] + pos[0],
                     pt[1] + pos[1],
                 )
-                foliage_straight_pts.append(pt)
+                straight_pts.append(pt)
 
-            foliage_tipped_pt = foliage_straight_pts
-            # foliage_tipped_pt = []
-
-            foliage_pts = [
+            # tipped_pts = [ (pt[0], pt[1] + 50) for pt in straight_pts]
+            tipped_pts = tree.generate_foliage_profile(samples=sample_count / 2 + 1)
+            tipped_pts = list(reversed(tipped_pts))
+            def mirror_x(pt) -> tuple[float,float]:
+                return pt[0]*-1, pt[1]
+            tipped_pts += [mirror_x(pt) for pt in reversed(tipped_pts)]
+            tipped_pts = [
                 (
-                    sin_lerp(straight_pt[0], tipped_pt[0], tree.transform_rotation_tilt / 90.0),
-                    sin_lerp(straight_pt[1], tipped_pt[1], tree.transform_rotation_tilt / 90.0),
+                    pt[0]-tipped_pts[0][0] + pos[0],
+                    pt[1]-tipped_pts[0][1] + pos[1] + tree.foliage_offset + tree.foliage_height,
                 )
-                for straight_pt in foliage_straight_pts
-                for tipped_pt in foliage_tipped_pt
-            ]
+                for pt in tipped_pts]
+
+            foliage_pts = []
+            for i in range(sample_count):
+                pt = (
+                    sin_lerp(straight_pts[i][0], tipped_pts[i][0], tree.transform_rotation_tilt / 90.0),
+                    sin_lerp(straight_pts[i][1], tipped_pts[i][1], tree.transform_rotation_tilt / 90.0),
+                )
+                foliage_pts.append(pt)
+                
             foliage_pts = [rotate_from_2d_point(*pt, *pos, tree.transform_rotation_spin) for pt in foliage_pts]
 
             # Draw Dots
@@ -163,6 +173,7 @@ class TreeCollectionManager:
                 width=2.5,
                 fill='white'
                 )
+            self.canvas_ids.append(lineID)
 
 
             # Draw radius (solid circle)

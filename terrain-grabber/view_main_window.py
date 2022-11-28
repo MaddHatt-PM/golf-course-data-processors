@@ -226,7 +226,7 @@ class MainWindow:
                 break
 
         for tree in self.tree_manager.trees:
-            if tree.is_dirty:
+            if tree._is_dirty:
                 self.is_dirty = True
                 break
         
