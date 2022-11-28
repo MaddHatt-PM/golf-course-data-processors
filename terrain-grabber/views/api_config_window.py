@@ -1,4 +1,3 @@
-
 from functools import partial
 import tkinter as tk
 from pathlib import Path

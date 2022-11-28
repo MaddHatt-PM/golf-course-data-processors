@@ -82,7 +82,7 @@ class TreeAsset:
             return
         
         self._is_dirty = True
-        self.redraw_inspector_preview()
+        self.draw_preview()
         # print("{} -> {}".format(key, self.__dict__[key]))
 
 
@@ -244,7 +244,7 @@ class TreeAsset:
         height = max(self.trunk_height + self.trunk_offset, self.foliage_offset + self.foliage_height)
         return max(radius, height)
 
-    def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
+    def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer, canvas=None):
         drawer.header('Tree Attributes')
         drawer.button_group(str_commands=[
             ('Add as Preset', None),
@@ -290,15 +290,22 @@ class TreeAsset:
         drawer.vertical_divider()
 
         self._canvas = drawer.tree_preview()
-        self.redraw_inspector_preview()
+
+
+        self.draw_preview()
         # Canvas is oriented so that 0,0 is the top left corner
         # self.canvas.create_oval(5, 5, 100, 100, fill= UIColors.blue.fill)
         # foliage = self.generate_foliage_profile()
         # print(foliage)
 
-    def redraw_inspector_preview(self):
+    def draw_preview(self, overrideColor=None, overrideCanvas=None):
+        canvas = overrideCanvas if overrideCanvas != None else self._canvas
+
+        def checkOverrideColor(color:str):
+            return overrideColor if overrideColor != None else color
+
         for item in self._canvas_items:
-            self._canvas.delete(item)
+            canvas.delete(item)
 
         def mirror_x(pt) -> tuple[float,float]:
             return pt[0]*-1, pt[1]
@@ -324,18 +331,18 @@ class TreeAsset:
         line_width = 1
         antialias = 0.5
         for id in range(0, len(trunk_verts) - 1):
-            self._canvas_items.append(self._canvas.create_line(
+            self._canvas_items.append(canvas.create_line(
                 *trunk_verts[id],
                 *trunk_verts[id+1],
                 width=line_width,
-                fill='#654321'
+                fill=checkOverrideColor('#654321')
             ))
             # antialias line needs color multiplication with background
             # self.canvas_items.append(self.canvas.create_line(
             #     *trunk_verts[id],
             #     *trunk_verts[id+1],
             #     width=line_width + antialias,
-            #     fill='#654321'
+            #     fill=checkOverrideColor('#654321')
             # ))
 
 
@@ -345,41 +352,42 @@ class TreeAsset:
         foliage_verts = [rotate_from_2d_point(*pt, *origin, self.transform_rotation_tilt) for pt in foliage_verts]
         
         for id in range(0, len(foliage_verts) - 1):
-            self._canvas_items.append(self._canvas.create_line(
+            self._canvas_items.append(canvas.create_line(
                 *foliage_verts[id],
                 *foliage_verts[id+1],
                 width=line_width,
-                fill=UIColors.green.path
+                fill=checkOverrideColor(UIColors.green.path)
             ))
             # self.canvas_items.append(self.canvas.create_line(
             #     *foliage_verts[id],
             #     *foliage_verts[id+1],
             #     width=line_width + antialias,
-            #     fill=UIColors.green.path
+            #     fill=checkOverrideColor(UIColors.green.path)
             # ))
 
-        self._canvas_items.append(self._canvas.create_oval(
-            foliage_verts[0][0] - 4,
-            foliage_verts[0][1] - 4,
-            foliage_verts[0][0] + 4,
-            foliage_verts[0][1] + 4,
-            fill='white'
-        ))
+        '''Draw initial foliage starting point'''
+        # self._canvas_items.append(canvas.create_oval(
+        #     foliage_verts[0][0] - 4,
+        #     foliage_verts[0][1] - 4,
+        #     foliage_verts[0][0] + 4,
+        #     foliage_verts[0][1] + 4,
+        #     fill=checkOverrideColor('white')
+        # ))
 
         '''Draw foliage mid line'''
         # self._canvas_items.append(self._canvas.create_line(
         #     (0.0, TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
         #     (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - self.orig_midpoint - ground_offset),
         #     width=line_width,
-        #     fill='#AAA'
+        #     fill=checkOverrideColor('#AAA')
         # ))
 
         '''Draw flat ground plane'''
-        self._canvas_items.append(self._canvas.create_line(
+        self._canvas_items.append(canvas.create_line(
             (0.0, TREE_PREVIEW_SIZE[1] - ground_offset),
             (TREE_PREVIEW_SIZE[0], TREE_PREVIEW_SIZE[1] - ground_offset),
             width=line_width,
-            fill='#AAA'
+            fill=checkOverrideColor('#AAA')
         ))
 
     def on_deselect(self):
