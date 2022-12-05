@@ -33,26 +33,36 @@ from views import show_api_usage, show_create_area, show_create_location, show_i
 from subviews import InspectorDrawer
 
 class ViewSettings():
+    """
+    Helper object to contain tkinter variables and other application settings.
+    Implied to work akin to a singleton, so create once and then pass the reference around.
+    (If a metaclass wasn't needed to have a static singleton, it would bypass passing around the reference)
+    """
     def __init__(self) -> None:
         self.show_controls = BooleanVar(value=True, name='Show controls')
         self.fill_only_active_area = BooleanVar(value=True, name='Fill only active area')
 
         self.height_map_toggle = BooleanVar(value=False, name='Height Map Toggle')
-        self.height_map_opacity = DoubleVar(value=0, name='Height Map Opacity')
+        self.height_map_opacity = DoubleVar(value=100, name='Height Map Opacity')
         
         self.contour_map_toggle = BooleanVar(value=False, name='Contour Map Toggle')
-        self.contour_map_opacity = DoubleVar(value=0, name='Contour Map Opacity')
+        self.contour_map_opacity = DoubleVar(value=100, name='Contour Map Opacity')
         
         self.sampleDist_map_toggle = BooleanVar(value=False, name='Sample Dist Map Toggle')
-        self.sampleDist_map_opacity = DoubleVar(value=0, name='Sample Dist Map Opacity')
+        self.sampleDist_map_opacity = DoubleVar(value=100, name='Sample Dist Map Opacity')
 
         self.contour_levels = DoubleVar(value=58, name='Contour Levels')
         self.contour_thickness = DoubleVar(value=1.5, name='Contour Thickness')
+
+        self.toolmode = ToolMode.area
 
         self.status_text = tk.StringVar()
         self.status_text.set("")
 
 class MainWindow:
+    """
+    Initialize and create the main window for terrain grabber
+    """
     def __init__(self, target:LocationPaths):
         self.target:LocationPaths = target
         if target is None:
@@ -63,29 +73,28 @@ class MainWindow:
 
         self.zoom = 1.0
         self.mouse_pos = (-100, -100)
-        self.toolmode = ToolMode.area
         self.is_dirty = False
 
         # Prepare image references
-        self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
+        self.image_raw:Image = Image.open(self.target.satelite_img_path).convert('RGBA')
         self.image_base:Image = self.image_raw
         self.image_pi:PhotoImage = None
 
         self.height_raw:Image = None
-        if target.elevationImg_linear_path.exists():
-            self.height_raw = Image.open(target.elevationImg_linear_path).convert('RGBA')
+        if target.elevation_img_linear_path.exists():
+            self.height_raw = Image.open(target.elevation_img_linear_path).convert('RGBA')
 
         self.contour_raw:Image = None
-        if target.contourImg_path.exists():
-            self.contour_raw = Image.open(target.contourImg_path).convert('RGBA')
+        if target.contour_img_path.exists():
+            self.contour_raw = Image.open(target.contour_img_path).convert('RGBA')
 
         self.sample_dist_raw:Image = None
-        if target.sampleDistributionImg_path.exists():
-            self.sample_dist_raw = Image.open(target.sampleDistributionImg_path).convert('RGBA')
+        if target.sample_distribution_img_path.exists():
+            self.sample_dist_raw = Image.open(target.sample_distribution_img_path).convert('RGBA')
 
         # Prepare references to areas
         self.areas:list[AreaAsset] = []
-        filenames = os.listdir(target.basePath)
+        filenames = os.listdir(target.basepath)
         for name in filenames:
             if "_area" in name:
                 area_name = name.split("_area")[0]
@@ -95,7 +104,7 @@ class MainWindow:
         self.active_area = None
         if len(self.areas) != 0:
             self.active_area = self.areas[0]
-            self.active_area.select()
+            self.active_area.on_select()
 
         self.tree_manager = TreeCollectionManager(self.target)
 
@@ -159,6 +168,9 @@ class MainWindow:
 
     # Gets called but no references due to circular import
     def create_new_area(self, name:str="", *args, **kwargs):
+        """
+        Callback from area_asset's inspector that creates a new area then sets it as the active area
+        """
         if(kwargs.get('name', None) is not None):
             name = kwargs.get('name')
 
@@ -183,29 +195,46 @@ class MainWindow:
         self.redraw_viewport()
 
     def handle_left_click(self, event:tk.Event):
+        """
+        Callback function called for all left click events
+        """
         if self.active_area is not None:
-            pt = event.x, event.y        
             self.active_area.append_point((event.x, event.y), CoordMode.pixel)
 
         self.check_for_changes()
         self.redraw_viewport()
         
-        if self.active_area is not None:
+        if self.active_area is not None and self.view_settings.toolmode is ToolMode.area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
 
     def handle_right_click(self, event:tk.Event):
-        if self.active_area is not None:
-            self.active_area.remove_point()
-            self.check_for_changes()
+        """
+        Callback function called for all right click events
+        """
+        if self.view_settings.toolmode == ToolMode.area:
+            if self.active_area is not None:
+                self.active_area.remove_point()
+                self.check_for_changes()
+        
+        if self.view_settings.toolmode == ToolMode.tree:
+            mouse_pos = (event.x, event.y)
+            mouse_pos = self.canvasUtil.pixel_pt_to_norm_space(mouse_pos)
+            self.tree_manager.move_tree_on_right_click(*mouse_pos)
 
     def motion(self, event):
+        """
+        Callback function called for any mouse movement
+        """
         self.mouse_pos = (event.x, event.y)
         self.update_status_bar_text(event)
 
-        if self.active_area is not None:
+        if self.active_area is not None and self.view_settings.toolmode is ToolMode.area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
 
     def update_status_bar_text(self, event):
+        """
+        Refresh the status bar text with up to date info
+        """
         spacer = '        '
 
         text = ("Mouse Position: x={}, y={}").format(self.mouse_pos[0], self.mouse_pos[1])
@@ -217,6 +246,10 @@ class MainWindow:
         self.view_settings.status_text.set(text)
         
     def check_for_changes(self):
+        """
+        Check areas of the program for a dirty object (object needing to be saved to disk).
+        If dirty, add an asterick to the window title.
+        """
         if self.is_dirty:
             return
 
@@ -235,7 +268,10 @@ class MainWindow:
         else:
            self.root.title(self.target.savename + ' - Terrain Viewer')
 
-    def save_all(self):
+    def save(self):
+        """
+        Save area assets and trees
+        """
         for area in self.areas:
             area.save_data_to_files()
             area._save_settings()
@@ -246,14 +282,18 @@ class MainWindow:
         self.root.title(self.target.savename + ' - Terrain Viewer')
 
     def on_close(self):
+        """
+        Callback function that interrupts the quit process to save files.
+        If the quit process continues, window geometry is preserved.
+        """
         if self.is_dirty:
             result = askyesnocancel(title="Save changes", message='There are unsaved changes\nDo you want to save?')
             if result is None:
                 return
             elif result is True:
-                self.save_all()
+                self.save()
 
-        '''Write window geometry before exiting'''
+        # Write window geometry before exiting
         with open(str(self.prefsPath), 'w') as prefs:
             prefs.write(self.root.geometry())
             prefs.write("\n")
@@ -265,9 +305,15 @@ class MainWindow:
     # -------------------------------------------------------------- #
     # --- Canvas Binding ------------------------------------------- #
     def start_pan(self, event):
+        """
+        Callback function that is called before pan() and is binded to middle mouse click
+        """
         self.canvas.scan_mark(event.x, event.y)
 
     def pan(self, event):
+        """
+        Callback function that is binded to middle mouse wheel dragging
+        """
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         self.mouse_pos = (event.x, event.y)
 
@@ -275,6 +321,9 @@ class MainWindow:
         self.redraw_viewport()
     
     def redraw_viewport(self):
+        """
+        
+        """
         img_box = self.canvas.bbox(self.canvas_container)
         canvas_box = (self.canvas.canvasx(0), 
                       self.canvas.canvasy(0),
@@ -293,13 +342,17 @@ class MainWindow:
             scroll_bbox[1] = img_box[1]
             scroll_bbox[3] = img_box[3]
         
-        if self.active_area:
+        if self.active_area and self.view_settings.toolmode == ToolMode.area:
             self.active_area.draw_last_point_to_cursor(self.mouse_pos)
     
 
     # -------------------------------------------------------------- #
     # --- Sub-UI Drawing ------------------------------------------- #
     def setup_menubar(self, root:Tk):
+        """
+        Creates the UI for the top menubar and should only be called ONCE.
+        Unsure how this will behave a mac.
+        """
         menubar = Menu(root)
 
         '''FILE menu'''
@@ -317,7 +370,7 @@ class MainWindow:
                 if result is None:
                     return
                 elif result is True:
-                    self.save_all()
+                    self.save()
 
             restart_with_location(root, location)
 
@@ -327,14 +380,14 @@ class MainWindow:
 
         def prep_data_export():
             for area in self.areas:
-                area.make_masks()
+                area.export_binary_masks()
             export_data(self.target)
 
         def prep_3D_model_export():
-            export_model(target=self.target, input_texture=self.target.sateliteImg_path)
+            export_model(target=self.target, input_texture=self.target.satelite_img_path)
         
         filemenu.add_cascade(label="Open", menu=open_menu)
-        filemenu.add_command(label="Save", command=self.save_all)
+        filemenu.add_command(label="Save", command=self.save)
         filemenu.add_command(label="Revert", command=self.print_test, state=tk.DISABLED)
         filemenu.add_separator()
         filemenu.add_command(label="Export as files", command=prep_data_export)
@@ -368,15 +421,35 @@ class MainWindow:
         return menubar
 
     def mode_to_area(self):
-        self.toolmode = ToolMode.area
-        self.setup_inspector()
+        """
+        Change mode to Area Assets
+        """
+        self.view_settings.toolmode = ToolMode.area
+        self.tree_manager.set_active_tool(False)
+        self.__finish_mode_change()
         
     def mode_to_tree(self):
-        self.toolmode = ToolMode.tree
-        self.setup_inspector()
+        """
+        Change mode to Trees
+        """
+        self.view_settings.toolmode = ToolMode.tree
+        self.tree_manager.set_active_tool(True)
+        self.__finish_mode_change()
 
     def mode_to_overlays(self):
-        self.toolmode = ToolMode.overlays
+        """
+        Change mode to overlays
+        """
+        self.view_settings.toolmode = ToolMode.overlays
+        self.tree_manager.set_active_tool(False)
+        self.__finish_mode_change()
+
+    def __finish_mode_change(self):
+        """
+        Private function to finish up mode changes
+        """
+        self.tree_manager.draw_to_viewport()
+        self.active_area.draw_to_viewport()
         self.setup_inspector()
 
     def setup_inspector(self):
@@ -401,7 +474,7 @@ class MainWindow:
         ttk.Separator(inspector, orient="horizontal").pack(fill='x', pady=4)
 
         '''Overlays UI'''
-        if (self.toolmode == ToolMode.overlays):
+        if (self.view_settings.toolmode == ToolMode.overlays):
             '''Height Controls'''
             if self.height_raw is None:
                 drawer.label('Height map not generated')
@@ -461,21 +534,21 @@ class MainWindow:
                     )
 
                 # Prepare image references
-                self.image_raw:Image = Image.open(self.target.sateliteImg_path).convert('RGBA')
+                self.image_raw:Image = Image.open(self.target.satelite_img_path).convert('RGBA')
                 self.image_base:Image = self.image_raw
                 self.image_pi:PhotoImage = None
 
                 self.height_raw:Image = None
-                if self.target.elevationImg_linear_path.exists():
-                    self.height_raw = Image.open(self.target.elevationImg_linear_path).convert('RGBA')
+                if self.target.elevation_img_linear_path.exists():
+                    self.height_raw = Image.open(self.target.elevation_img_linear_path).convert('RGBA')
 
                 self.contour_raw:Image = None
-                if self.target.contourImg_path.exists():
-                    self.contour_raw = Image.open(self.target.contourImg_path).convert('RGBA')
+                if self.target.contour_img_path.exists():
+                    self.contour_raw = Image.open(self.target.contour_img_path).convert('RGBA')
 
                 self.sample_dist_raw:Image = None
-                if self.target.sampleDistributionImg_path.exists():
-                    self.sample_dist_raw = Image.open(self.target.sampleDistributionImg_path).convert('RGBA')
+                if self.target.sample_distribution_img_path.exists():
+                    self.sample_dist_raw = Image.open(self.target.sample_distribution_img_path).convert('RGBA')
 
                 self.rerender_base_image()
 
@@ -483,9 +556,9 @@ class MainWindow:
                 
 
         '''Area UI'''
-        if (self.toolmode == ToolMode.area):
-
+        if (self.view_settings.toolmode == ToolMode.area):
             area_selector_frame = Frame(inspector, padx=0, pady=0)
+            
             if len(self.areas) == 0:
                 closure = partial(show_create_area, self, self.areas, False, self.root)
                 add_area = ttk.Button(area_selector_frame, text='Create new area', command=closure)
@@ -495,13 +568,18 @@ class MainWindow:
             else:
                 tk.Label(area_selector_frame, text="Selected area:").grid(row=0, column=0)
 
-                area_selector = tk.StringVar(self.root)
+                area_selector_title = tk.StringVar(self.root)
                 available_areas = len(self.area_names) != 0
                 
-                area_selector.set(self.area_names[0] if available_areas is True else "No areas")
+                area_selector_title.set(self.area_names[0] if available_areas is True else "No areas")
                 dropdown_selected = self.active_area.name if available_areas is True else "No areas"
-                dropdown = ttk.OptionMenu(area_selector_frame, area_selector, dropdown_selected, *self.area_names, command=self.select_area)
-                dropdown.grid(row=0, column=1, sticky='ew')
+                dropdown = ttk.OptionMenu(
+                    area_selector_frame,
+                    area_selector_title,
+                    dropdown_selected,
+                    *self.area_names,
+                    command=self.select_area
+                    ).grid(row=0, column=1, sticky='ew')
                 area_selector_frame.grid_columnconfigure(1, weight=5)
                 self.area_selector = dropdown
 
@@ -517,9 +595,8 @@ class MainWindow:
                         self.active_area.draw_to_inspector(self.drawer)
 
         '''Tree UI'''
-        if (self.toolmode == ToolMode.tree):
-            self.tree_manager.draw_to_inspector(inspector, self.drawer)
-            ttk.Separator(inspector, orient="horizontal").pack(fill='x')
+        if (self.view_settings.toolmode == ToolMode.tree):
+            self.tree_manager.draw_to_inspector(inspector, self.drawer, force_selector_draw=True)
 
     def rerender_base_image(self):
         self.image_base = self.image_raw
@@ -528,13 +605,11 @@ class MainWindow:
             self.image_base = Image.blend(self.image_base, self.height_raw, self.view_settings.height_map_opacity.get() / 100.0)
             
         if self.view_settings.contour_map_toggle.get() is True and self.contour_raw is not None:
-            # self.image_base = Image.blend(self.image_base, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
             clear = Image.new('RGBA', self.image_base.size)
             contour_modified = Image.blend(clear, self.contour_raw, self.view_settings.contour_map_opacity.get() / 100.0)
             self.image_base = Image.alpha_composite(self.image_base, contour_modified)
 
         if self.view_settings.sampleDist_map_toggle.get() is True and self.sample_dist_raw is not None:
-            # self.image_base = Image.blend(self.image_base, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
             clear = Image.new('RGBA', self.image_base.size)
             sample_dist_modified = Image.blend(clear, self.sample_dist_raw, self.view_settings.sampleDist_map_opacity.get() / 100.0)
             self.image_base = Image.alpha_composite(self.image_base, sample_dist_modified)
@@ -580,16 +655,14 @@ class MainWindow:
         width, height = self.zoom * self.image_base.width, self.zoom * self.image_base.height
         self.img_size = int(width), int(height)
 
+        # Keep image references to avoid Garbage Collector
         self.image_resized = self.image_base.resize(self.img_size, resample=Image.BICUBIC)
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
-
-        # Keep image references to avoid Garbage Collector
 
         self.canvas = Canvas(viewport)
         self.canvasUtil = SpaceTransformer(self.canvas, self.target, self.image_resized)
         self.canvas.configure(bg=UIColors.canvas_col, highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
-
 
         self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
         self.canvas.lower(self.image_canvasID)
@@ -611,7 +684,7 @@ class MainWindow:
         self.view_settings.sampleDist_map_toggle.trace_add('write', tkVar_to_rerender_base)
 
         if self.active_area is not None:
-            self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
+            self.canvas.bind("<Leave>", self.active_area.destroy_last_point_line)
 
         self.canvas_container = self.canvas.create_rectangle(0, 0, *self.img_size, width=0)
 
@@ -625,15 +698,15 @@ class MainWindow:
     def select_area(self, choice):
         self.drawer.clear_inspector()
         if self.active_area is not None:
-            self.active_area.deselect()
+            self.active_area.on_deselect()
 
         for area in self.areas:
             if area.name == choice:
                 self.active_area = area
                 break
 
-        self.active_area.select()
-        self.canvas.bind("<Leave>", self.active_area.destroy_possible_line)
+        self.active_area.on_select()
+        self.canvas.bind("<Leave>", self.active_area.destroy_last_point_line)
         self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
         self.active_area.draw_to_inspector(self.drawer)
         self.active_area.draw_to_viewport()

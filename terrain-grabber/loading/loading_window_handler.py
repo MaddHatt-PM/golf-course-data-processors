@@ -1,6 +1,13 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 import subprocess
 
 class LoadingWindowHandler:
+    """Create a seperate process to show a loading bar with indescriminate amount of time"""
     def __init__(self) -> None:
         self.process: subprocess.Popen = None
     

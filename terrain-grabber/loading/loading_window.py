@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 import sys
 import tkinter as tk
 from tkinter.ttk import Button, Entry, Frame, Label, Progressbar

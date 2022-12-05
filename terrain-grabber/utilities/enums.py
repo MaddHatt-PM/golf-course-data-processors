@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from enum import Enum
 
 class CoordMode(Enum):

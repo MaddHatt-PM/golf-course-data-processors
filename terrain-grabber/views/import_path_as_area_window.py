@@ -1,13 +1,21 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from functools import partial
 from pathlib import Path
 import tkinter as tk
 from tkinter import Entry, IntVar, Label, StringVar, filedialog
 from tkinter import ttk
 from asset_area import HEADER
-# from view_main_window import MainWindow
 
 def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
-    '''Prompt for CSV file'''
+    """
+    Prompt the user to import data from a csv
+    """
+    # Prompt for CSV file
     filetypes = (
         ('CSV files', '*.csv'),
         ('All files', '*.*')
@@ -19,7 +27,7 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
 
     filepath = Path(filepath)
 
-    '''Preprocess the csv file'''
+    # Preprocess the csv file
     with filepath.open() as file:
         lines = file.read().splitlines()
 
@@ -37,7 +45,7 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
             raw_data.append(ln.split(','))
 
 
-    '''Ask user for info'''
+    # Prompt the user for data
     if isMainWindow == True:
         popup = tk.Tk()
     else:
@@ -57,7 +65,7 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
     area_entry = Entry(popup, textvariable=area_var)
     area_entry.grid(row=0, column=1, sticky='ew')
 
-    '''[0] Latitude'''
+    # [0] Latitude
     lat_label = Label(popup, text="Latitude")
     lat_label.grid(row=1, column=0)
 
@@ -66,7 +74,7 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
     lat_dropdown = ttk.OptionMenu(popup, lat_var, lat_var.get(), *headers)
     lat_dropdown.grid(row=1, column=1, sticky='ew')
 
-    '''[1] Longitude'''
+    # [1] Longitude
     long_label = Label(popup, text="Longitude")
     long_label.grid(row=2, column=0)
 
@@ -75,7 +83,7 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
     long_dropdown = ttk.OptionMenu(popup, long_var, long_var.get(), *headers)
     long_dropdown.grid(row=2, column=1, sticky='ew')
 
-    '''[2] Elevation'''
+    # [2] Elevation
     elev_label = Label(popup, text="Elevation (Optional)")
     elev_label.grid(row=3, column=0)
 
@@ -83,12 +91,12 @@ def show_import_path_as_area(caller=None, isMainWindow=False) -> None:
     elev_dropdown = ttk.OptionMenu(popup, elev_var, elev_var.get(), *headers)
     elev_dropdown.grid(row=3, column=1, sticky='ew')
 
-    '''Confirmation Buttons'''
+    # Confirmation Buttons
     cancel_btn = ttk.Button(popup, text="Cancel", command=popup.destroy)
     cancel_btn.grid(row=4, column=0, sticky='ew')
 
     def process_input(caller, area_name, headers:list[str], raw_data:list[str], header_0:str, header_1:str, header_2:str="", header_3:str=""):
-        '''Write filedata for area'''
+        # Write filedata for area
         file_data = HEADER
         header_ids = []
         header_ids.append(headers.index(header_0))

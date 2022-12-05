@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter.ttk import Button, Label, Progressbar
@@ -7,6 +13,9 @@ from asset_project import LocationPaths
 from datetime import datetime
 
 def show_api_usage(requestCost:dict[str, int]=None, command=None, isMainWindow=False):
+    """
+    Calculate
+    """
     if isMainWindow:
         popup = tk.Tk()
     else:
@@ -21,6 +30,7 @@ def show_api_usage(requestCost:dict[str, int]=None, command=None, isMainWindow=F
     current_cost = compute_cost()
     request_cost = compute_cost(requestCost) if requestCost is not None else 0
     label_text = []
+    label_text.append("Warning: This only considers the cost from this system!")
     if request_cost > 0.00001:
         label_text.append('Request Cost: +${}'.format(request_cost))
         label_text.append('New {} Quota: ${} / ${}'.format(datetime.now().strftime('%B'), current_cost + request_cost, MONTHLY_CAP))

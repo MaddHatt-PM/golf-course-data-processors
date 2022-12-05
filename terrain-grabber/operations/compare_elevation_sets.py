@@ -1,10 +1,19 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from pathlib import Path
 import matplotlib.pyplot as plt
-from operations.download_data import download_elevation, services
+from download_data import download_elevation, services
 
 from utilities.math import meter_to_feet
 
-def generate_plot(datasets:list[list], labels:list[str]):
+def generate_comparison_plot(datasets:list[list], labels:list[str]):
+    """
+    Generate a line graph that compares the elevation data from the provided datasets.
+    """
     title = 'Elevation Comparison between GPS App and Google Maps'
     plt.figure(title)
 
@@ -27,7 +36,7 @@ def generate_plot(datasets:list[list], labels:list[str]):
 
     x0, y0 = [0, len(datasets[0])], [0, 0]
     plt.plot(x0, y0, color='k')
-    
+
     plt.plot([*range(len(diff))], diff, label='GPS Elev. minus Google Elev.', color='tab:purple')
     plt.fill_between([*range(len(diff))], diff, color='grey', alpha=0.2)
     plt.title('Difference of Elevation')
@@ -46,9 +55,12 @@ def generate_plot(datasets:list[list], labels:list[str]):
 
     plt.show()
 
-if __name__ == '__main__':
-    datapath = Path('ExternalData\CountryClubAsheville-WalkingData.csv')
-    with datapath.open('r') as file:
+def process_topographic_data(csv_path:str):
+    """
+    Read out the csv_path (assuming it's perfect). The number of sample points is reliant on the provided source.
+    Location data from the provided source is used to sample directly from Google Maps via API.
+    """
+    with csv_path.open('r') as file:
         lines = file.readlines()
     
     legend_labels = []
@@ -88,7 +100,11 @@ if __name__ == '__main__':
     walking_altitude_pts = [meter_to_feet(pt) for pt in walking_altitude_pts]
     google_altitude_pts = [meter_to_feet(pt) for pt in google_altitude_pts]
 
-    generate_plot(
+    generate_comparison_plot(
         datasets= [walking_altitude_pts, google_altitude_pts],
         labels=legend_labels
         )
+
+if __name__ == '__main__':
+    datapath = Path('ExternalData\CountryClubAsheville-WalkingData.csv')
+    process_topographic_data(datapath)

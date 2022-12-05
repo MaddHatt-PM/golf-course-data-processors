@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 class ColorSet:
     def __init__(self, path:str, fill:str) -> None:
         self.path = path

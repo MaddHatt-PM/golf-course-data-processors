@@ -1,17 +1,22 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from math import cos, pi, sin
 from pathlib import Path
 from functools import partial
 
 import tkinter as tk
-from tkinter import Canvas, DoubleVar, Frame, StringVar
+from tkinter import Canvas, Frame, StringVar, messagebox
 from tkinter import ttk
 
 from utilities.math import rotate_from_2d_point
 
 from asset_project import LocationPaths
 from subviews import InspectorDrawer
-from utilities import SpaceTransformer, UIColors
-from utilities.math import clamp01
+from utilities import SpaceTransformer
 from data_assets import TreeAsset
 
 class TreeCollectionManager:
@@ -20,15 +25,21 @@ class TreeCollectionManager:
         self.trees:list[TreeAsset] = []
         self.load_data_from_file()
 
-        self.selected_tree_text:StringVar = StringVar()
-        self.selected_tree_text.set("None selected")
-        self.selected_tree:TreeAsset = None
-        if len(self.trees) == 0:
-            self.trees.append(TreeAsset())
+        self.active_tree_title:StringVar = StringVar()
+        self.active_tree_title.set("None selected")
+        self.active_tree:TreeAsset = None
+        self.tree_dropdown = None
+        self.is_active_tool = False
+        # if len(self.trees) == 0:
+        #     self.trees.append(TreeAsset())
+
+        def redraw_func():
+            self.draw_to_inspector()
+            self.draw_to_viewport()
 
         if len(self.trees) > 0:
-            self.selected_tree = self.trees[0]
-            self.selected_tree.select(self)
+            self.active_tree = self.trees[0]
+            self.active_tree.select(self, redraw_func)
 
         self.presets_path = Path("resources/tree_presets.csv")
         self.presets:list[TreeAsset] = []
@@ -36,6 +47,8 @@ class TreeCollectionManager:
         self.canvas_ids = []
         self.canvas:Canvas = None
         self.util:SpaceTransformer = None
+        self.drawer = None
+        self.inspector = None
 
         if self.presets_path.is_file() is True:
             with self.presets_path.open('r') as file:
@@ -44,9 +57,12 @@ class TreeCollectionManager:
                 for line in lines:
                     self.presets.append(TreeAsset(header, line))
 
+    def set_active_tool(self, state:bool):
+        self.is_active_tool = state
+
     def load_data_from_file(self):
-        if self.target.treesCSV_path.is_file():
-            with self.target.treesCSV_path.open('r') as file:
+        if self.target.trees_csv_path.is_file():
+            with self.target.trees_csv_path.open('r') as file:
                 treedata = file.readlines()
                 header = treedata.pop(0).replace('\n', '')
 
@@ -54,8 +70,8 @@ class TreeCollectionManager:
                     self.trees.append(TreeAsset(header=header, data=tree_str))
 
     def save_data_to_files(self):
-        with self.target.treesCSV_path.open('w') as file:
-            output = TreeAsset().header() + '\n'
+        with self.target.trees_csv_path.open('w') as file:
+            output = TreeAsset().generate_header() + '\n'
 
             for tree in self.trees:
                 output += tree.to_csv() + '\n'
@@ -64,46 +80,44 @@ class TreeCollectionManager:
             file.write(output)
 
     # -------------------------------------------------------------- #
-    # --- Presets -------------------------------------------------- #
-    def add_preset(self, tree:TreeAsset=None):
-        '''Adds currently selected tree if None provided'''
-        if tree is None:
-            tree = self.selected_tree
-
-        self.presets.append(self.selected_tree.to_csv(include_name=True))
-        self.save_presets()
-
-    def remove_preset(self, index:int):
-        self.presets.pop(index)
-        self.save_presets()
-
-    def save_presets(self):
-        with self.presets_path.open('w'):
-            with self.presets_path.open('w') as file:
-                file.write(TreeAsset().header(include_name=True))
-                file.write('\n')
-
-                for tree in self.presets:
-                    file.write(tree.to_csv)
-
-    def _save_settings(self):
-        pass
+    # --- TODO Rename -------------------------------------------------- #
 
     def add_tree(self):
         tree = TreeAsset()
         self.trees.append(tree)
-        self.save_data_to_files()
+        self.active_tree.deselect()
+        self.active_tree = tree
 
-    def remove_tree(self, tree:TreeAsset):
-        self.trees.remove(tree)
+        def redraw_func():
+            self.draw_to_inspector()
+            self.draw_to_viewport()
+
+        self.active_tree.select(self, redraw_func)
+            
         self.save_data_to_files()
         self.draw_to_inspector()
+        self.draw_to_viewport()
+
+    def remove_tree(self, tree:TreeAsset):
+        if messagebox.askokcancel("Delete Tree?", "Are you sure you want to delete this tree"):
+            self.trees.remove(tree)
+            self.active_tree = self.trees[-1] if len(self.trees) != 0 else None
+            self.save_data_to_files()
+            self.draw_to_inspector()
+            self.draw_to_viewport()
+
+    def move_tree_on_right_click(self, x, y):
+        if self.active_tree is not None:
+            self.active_tree.move_tree_to_point(x, y)
 
     def setup_draw_to_viewport(self, canvas:Canvas, util:SpaceTransformer=None):
         self.canvas = canvas
         self.util = util
 
     def draw_to_viewport(self):
+        """
+        Draw to the main viewport canvas
+        """
         for id in self.canvas_ids:
             self.canvas.delete(id)
         self.canvas_ids.clear()
@@ -157,23 +171,32 @@ class TreeCollectionManager:
             # for pt in foliage_pts:
             #     circle_pt = self.canvas.create_oval(self.util.point_to_size_coords(pt, 8), fill="white")
             #     self.canvas_ids.append(circle_pt)
+            def draw_foliage(pts, color='white'):
+                for i in range(len(pts) - 1):
+                    line_id = self.canvas.create_line(
+                        *pts[i],
+                        *pts[i+1],
+                        width=2.5,
+                        fill=color
+                        )
+                    self.canvas_ids.append(line_id)
 
-            for i in range(len(foliage_pts) - 1):
-                lineID = self.canvas.create_line(
-                    *foliage_pts[i],
-                    *foliage_pts[i+1],
+                line_id = self.canvas.create_line(
+                    *pts[-1],
+                    *pts[0],
                     width=2.5,
-                    fill='white'
+                    fill=color
                     )
-                self.canvas_ids.append(lineID)
+                self.canvas_ids.append(line_id)
 
-            lineID = self.canvas.create_line(
-                *foliage_pts[-1],
-                *foliage_pts[0],
-                width=2.5,
-                fill='white'
-                )
-            self.canvas_ids.append(lineID)
+            if self.active_tree == tree and self.is_active_tool:
+                pixel_offset = 3
+                drop_shadow_pts = [(pt[0], pt[1] + pixel_offset) for pt in foliage_pts]
+                draw_foliage(drop_shadow_pts, color='#212121')
+                draw_foliage(foliage_pts, color='#EFEBE9')
+            
+            else:
+                draw_foliage(foliage_pts, color='#BDBDBD')
 
 
             # Draw radius (solid circle)
@@ -195,33 +218,81 @@ class TreeCollectionManager:
             center_id = self.canvas.create_oval(self.util.point_to_size_coords(foliage_pts[0], 8), fill="white")
             self.canvas_ids.append(center_id)
 
-    def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
+    def draw_to_inspector(self, inspector:Frame=None, drawer:InspectorDrawer=None, force_selector_draw=False):
         '''
         Mockup:
         
         canvasSelect:Button | trees:Dropdown | new_tree:Button
         sub_canvas renderer
         '''
-
-        tree_pos_list = []
-        for tree in self.trees:
-            result = "{}, {}".format(tree.transform_position_x, tree.transform_position_y)
-            tree_pos_list.append(result)
-
-        selector_frame = Frame(inspector, padx=0, pady=0)
-        tk.Label(selector_frame, text="Selected tree:").grid(row=0, column=0)
+        if self.inspector is None and inspector is None:
+            print("inspector must be supplied at least once")
         
-        dropdown = ttk.OptionMenu(selector_frame, self.selected_tree_text, self.selected_tree_text.get(), *tree_pos_list)
-        dropdown.grid(row=0, column=1, sticky='ew')
+        if inspector is None:
+            inspector = self.inspector
+        self.inspector = inspector
+
+        if self.drawer is None and drawer is None:
+            print("inspector must be supplied at least once")
         
+        if drawer is None:
+            drawer = self.drawer
+        self.drawer = drawer
+
+
+        tree_dropdown_options = []
+        for id, tree in enumerate(self.trees):
+            result = "[{}] {:.4f}, {:.4f}".format(id, tree.transform_position_x, tree.transform_position_y)
+            tree_dropdown_options.append(result)
+
+        def select_tree_from_dropdown(choice:str, do_rerender=True):
+            def redraw_func():
+                self.draw_to_inspector()
+                self.draw_to_viewport()
+            
+            tree_id = int(choice[1:choice.index(']')])
+            self.active_tree.deselect()
+            self.active_tree = self.trees[tree_id]
+            self.active_tree.select(self, redraw_func)
+            
+            if do_rerender:
+                self.draw_to_inspector()
+                self.draw_to_viewport()
+
+        if (self.active_tree_title.get() == "None selected" and len(self.trees) != 0):
+            select_tree_from_dropdown(tree_dropdown_options[0], do_rerender=False)
+            self.active_tree_title.set(tree_dropdown_options[0])
+
+        if len(self.trees) == 0:
+            self.active_tree_title.set("None selected")
+
+        if self.tree_dropdown is None or force_selector_draw:
+            selector_frame = Frame(inspector, padx=0, pady=0)
+            tk.Label(selector_frame, text="Tree:").grid(row=0, column=0)
+
+            self.tree_dropdown = ttk.OptionMenu(
+                selector_frame,
+                self.active_tree_title,
+                self.active_tree_title.get(),
+                *tree_dropdown_options,
+                command=select_tree_from_dropdown
+                )
+            
+            self.tree_dropdown.grid(row=0, column=1, sticky='ew')
+
+            remove_func = partial(self.remove_tree, self.active_tree)
+            # ttk.Button(selector_frame, text='⦺', width=2).grid(row=0, column=2)
+            ttk.Button(selector_frame, text='+', width=2, command=self.add_tree).grid(row=0, column=3)
+            ttk.Button(selector_frame, text='-', width=2, command=remove_func).grid(row=0, column=4)
+
+            selector_frame.grid_columnconfigure(1, weight=5)
+            selector_frame.pack(fill="x", anchor="n", expand=False)
         # ttk.Label(selector_frame, textvariable=self.selected_tree_text, anchor="e").grid(row=0, column=1)
-        ttk.Button(selector_frame, text='⦺', width=2).grid(row=0, column=2)
-        ttk.Button(selector_frame, text='+', width=2, command=self.add_tree).grid(row=0, column=3)
-        selector_frame.grid_columnconfigure(1, weight=5)
-        selector_frame.pack(fill="x", anchor="n", expand=False)
-        drawer.seperator()
 
-        self.selected_tree.draw_to_inspector(inspector, drawer)
+
+        if self.active_tree is not None:
+            drawer.seperator()
+            self.active_tree.draw_to_inspector(inspector, drawer)
 
         # drawer.empty_space()
         # drawer.button(text="Save all trees", command=self.save_data_to_files)

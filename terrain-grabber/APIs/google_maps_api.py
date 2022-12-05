@@ -2,7 +2,7 @@
 """
 Stitch together Google Maps images from lat, long coordinates
 Based on work by heltonbiker and BenElgar
-Changes: 
+Changes:
 * updated for Python 3
 * added Google Maps API key (compliance with T&C, although can set to None)
 * handle http request exceptions
@@ -22,7 +22,6 @@ Adapted by Patt Martin
 Changes:
 * Added print() to show progress in console
 * Added get_image_count() for API counting
-
 """
 
 import sys
@@ -35,6 +34,9 @@ from math import log, exp, tan, atan, ceil, pi
 
 
 class SatelliteInterface:
+    """
+    
+    """
     global tau, DEGREE, ZOOM_OFFSET, MAXSIZE, LOGO_CUTOFF
     # circumference/radius
     tau = 2 * pi

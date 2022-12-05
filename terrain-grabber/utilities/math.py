@@ -1,5 +1,10 @@
-from math import cos, sin, radians, degrees
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
 
+from math import cos, sin, radians, degrees
 
 def clamp01(value) -> float:
     return max(min(value, 1.0), 0.0)

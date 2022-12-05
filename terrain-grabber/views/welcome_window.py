@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from functools import partial
 import os, sys
 import tkinter as tk
@@ -7,6 +13,9 @@ from operations import restart_with_location
 from .create_location_window import show_create_location
 
 def show_welcome():
+    """
+    Present a window of available areass to choice from and the option to grab another location.
+    """
     popup = tk.Tk()
     popup.title('Terrain Grabber - Welcome')
     popup.resizable(0, 0)

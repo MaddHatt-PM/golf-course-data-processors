@@ -1,10 +1,21 @@
-from .enums import CoordMode
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from tkinter import Canvas, Image
 from geographiclib.geodesic import Geodesic
 
 from asset_project import LocationPaths
 
+from .enums import CoordMode
+
 class SpaceTransformer:
+    """
+    Utility object to handle coordinate system changes.
+    Normalized space (0-1) is used as an in between stage between pixel space and earth (latitude/longitude) space.
+    """
     def __init__(self, canvasRef: Canvas, target:LocationPaths, image_resized:Image):
         self.canvasRef = canvasRef
         self.target = target
@@ -12,7 +23,7 @@ class SpaceTransformer:
         self.geo_util:Geodesic = Geodesic.WGS84
 
     def point_to_size_coords(self, pt:tuple[float,float], size=8, addOffset=False) -> tuple:
-        '''pt is assumed to be the centered position point'''
+        '''Expand a point in pixel space to a square of points with sides of length *size*'''
         if addOffset is True:
             offset = self.canvasRef.canvasx(0), self.canvasRef.canvasy(0)
         else:
@@ -26,10 +37,7 @@ class SpaceTransformer:
         return (x0, y0, x1, y1)
 
     def earth_pt_to_pixel_space(self, pt:tuple[float,float], to_int=False) -> tuple:
-        '''
-        Convert an earth point (lat, lon) to 0-1 normalization
-        then to pixel coordinates.
-        '''
+        """Transform a point from latitude/longitude space to """
         coords = self.target.coordinates()
         max_x = coords[1][0]
         min_x = coords[0][0]
@@ -46,14 +54,12 @@ class SpaceTransformer:
         return self.norm_pt_to_pixel_space(norm_x, norm_y)
 
     def pixel_pt_to_earth_space(self, pt:tuple[float,float]) -> tuple:
-        '''
-        Convert a pixel point to 0-1 normalization
-        then to earth coordinates (lat, long).
-        '''
+        """Transform a point from pixel space to normalized space"""
         pt = self.pixel_pt_to_norm_space(pt)
         return self.norm_pt_to_earth_space(pt)
 
     def pixel_pt_to_norm_space(self, pt:tuple[float,float]) -> tuple:
+        """Transform a point from pixel space to normalized space (0-1)"""
         min_x = self.canvasRef.canvasx(0)
         max_x = self.image_resized.width
         min_y = self.canvasRef.canvasy(0)
@@ -66,6 +72,7 @@ class SpaceTransformer:
 
 
     def norm_pt_to_pixel_space(self, pt:tuple[float,float], to_int=False) -> tuple:
+        """Transform a point from normalized space (0-1) to pixel space"""
         x = pt[0] * self.image_resized.width
         y = pt[1] * self.image_resized.height
         
@@ -76,6 +83,7 @@ class SpaceTransformer:
         return (x, y)
 
     def norm_pt_to_earth_space(self, pt:tuple[float,float]) -> tuple:
+        """Transform a point from normalized space (0-1) to latitude/longitude space"""
         coords = self.target.coordinates()
         max_x = coords[1][0]
         min_x = coords[0][0]
@@ -86,11 +94,6 @@ class SpaceTransformer:
         y = pt[1] * (max_y - min_y) + min_y
 
         return (x, y)
-
-    def latlong_lerp(self, pt0:tuple[float,float], pt1:tuple[float,float], value) -> tuple[float, float]:
-        geo = Geodesic.WGS84
-
-        return 0.0, 0.0
 
     def compute_area(self, pt0, pt1, mode:CoordMode):
         if mode is CoordMode.normalized:

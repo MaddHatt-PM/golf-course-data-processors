@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from datetime import datetime
 import json
 from pathlib import Path
@@ -6,12 +12,15 @@ MONTHLY_CAP = 200.0
 
 # ------------------------------------------------------------ #
 # --- File IO ------------------------------------------------ #
-storage_str = "resources/api_tracker.json"
-storage_path = Path(storage_str)
+STORAGE_STR = "resources/api_tracker.json"
+STORAGE_PATH = Path(STORAGE_STR)
 
 def __load_storage(path=None) -> dict[str, int]:
+    """
+    Private function to load api_tracker.json and determine if it should be archived.
+    """
     if path is None:
-        path = storage_path
+        path = STORAGE_PATH
 
     storage_raw = {}
 
@@ -19,17 +28,17 @@ def __load_storage(path=None) -> dict[str, int]:
     if path.is_file():
         creation_timestamp = path.stat().st_ctime
         creation_date = datetime.fromtimestamp(creation_timestamp)
-        
+
         if creation_date.month == datetime.now().month:
-            with path.open(mode='r') as file:
+            with path.open(mode='r', encoding='utf8') as file:
                 storage_raw = json.loads(file.read())
             return dict([a, int(x)] for a,x in storage_raw.items())
 
         # File is old and should be archived
         else:
-            creation_timestamp = storage_path.stat().st_ctime
+            creation_timestamp = STORAGE_PATH.stat().st_ctime
             creation_date = datetime.fromtimestamp(creation_timestamp)
-            archive_str = storage_str
+            archive_str = STORAGE_STR
             archive_str = archive_str.replace("resources", "resources/Archives")
 
             month = str(creation_date.month).zfill(2)
@@ -43,7 +52,7 @@ def __load_storage(path=None) -> dict[str, int]:
             if archive_path.is_file():
                 archive_path.unlink()
 
-            storage_path.rename(archive_path)
+            STORAGE_PATH.rename(archive_path)
             
 
     # No file exists
@@ -51,8 +60,11 @@ def __load_storage(path=None) -> dict[str, int]:
     return empty_dict
 
 def __save_storage(storage:dict[str, int], path=None):
+    """
+    Private function to save data to api_tracker.json
+    """
     if path is None:
-        path = storage_path
+        path = STORAGE_PATH
 
     json_str = json.dumps(storage, indent=4)
 
@@ -62,10 +74,12 @@ def __save_storage(storage:dict[str, int], path=None):
 # ------------------------------------------------------------ #
 # --- Usage Tracking ----------------------------------------- #
 def get_api_count(name:str, path=None):
+    """Get the amount of times each API has been used for the current month on this machine"""
     storage = __load_storage(path)
     return storage.get(name, '0')
 
 def add_api_count(name:str, add:int, path=None) -> int:
+    """Add usages to the API counter"""
     storage = __load_storage(path)
     storage[name] = storage.get(name, 0) + add
     __save_storage(storage, path)
@@ -73,6 +87,10 @@ def add_api_count(name:str, add:int, path=None) -> int:
     return storage[name]
 
 def compute_cost(data:dict[str,int]=None) -> float:
+    """
+    Compute the current cost of API usages for the month.
+    Considers satelite imagery and elevation as seperate services.
+    """
     costs = {
         "google_satelite": 0.002,
         "google_elevation": 0.005,
@@ -90,11 +108,11 @@ def compute_cost(data:dict[str,int]=None) -> float:
 if __name__ == "__main__":
     print("--- APIUsageTracker tester ---")
     print("[0] Creating and saving fake data...")
-    storage_raw = {}
-    storage_raw["fake_serv_0"] = "100"
-    storage_raw["fake_serv_1"] = "25"
+    storage_test_raw = {}
+    storage_test_raw["fake_serv_0"] = "100"
+    storage_test_raw["fake_serv_1"] = "25"
 
-    storage:dict[str, int] = dict([a, int(x)] for a,x in storage_raw.items())
+    storage:dict[str, int] = dict([a, int(x)] for a,x in storage_test_raw.items())
 
     test_path = Path("resources/api_tracker_test.json")
     __save_storage(storage, path=test_path)

@@ -1,48 +1,61 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from pathlib import Path
-from typing import List, Tuple
 
 class LocationPaths:
-    def __init__(self, savename:str, p0:Tuple[float, float]=None, p1:Tuple[float, float]=None, apis=None):
+    """
+    Utility object to hold filepaths, check for existing files, and to supply location coordinates
+    """
+    def __init__(self, savename:str, p0:tuple[float, float]=None, p1:tuple[float, float]=None, apis=None):
         self.savename:str = savename
 
-        basePath = "../SavedAreas/" + savename + "/" 
-        self.basePath:Path = Path(basePath)
-        self.basePath.mkdir(parents=True, exist_ok=True)
+        basepath = "../SavedAreas/" + savename + "/" 
+        self.basepath:Path = Path(basepath)
+        self.basepath.mkdir(parents=True, exist_ok=True)
 
         self.env = Path('.env')
         self.apis = apis
 
-        self.loadFile_path:Path = Path(basePath + savename + ".area")
-        self.sateliteImg_path:Path = Path(basePath + "Satelite.png")
-        self.coordinates_path:Path = Path(basePath + "Coordinates.csv")
-        self.elevationImg_nearest_path:Path = Path(basePath + "Elevation_Nearest.png")
-        self.elevationImg_linear_path:Path = Path(basePath + "Elevation_Linear.png")
-        self.sampleDistributionImg_path:Path = Path(basePath + "Sample_Distribution.png")
-        self.contourImg_path:Path = Path(basePath + "Contour.png")
-        self.elevationCSV_path:Path = Path(basePath + "Elevation.csv")
-        self.treesCSV_path:Path = Path(basePath + "Trees.csv")
+        self.loadfile_path:Path = Path(basepath + savename + ".area")
+        self.satelite_img_path:Path = Path(basepath + "Satelite.png")
+        self.coordinates_path:Path = Path(basepath + "Coordinates.csv")
+        self.elevation_img_nearest_path:Path = Path(basepath + "Elevation_Nearest.png")
+        self.elevation_img_linear_path:Path = Path(basepath + "Elevation_Linear.png")
+        self.tangent_normal_path:Path = Path(basepath + "Tangent_Normal.png")
+        self.sample_distribution_img_path:Path = Path(basepath + "Sample_Distribution.png")
+        self.contour_img_path:Path = Path(basepath + "Contour.png")
+        self.elevation_csv_path:Path = Path(basepath + "Elevation.csv")
+        self.trees_csv_path:Path = Path(basepath + "Trees.csv")
 
-        self.offset_path:Path = Path(basePath + "offset.csv")
+        self.offset_path:Path = Path(basepath + "offset.csv")
 
         # If provided, save out coordinates data
-        if p0 != None and p1 != None:
-            with open(self.coordinates_path, 'w') as f:
+        if p0 is not None and p1 is not None:
+            with open(self.coordinates_path, 'w', encoding='utf8') as f:
                 f.write("latitude,longitude\n")
                 f.write(str(p0) + '\n')
                 f.write(str(p1) + '\n')
 
-    def coordinates(self) -> List[tuple[float, float]]:
+    def coordinates(self) -> list[tuple[float, float]]:
+        """
+        Load in the location's coordinates, [(N,W), (S,E)]
+        """
         if self.coordinates_path.exists():
-            with open(self.coordinates_path, "r") as f:
+            with open(self.coordinates_path, "r", encoding='utf8') as f:
                 lines = f.read().splitlines()
                 p0 = eval(lines[1])
                 p1 = eval(lines[2])
 
             return [p0, p1]
-            
+
         else:
             # Maybe throw an error and crash the program?
             return [(1.0, 1.0), (0.0, 0.0)]
 
-    def does_satelite_data_exist(self) -> bool:
-        return self.sateliteImg_path.is_file()
+    def does_satelite_img_exist(self) -> bool:
+        """Helper function to determine if the file exists"""
+        return self.satelite_img_path.is_file()

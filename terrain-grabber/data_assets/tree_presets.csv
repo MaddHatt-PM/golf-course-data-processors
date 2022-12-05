@@ -1,0 +1,4 @@
+name,trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_upper_curv,foliage_midpoint,foliage_lower_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
+# Comment example
+test_tree,1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32
+Example,15.0,80.0,0.0,0.7654320987654321,50.0,200.0,50.0,2.0,0.5,2.0,0.6135135135135137,0.5,0.0,0.0,32

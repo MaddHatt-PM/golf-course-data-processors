@@ -27,7 +27,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 '''Attempt to load dot file'''
 apis = read_env()
 if len(apis) == 0:
-    show_api_config(isMainWindow=True)
+    show_api_config(is_main_window=True)
 
     '''Give the user another chance for API'''
     apis = read_env()

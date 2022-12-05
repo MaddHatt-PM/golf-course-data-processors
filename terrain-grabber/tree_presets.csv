@@ -1,7 +1,0 @@
-name,trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_upper_curv,foliage_midpoint,foliage_lower_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
-activeTreeTest,10.0,100.0,0.0,0.75,50.0,150.0,45.0,2.0,0.7,2.0,0.4,0.5,0.0,245.45454545454544,64
-demoTree_A,10.0,180.0,0.0,0.75,30.0,180.0,75.0,1.5,0.5,1.5,0.4,0.5,0.0,245.45454545454544,64
-demoTree_B,10.0,180.0,0.0,0.75,40.0,180.0,75.0,1.5,0.5,1.5,0.4,0.5,0.0,245.45454545454544,64
-demoTree_C,10.0,180.0,0.0,0.75,55.0,180.0,75.0,1.5,0.5,1.5,0.4,0.5,0.0,245.45454545454544,64
-demoTree_D,10.0,180.0,0.0,0.75,60.0,180.0,75.0,1.5,0.5,1.5,0.4,0.5,0.0,245.45454545454544,64
-demoTree_E,10.0,180.0,0.0,0.75,70.0,180.0,75.0,1.5,0.5,1.5,0.4,0.5,0.0,245.45454545454544,64

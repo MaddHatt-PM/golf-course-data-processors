@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 from typing import Callable
 from functools import partial
 import tkinter as tk
@@ -24,10 +30,12 @@ class InspectorDrawer:
         # width_definer.place(relx=0, rely=0)
 
     def clear_inspector(self, *args, **kwargs):
+        """Clear all components currently rendered by InspectorDrawer"""
         for item in self.items:
             item.destroy()
 
     def header(self, text=None, textVariable=None):
+        """Create a label that is left aligned with a larger font"""
         text = tk.Label(self.frame, text=text, textVariable=None,
                          font=("Arial, 12"), anchor='w')
         text.pack(fill='x')
@@ -36,6 +44,7 @@ class InspectorDrawer:
         return text
 
     def label(self, text:str=None):
+        """Create a label that is right aligned"""
         lines = text.splitlines()
 
         for line in lines:
@@ -45,7 +54,12 @@ class InspectorDrawer:
 
         return text
 
-    def labeled_entry(self, label_text="", entry_variable:StringVar=None, validate_command=None, pady=0) -> ttk.Entry:
+    def labeled_entry(self, label_text="", entry_variable:StringVar=None, validate_command=None, pady=0, width=8) -> ttk.Entry:
+        """
+        Create a pair of UI components.\n
+        1. Left aligned: a label.
+        2. Right aligned: a textinput.
+        """
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
@@ -53,7 +67,7 @@ class InspectorDrawer:
         label.grid(row=0, column=0)
         self.items.append(label)
 
-        entry = ttk.Entry(subframe, textvariable=entry_variable, validate='key', validatecommand=validate_command)
+        entry = ttk.Entry(subframe, textvariable=entry_variable, validate='key', validatecommand=validate_command, width=width)
         entry.grid(row=0, column=2, sticky='e',pady=pady)
         self.items.append(entry)
 
@@ -62,6 +76,9 @@ class InspectorDrawer:
         return entry
 
     def button(self, text="", textVariable=None, command=None, *args, **kwargs) -> ttk.Button:
+        """
+        Create a button that fills it's horizontal space.
+        """
         button = ttk.Button(self.frame, text=text, textvariable=textVariable, command=command, *args, **kwargs)
         button.pack(fill='x', pady=4, padx=8)
         
@@ -69,6 +86,11 @@ class InspectorDrawer:
         return button
 
     def labeled_toggle(self, boolVar:BooleanVar, label_text:str="", command=None ) -> Button:
+        """
+        Create a pair of UI components.\n
+        1. Left aligned: a label.
+        2. Right aligned: a toggle with callbacks for on/off.
+        """
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
@@ -88,9 +110,12 @@ class InspectorDrawer:
         subframe.pack(fill='x')
         return button
 
-    def labeled_slider(self, label_text:str="", from_:float=0.0, to:float=1.0, tkVar:DoubleVar=None) -> ttk.Scale:
-        '''Create a slider with a range of 0.0 to 1.0 by default'''
-
+    def labeled_slider(self, label_text:str="", from_:float=0.0, to:float=1.0, tkVar:DoubleVar=None, width=8) -> ttk.Scale:
+        """
+        Create a pair of UI components.\n
+        1. Left aligned: a label.
+        2. Right aligned: a slider.
+        """
         subframe = Frame(self.frame, padx=0, pady=0)
         subframe.pack(fill='x')
         self.items.append(subframe)
@@ -105,7 +130,7 @@ class InspectorDrawer:
         subframe.grid_columnconfigure(1, weight=5)
         self.items.append(slider)
 
-        entry = ttk.Entry(subframe, textvariable=tkVar, validate='key')
+        entry = ttk.Entry(subframe, textvariable=tkVar, validate='key', width=width)
         entry.grid(row=0, column=2)
         # subframe.grid_columnconfigure(2, weight=1)
         self.items.append(entry)
@@ -113,6 +138,9 @@ class InspectorDrawer:
         return slider
 
     def empty_space(self) -> tk.Label:
+        """
+        Create an empty label to space out elements.
+        """
         space = tk.Label(self.frame, text="")
         space.pack(fill='x')
 
@@ -120,6 +148,10 @@ class InspectorDrawer:
         return space
 
     def vertical_divider(self) -> tk.Label:
+        """
+        Create a divider of empty space that pushes elements packed before and after.
+        Can be coupled with multiple dividers with elements inbetween for more layout options.
+        """
         space = tk.Label(self.frame, text="")
         space.pack(fill='x', expand=True)
 
@@ -127,6 +159,9 @@ class InspectorDrawer:
         return space
 
     def seperator(self) -> ttk.Separator:
+        """
+        Create a graphical seperator that fills it's horiontal space.
+        """
         seperator = ttk.Separator(self.frame, orient="horizontal")
         seperator.pack(fill='x', pady=5)
 
@@ -134,6 +169,11 @@ class InspectorDrawer:
         return seperator
 
     def labeled_dropdown(self, current_var, value_data:list, value_names:list, default_index:int, label_text:str, change_commands=None) -> ttk.Combobox:
+        """
+        Create a pair of UI components.\n
+        1. Left aligned: a label.
+        2. Right aligned: a dropdown with given information.
+        """
         subframe = Frame(self.frame, padx=0, pady=0)
         subframe.pack(fill='x')
         self.items.append(subframe)
@@ -169,6 +209,9 @@ class InspectorDrawer:
         return dropdown
 
     def button_group(self, str_commands:list[tuple[str, Callable]]=None):
+        """
+        Create a horizontal group of buttons.
+        """
         subframe = Frame(self.frame, padx=0, pady=0)
         self.items.append(subframe)
 
@@ -182,6 +225,7 @@ class InspectorDrawer:
         return subframe
 
     def tree_preview(self):
+        """Create a canvas specifically for a tree previews"""
         canvas = Canvas(self.frame, width=TREE_PREVIEW_SIZE[0], height=TREE_PREVIEW_SIZE[1])
         self.items.append(canvas)
 

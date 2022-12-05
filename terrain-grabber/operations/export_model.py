@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 import os
 from pathlib import Path
 import shutil
@@ -16,6 +22,9 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
         title='Select directory for export',
         mustexist=True
     )
+    """
+    Export a 3D model of the location data
+    """
 
     if outputdir == '':
         return
@@ -48,7 +57,7 @@ def export_model(target:LocationPaths, input_texture:Path=None, testMode=False, 
     ]
 
     xOffsets,yOffsets,elevs = [],[],[]
-    with target.elevationCSV_path.open('r') as file:
+    with target.elevation_csv_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
     

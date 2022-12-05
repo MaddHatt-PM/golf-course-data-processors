@@ -1,8 +1,19 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+
+Not sure if this is actually used.
+"""
+
 from asset_project import LocationPaths
 from pathlib import Path
 import csv
 
 def convert_csv_to_area(in_path:Path, asset:LocationPaths=None) -> Path:
+    """
+    Read through a csv and convert to an area asset.
+    """
     if in_path.exists() is False and in_path.is_file() is False:
         raise Exception("Error from trying to retrieve file at: {}".format(str(in_path)))
 
@@ -12,7 +23,7 @@ def convert_csv_to_area(in_path:Path, asset:LocationPaths=None) -> Path:
 
     out_path = Path(in_path.name.replace(in_path.suffix, "_path" + in_path.suffix))
     if asset is not None:
-        out_path = asset.basePath.joinpath(out_path)
+        out_path = asset.basepath.joinpath(out_path)
 
     # Rewrite later to allow variations via GUI
     needed_headers = [
@@ -44,6 +55,7 @@ def convert_csv_to_area(in_path:Path, asset:LocationPaths=None) -> Path:
     return out_path
 
 def calculate_bounds_from_csv(path:Path):
+    """Calculate the furthest points to form a rectangle"""
     # [(NW), (SE)] <=> [(maxY,minX), (minY,maxX)]
     N = float("-inf")
     W = float("inf")

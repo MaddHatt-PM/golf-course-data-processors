@@ -1,3 +1,9 @@
+"""
+Author: Patt Martin
+Email: pmartin@unca.edu or MaddHatt.pm@gmail.com
+Written: 2022
+"""
+
 import os
 from pathlib import Path
 import shutil
@@ -10,6 +16,9 @@ from asset_project import LocationPaths
 from utilities import CornerID, CornerID_to_name
 
 def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.SW, convert_to_feet=True) -> list[Path]:
+    """
+    Export the entire project's data as a new directory of files that can be used in other programs.
+    """
     outputdir = filedialog.askdirectory(
         title='Select directory for export',
         mustexist=True,
@@ -27,19 +36,19 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
     copyfiles:list[Path,Path] = []
 
     '''Satelite'''
-    copyfiles.append((target.sateliteImg_path, outputdir / 'Satelite.png'))
+    copyfiles.append((target.satelite_img_path, outputdir / 'Satelite.png'))
 
     '''Elevation Imagery'''
     base_elev_dir = outputdir / 'Elevation'
     base_elev_dir.mkdir(exist_ok=True)
-    copyfiles.append((target.elevationImg_nearest_path, base_elev_dir / "Elevation_Nearest.png"))
-    copyfiles.append((target.elevationImg_linear_path, base_elev_dir / "Elevation_Linear.png"))
-    copyfiles.append((target.sampleDistributionImg_path, base_elev_dir / "Distribution.png"))
-    copyfiles.append((target.contourImg_path, base_elev_dir / "Contour.png"))
+    copyfiles.append((target.elevation_img_nearest_path, base_elev_dir / "Elevation_Nearest.png"))
+    copyfiles.append((target.elevation_img_linear_path, base_elev_dir / "Elevation_Linear.png"))
+    copyfiles.append((target.sample_distribution_img_path, base_elev_dir / "Distribution.png"))
+    copyfiles.append((target.contour_img_path, base_elev_dir / "Contour.png"))
 
     '''Point conversion for lat/long to np.arrays for future steps'''
     lats,lons, eles, xOffsets, yOffsets = [],[],[], [], []
-    with target.elevationCSV_path.open('r') as file:
+    with target.elevation_csv_path.open('r') as file:
         lines = file.read().splitlines()
         headers = lines.pop(0).split(',')
 
@@ -116,14 +125,14 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
 
     x_maxOffset, y_maxOffset = max(xOffsets), max(yOffsets)
 
-    filenames = os.listdir(target.basePath)
+    filenames = os.listdir(target.basepath)
     for name in filenames:
         if "_area" in name:
             file_prefix = name.split('_area')[0]
 
             '''Copy over raw lat/long'''
             raw_pts_file = file_prefix + '_area.csv'
-            raw_pts_src = target.basePath / raw_pts_file
+            raw_pts_src = target.basepath / raw_pts_file
             copyfiles.append((raw_pts_src, raw_areas_dir / (file_prefix + '_vertices.csv')))
 
             '''Reorient to new origin'''
@@ -170,7 +179,7 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
             
             '''Copy over mask files if they exist (they should be pre-generated)'''
             mask_file = file_prefix + '_mask.png'
-            mask_src = target.basePath / mask_file
+            mask_src = target.basepath / mask_file
             if mask_src.exists():
                 copyfiles.append((mask_src, masks_areas_dir / mask_file))
 
