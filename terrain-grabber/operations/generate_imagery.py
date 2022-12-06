@@ -201,7 +201,7 @@ def generate_sample_distribution_map(target:LocationPaths):
 
     loadingHandler.kill()
 
-def generate_tangent_normal(target:LocationPaths, path:Path, preview_in_cv=False):
+def generate_tangent_normal(target:LocationPaths, preview_in_cv=False):
     """
     Take an input of a height map and convert to a tangent normal space image.
     Normal map details: (Might need to double check)\n
@@ -211,12 +211,11 @@ def generate_tangent_normal(target:LocationPaths, path:Path, preview_in_cv=False
 
     Reading: http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
     """
-    # loadingHandler = LoadingWindowHandler()
-    # loadingHandler.show("Generating Tangent Space Normal Map...")
+    loadingHandler = LoadingWindowHandler()
+    loadingHandler.show("Generating Tangent Space Normal Map...")
 
     # Retrieve height map
-    # height_map = cv.imread(str(target.elevation_img_linear_path))
-
+    height_map = cv.imread(str(target.elevation_img_linear_path))
     height_map = height_map.astype("float32")
     height_map = height_map[:,:,0]
 
@@ -279,7 +278,7 @@ def generate_tangent_normal(target:LocationPaths, path:Path, preview_in_cv=False
     normal_map = np.clip(normal_map, 0.0, 1.0)
     normal_map = normal_map[:, :, ::-1] # colors: [bgr] -> [rgb]
     
-    # loadingHandler.kill()
+    loadingHandler.kill()
 
     if preview_in_cv:
         cv.imshow("normal map - RGB", normal_map)
@@ -287,7 +286,3 @@ def generate_tangent_normal(target:LocationPaths, path:Path, preview_in_cv=False
         cv.imshow("normal map - G", normal_map[:,:,1])
         cv.imshow("normal map - B", normal_map[:,:,2])
         cv.waitKey()
-
-if __name__ == "__main__":
-    path = Path("C:\Users\Patri\Desktop\golf-course-data-processors\SavedAreas\DemoCourse\Elevation_Linear.png")
-    generate_tangent_normal()
