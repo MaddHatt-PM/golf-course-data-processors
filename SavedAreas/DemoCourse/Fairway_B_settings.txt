@@ -1,1 +1,1 @@
-{"fill_alpha": 0.5419847328244275, "stroke_width": 3.0, "overfill_amt": 0, "do_draw_fill": true, "do_draw_points": true, "color_path": "#26A69A", "color_fill": "#004D40"}
+{"fill_alpha": 0.5419847328244275, "stroke_width": 3.0, "overfill_amt": 0, "do_draw_fill": true, "do_draw_points": true, "layer_key": "Default", "color_path": "#26A69A", "color_fill": "#004D40"}
