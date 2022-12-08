@@ -13,6 +13,7 @@ from tkinter import Canvas, Frame, StringVar, messagebox
 from tkinter import ttk
 
 from utilities.math import rotate_from_2d_point
+from copy import copy
 
 from asset_project import LocationPaths
 from subviews import InspectorDrawer
@@ -28,6 +29,7 @@ class TreeCollectionManager:
         self.active_tree_title:StringVar = StringVar()
         self.active_tree_title.set("None selected")
         self.active_tree:TreeAsset = None
+        self.default_tree:TreeAsset = TreeAsset()
         self.tree_dropdown = None
         self.is_active_tool = False
         # if len(self.trees) == 0:
@@ -37,9 +39,12 @@ class TreeCollectionManager:
             self.draw_to_inspector()
             self.draw_to_viewport()
 
+        def set_default_tree(tree:TreeAsset):
+            self.default_tree = copy(tree)
+
         if len(self.trees) > 0:
             self.active_tree = self.trees[0]
-            self.active_tree.select(self, redraw_func)
+            self.active_tree.select(self, redraw_func, set_default_tree)
 
         self.presets_path = Path("resources/tree_presets.csv")
         self.presets:list[TreeAsset] = []
@@ -84,6 +89,7 @@ class TreeCollectionManager:
 
     def add_tree(self):
         tree = TreeAsset()
+        tree.copy_from(self.default_tree)
         self.trees.append(tree)
         self.active_tree.deselect()
         self.active_tree = tree
@@ -92,7 +98,10 @@ class TreeCollectionManager:
             self.draw_to_inspector()
             self.draw_to_viewport()
 
-        self.active_tree.select(self, redraw_func)
+        def set_default_tree(tree:TreeAsset):
+            self.default_tree = copy(tree)
+
+        self.active_tree.select(self, redraw_func, set_default_tree)
             
         self.save_data_to_files()
         self.draw_to_inspector()
@@ -249,11 +258,14 @@ class TreeCollectionManager:
             def redraw_func():
                 self.draw_to_inspector()
                 self.draw_to_viewport()
+                
+            def set_default_tree(tree:TreeAsset):
+                self.default_tree = copy(tree)
             
             tree_id = int(choice[1:choice.index(']')])
             self.active_tree.deselect()
             self.active_tree = self.trees[tree_id]
-            self.active_tree.select(self, redraw_func)
+            self.active_tree.select(self, redraw_func, set_default_tree)
             
             if do_rerender:
                 self.draw_to_inspector()

@@ -275,6 +275,7 @@ class TreeAsset:
                     # print("TreeAsset: {} not in __init__ variables".format(itemset[0]))
                     pass
 
+
     def sync_variable(self, key:str, tkVar, *args, **kwargs):
         """
         Sync the given tkVar with the tree_asset's variable then update the viewport
@@ -290,6 +291,14 @@ class TreeAsset:
         # print("{} -> {}".format(key, self.__dict__[key]))
 
 
+    def copy_from(self, other_tree:"TreeAsset", exclude_transform=True):
+        for key in self.__dict__:
+            if exclude_transform and "transform" in key:
+                continue
+
+            self.__dict__[key] = other_tree.__dict__[key]
+
+
     def validate_for_double(self, value) -> bool:
         """
         Attempt to convert the given value into a double.
@@ -300,7 +309,7 @@ class TreeAsset:
         except:
             return False
 
-    def select(self, view_manager:"TreeCollectionManager", redraw_func): # type: ignore
+    def select(self, view_manager:"TreeCollectionManager", redraw_func, set_default_func): # type: ignore
         """
         Called when selected as the active tree in an inspector UI
         """
@@ -335,6 +344,7 @@ class TreeAsset:
         self.__rendering_vars['rendering_samples'] = tkVar
 
         self.__redraw_func = redraw_func
+        self.__set_default_func = set_default_func
 
     def deselect(self):
         """
@@ -515,7 +525,7 @@ class TreeAsset:
 
         def set_default():
             if self.__set_default_func is not None:
-                self.__set_default_func()
+                self.__set_default_func(self)
 
         drawer.header('Tree Attributes (in ft)')
         drawer.button_group(str_commands=[
