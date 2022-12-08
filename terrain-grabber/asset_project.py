@@ -23,6 +23,7 @@ class LocationPaths:
         self.loadfile_path:Path = Path(basepath + savename + ".area")
         self.satelite_img_path:Path = Path(basepath + "Satelite.png")
         self.coordinates_path:Path = Path(basepath + "Coordinates.csv")
+        self.layers_path:Path = Path(basepath + "Layers.json")
         self.elevation_img_nearest_path:Path = Path(basepath + "Elevation_Nearest.png")
         self.elevation_img_linear_path:Path = Path(basepath + "Elevation_Linear.png")
         self.tangent_normal_path:Path = Path(basepath + "Tangent_Normal.png")

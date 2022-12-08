@@ -35,6 +35,7 @@ class SettingKeys:
     do_draw_fill = "do_draw_fill"
     overfill_amt = "overfill_amt"
     color = "color"
+    layer_key = "layer_key"
 
     _color_path = "color_path"
     _color_fill = "color_fill"
@@ -89,6 +90,7 @@ class AreaAsset:
             self.settings[SettingKeys.overfill_amt] = 0
             self.settings[SettingKeys.do_draw_fill] = True
             self.settings[SettingKeys.do_draw_points] = True
+            self.settings[SettingKeys.layer_key] = "Default"
             self._save_settings()
 
         # self.fill_alpha = 0.25
@@ -149,7 +151,6 @@ class AreaAsset:
 
         self._save_settings()
         self.is_dirty = False
-
 
     def drawing_init(self, canvas:Canvas, util:SpaceTransformer, img_size:tuple):
         """

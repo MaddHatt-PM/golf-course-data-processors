@@ -25,7 +25,7 @@ from tkinter.messagebox import askyesnocancel
 from operations.generate_imagery import generate_imagery, generate_contour_map
 
 from asset_project import LocationPaths
-from data_managers import TreeCollectionManager
+from data_managers import TreeCollectionManager, LayerManager, LayerEditor
 from asset_area import AreaAsset, create_area_file_with_data
 from operations import export_data, export_model, restart_with_location
 from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
@@ -91,6 +91,9 @@ class MainWindow:
         self.sample_dist_raw:Image = None
         if target.sample_distribution_img_path.exists():
             self.sample_dist_raw = Image.open(target.sample_distribution_img_path).convert('RGBA')
+
+        # Prepare layer manager
+        self.layer_manager = LayerManager(filepath=target.layers_path)
 
         # Prepare references to areas
         self.areas:list[AreaAsset] = []
@@ -573,7 +576,7 @@ class MainWindow:
                 
                 area_selector_title.set(self.area_names[0] if available_areas is True else "No areas")
                 dropdown_selected = self.active_area.name if available_areas is True else "No areas"
-                dropdown = ttk.OptionMenu(
+                area_selector = ttk.OptionMenu(
                     area_selector_frame,
                     area_selector_title,
                     dropdown_selected,
@@ -581,13 +584,46 @@ class MainWindow:
                     command=self.select_area
                     ).grid(row=0, column=1, sticky='ew')
                 area_selector_frame.grid_columnconfigure(1, weight=5)
-                self.area_selector = dropdown
 
                 if available_areas:
                     closure = partial(show_create_area, self, self.areas, False, self.root)
                     add_area = ttk.Button(area_selector_frame, text='+', width=2, command=closure)
                     add_area.grid(row=0, column=3)
+                    layer_key = "layer_key"
+
+                    def select_layer(choice):
+                        self.active_area.settings[layer_key] = choice
+                        self.active_area._save_settings()
+                        self.check_for_changes()
+
+                    layer_selector_title = tk.StringVar(self.root)
+                    tk.Label(area_selector_frame, text="Layer:").grid(row=1, column=0)
+                    layer_selector = ttk.OptionMenu(
+                        area_selector_frame,
+                        layer_selector_title,
+                        self.active_area.settings[layer_key],
+                        *self.layer_manager.get_layer_names(),
+                        command=select_layer
+                    ).grid(row=1, column=1, sticky='ew')
                     
+
+                    def edit_layers(layers):
+                        self.layer_manager.layers = layers
+                        self.layer_manager.save()
+
+                        for area in self.areas:
+                            keys = list(self.layer_manager.layers.keys())
+                            if area.settings[layer_key] not in keys:
+                                area.settings[layer_key] = "Default"
+                                area.is_dirty = True
+
+                        self.check_for_changes()
+                        self.setup_inspector()
+
+                    closure = partial(LayerEditor, self.layer_manager.layers, edit_layers)
+                    edit_layers_button = ttk.Button(area_selector_frame, text='...', width=2, command=closure)
+                    edit_layers_button.grid(row=1, column=3)
+
                     area_selector_frame.pack(fill="x", anchor="n", expand=False)
                     ttk.Separator(inspector, orient="horizontal").pack(fill='x')
 
