@@ -5,6 +5,7 @@ Written: 2022
 """
 
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -156,7 +157,7 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
                 xOffsets = [abs(pt - 1.0) for pt in xOffsets]
                 yOffsets = [abs(pt - 1.0) for pt in yOffsets]
 
-            norm_file = norm_areas_dir / (file_prefix + '_vertices.csv')
+            norm_file = norm_areas_dir / (file_prefix + '_vertices_.csv')
             with norm_file.open('w') as file:
                 file.write('x,y\n')
                 for id in range(len(xOffsets)):
@@ -184,7 +185,18 @@ def export_data(target:LocationPaths, testMode=False, corner:CornerID=CornerID.S
                 copyfiles.append((mask_src, masks_areas_dir / mask_file))
 
     '''Hierachy Data'''
+    with target.layers_path.open('r', encoding='utf8') as file:
+        data_json:dict[str,str] = json.loads(file.read())
+    
+    data_csv = ""
+    for key in data_json:
+        data_csv += '{},{}\n'.format(key, data_json[key])
 
+    layers_path = masks_areas_dir = outputdir / 'Areas' / 'Layers.csv' 
+    with layers_path.open('w', encoding='utf8') as file:
+        file.write(data_csv)
+
+    '''Direct copy files'''
     for item in copyfiles:
         shutil.copy(*item)
 

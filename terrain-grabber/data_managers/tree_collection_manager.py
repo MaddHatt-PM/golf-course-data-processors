@@ -32,6 +32,7 @@ class TreeCollectionManager:
         self.default_tree:TreeAsset = TreeAsset()
         self.tree_dropdown = None
         self.is_active_tool = False
+        self.scaler = 1.0
         # if len(self.trees) == 0:
         #     self.trees.append(TreeAsset())
 
@@ -109,8 +110,19 @@ class TreeCollectionManager:
 
     def remove_tree(self, tree:TreeAsset):
         if messagebox.askokcancel("Delete Tree?", "Are you sure you want to delete this tree"):
-            self.trees.remove(tree)
+            self.active_tree.deselect()
+            self.trees.remove(self.active_tree)
+
             self.active_tree = self.trees[-1] if len(self.trees) != 0 else None
+            def redraw_func():
+                self.draw_to_inspector()
+                self.draw_to_viewport()
+
+            def set_default_tree(tree:TreeAsset):
+                self.default_tree = copy(tree)
+
+            self.active_tree.select(self, redraw_func, set_default_tree)
+            self.active_tree_title.set("None selected")
             self.save_data_to_files()
             self.draw_to_inspector()
             self.draw_to_viewport()
@@ -139,7 +151,7 @@ class TreeCollectionManager:
             def sin_lerp(start:float, end:float, val01:float):
                 return start + sin(val01 * pi * 0.5) * (end - start)
 
-            radius = max(tree.trunk_radius, tree.foliage_radius)
+            radius = max(tree.trunk_radius, tree.foliage_radius) / self.scaler
             straight_pts = []
             for i in range(sample_count):
                 pt = (
@@ -156,13 +168,14 @@ class TreeCollectionManager:
             # tipped_pts = [ (pt[0], pt[1] + 50) for pt in straight_pts]
             tipped_pts = tree.generate_foliage_profile(samples=sample_count / 2 + 1)
             tipped_pts = list(reversed(tipped_pts))
+
             def mirror_x(pt) -> tuple[float,float]:
                 return pt[0]*-1, pt[1]
             tipped_pts += [mirror_x(pt) for pt in reversed(tipped_pts)]
             tipped_pts = [
                 (
                     pt[0]-tipped_pts[0][0] + pos[0],
-                    pt[1]-tipped_pts[0][1] + pos[1] + tree.foliage_offset + tree.foliage_height,
+                    pt[1]-tipped_pts[0][1] + pos[1] + (tree.foliage_offset + tree.foliage_height) / self.scaler,
                 )
                 for pt in tipped_pts]
 
@@ -272,8 +285,8 @@ class TreeCollectionManager:
                 self.draw_to_viewport()
 
         if (self.active_tree_title.get() == "None selected" and len(self.trees) != 0):
-            select_tree_from_dropdown(tree_dropdown_options[0], do_rerender=False)
-            self.active_tree_title.set(tree_dropdown_options[0])
+            select_tree_from_dropdown(tree_dropdown_options[-1], do_rerender=False)
+            self.active_tree_title.set(tree_dropdown_options[-1])
 
         if len(self.trees) == 0:
             self.active_tree_title.set("None selected")

@@ -492,7 +492,7 @@ class TreeAsset:
     def draw_to_inspector(self, inspector:Frame, drawer:InspectorDrawer):
         if self._canvas is not None:
             for item in self._canvas_items:
-                self._canvas.delete(item)
+                    self._canvas.delete(item)
 
         drawer.clear_inspector()
 

@@ -21,14 +21,15 @@ from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import IntVar, Tk, ttk, BooleanVar, DoubleVar, StringVar, Variable, Canvas, Frame, Menu, PhotoImage
 from tkinter.messagebox import askyesnocancel
-
-from operations.generate_imagery import generate_imagery, generate_contour_map
+from geographiclib.geodesic import Geodesic
 
 from asset_project import LocationPaths
 from data_managers import TreeCollectionManager, LayerManager, LayerEditor
 from asset_area import AreaAsset, create_area_file_with_data
+from operations.generate_imagery import generate_imagery, generate_contour_map
 from operations import export_data, export_model, restart_with_location
 from utilities import SpaceTransformer, ToolMode, CoordMode, UIColors
+from utilities.math import meter_to_feet
 from views import show_api_usage, show_create_area, show_create_location, show_import_path_as_area
 from subviews import InspectorDrawer
 
@@ -74,6 +75,7 @@ class MainWindow:
         self.zoom = 1.0
         self.mouse_pos = (-100, -100)
         self.is_dirty = False
+    
 
         # Prepare image references
         self.image_raw:Image = Image.open(self.target.satelite_img_path).convert('RGBA')
@@ -674,6 +676,8 @@ class MainWindow:
         self.image_resized = self.image_base.resize((width, height), resample=Image.BICUBIC)
         self.canvasUtil.image_resized = self.image_resized
 
+        self.compute_feet_to_pixel_ratio()
+
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
         self.image_canvasID = self.canvas.create_image(self.image_pi.width()/2, self.image_pi.height()/2, anchor=tk.CENTER, image=self.image_pi)
 
@@ -687,13 +691,16 @@ class MainWindow:
         viewport = Frame(self.root, bg=UIColors.canvas_col)
         viewport.grid(row=0, column=0, sticky="nswe")
 
-        
         width, height = self.zoom * self.image_base.width, self.zoom * self.image_base.height
         self.img_size = int(width), int(height)
-
+        
         # Keep image references to avoid Garbage Collector
         self.image_resized = self.image_base.resize(self.img_size, resample=Image.BICUBIC)
         self.image_pi = ImageTk.PhotoImage(image=self.image_resized)
+
+        self.coords = self.target.coordinates()
+        self.feet_to_pixel_ratio:float = 1.0
+        self.compute_feet_to_pixel_ratio()
 
         self.canvas = Canvas(viewport)
         self.canvasUtil = SpaceTransformer(self.canvas, self.target, self.image_resized)
@@ -731,21 +738,6 @@ class MainWindow:
             area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
             area.draw_to_viewport()
 
-    def select_area(self, choice):
-        self.drawer.clear_inspector()
-        if self.active_area is not None:
-            self.active_area.on_deselect()
-
-        for area in self.areas:
-            if area.name == choice:
-                self.active_area = area
-                break
-
-        self.active_area.on_select()
-        self.canvas.bind("<Leave>", self.active_area.destroy_last_point_line)
-        self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
-        self.active_area.draw_to_inspector(self.drawer)
-        self.active_area.draw_to_viewport()
 
     def setup_statusbar(self):
         frame = Frame(self.root, bg=UIColors.ui_bgm_col)
@@ -769,3 +761,27 @@ class MainWindow:
         zoom_out.pack(side=tk.LEFT, padx=4)
         zoom_percentage.pack(side=tk.LEFT)
         zoom_in.pack(side=tk.LEFT, padx=0)
+
+    def select_area(self, choice):
+        self.drawer.clear_inspector()
+        if self.active_area is not None:
+            self.active_area.on_deselect()
+
+        for area in self.areas:
+            if area.name == choice:
+                self.active_area = area
+                break
+
+        self.active_area.on_select()
+        self.canvas.bind("<Leave>", self.active_area.destroy_last_point_line)
+        self.active_area.drawing_init(self.canvas, self.canvasUtil, self.img_size)
+        self.active_area.draw_to_inspector(self.drawer)
+        self.active_area.draw_to_viewport()
+
+    def compute_feet_to_pixel_ratio(self):
+        geosphere = Geodesic.WGS84
+        p0,p1 = self.coords
+        p1 = p1[0],p0[1]
+        feet_length = meter_to_feet(geosphere.Inverse(*p0,*p1)["s12"])
+        self.tree_manager.scaler = feet_length / self.image_resized.width
+        
