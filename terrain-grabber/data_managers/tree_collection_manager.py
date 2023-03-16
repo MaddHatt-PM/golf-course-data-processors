@@ -146,6 +146,7 @@ class TreeCollectionManager:
         for tree in self.trees:
             pos = tree.transform_position_x, tree.transform_position_y
             pos = self.util.norm_pt_to_pixel_space(pos)
+            print(self.util.multiplier_for_distance())
 
             sample_count = 64
             def sin_lerp(start:float, end:float, val01:float):

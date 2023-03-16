@@ -1,0 +1,2 @@
+trunk_radius,trunk_height,trunk_offset,trunk_upper_taper,foliage_radius,foliage_height,foliage_offset,foliage_upper_curv,foliage_midpoint,foliage_lower_curv,transform_position_x,transform_position_y,transform_rotation_tilt,transform_rotation_spin,rendering_samples
+1.0,2.0,0.0,0.0,2.5,5.0,0.0,2.0,0.5,2.0,0.5,0.5,0.0,0.0,32

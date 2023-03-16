@@ -102,3 +102,17 @@ class SpaceTransformer:
         elif mode is CoordMode.pixel:
             pt0 = self.pixel_pt_to_earth_space(pt0)
             pt1 = self.pixel_pt_to_earth_space(pt1)
+
+    def multiplier_for_distance(self):
+        p0, p1 = self.target.coordinates()
+        line0 = self.geo_util.Inverse(*p0, *p1)
+        real_world_distance = line0['s12']
+        return real_world_distance
+
+        offset = 0.0001 # small offset ~11m
+        q0 = (p0[0], p0[1] + offset)
+        q1 = (p1[0], p1[1] + offset)
+        line1 = self.geo_util.Inverse(*q0, q1)
+
+        scale_factor = distance / real_world_distance
+        return scale_factor
